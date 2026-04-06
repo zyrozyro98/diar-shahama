@@ -1,0 +1,15 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Functions
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Default catch-all (Secure)
+    match /{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuth(); // For admin dashboard images
+    }
+  }
+}

@@ -1,0 +1,2220 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="meta-title">ون كار للسيارات | الفخامة والجودة تليق بك</title>
+    <meta id="meta-description" name="description"
+        content="ون كار - الوجهة الرائدة للسيارات الفاخرة والمعتمدة في المملكة العربية السعودية. جودة نضمنها، وفخامة تعيشها.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Preloads -->
+    <link rel="preload" href="logo.jpg" as="image">
+    <link rel="stylesheet" href="/src/style.css">
+    <script>
+        window.__DYNAMIC_NAME_AR__ = "ون كار";
+        window.__DYNAMIC_NAME_EN__ = "ONE CAR";
+
+        // Immediate Style Sync to prevent flicker
+        (function () {
+            const savedSettings = localStorage.getItem('luxury-settings-cache');
+            if (savedSettings) {
+                try {
+                    const s = JSON.parse(savedSettings);
+                    const root = document.documentElement;
+                    if (s.primaryColor) {
+                        root.style.setProperty('--p-red', s.primaryColor);
+                        root.style.setProperty('--p-red-glow', s.primaryColor + '66');
+                    }
+                    if (s.secondaryColor) root.style.setProperty('--p-teal', s.secondaryColor);
+                    if (s.accentColor) root.style.setProperty('--p-copper', s.accentColor);
+
+                    if (s.logo) window.__DYNAMIC_LOGO__ = s.logo;
+                    if (s.nameAr) {
+                        window.__DYNAMIC_NAME_AR__ = s.nameAr;
+                        document.title = s.nameAr;
+                    }
+                    if (s.nameEn) window.__DYNAMIC_NAME_EN__ = s.nameEn;
+                } catch (e) { }
+            }
+        })();
+    </script>
+</head>
+
+<body>
+    <div id="luxury-splash" class="splash-screen">
+        <div class="splash-logo splash-logo-wrap">
+            <img src="logo.jpg" id="splash-logo-img" alt="شعار معرض ديار الشهمة" class="img-splash-logo">
+            <script>if (window.__DYNAMIC_LOGO__) { document.getElementById('splash-logo-img').src = window.__DYNAMIC_LOGO__; }</script>
+        </div>
+        <div class="luxury-logo-gold dynamic-name-ar" style="font-size:32px; margin-bottom:0;"></div>
+        <div class="dynamic-name-en luxury-name-en-splash"></div>
+        <script>
+            // Prioritize cached name to avoid empty state
+            if (window.__DYNAMIC_NAME_AR__) document.querySelector('#luxury-splash .dynamic-name-ar').innerText = window.__DYNAMIC_NAME_AR__;
+            if (window.__DYNAMIC_NAME_EN__) document.querySelector('#luxury-splash .dynamic-name-en').innerText = window.__DYNAMIC_NAME_EN__;
+        </script>
+        <div class="loading-bar-wrap">
+            <div class="loading-bar-inner">
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes loading-slide {
+            from {
+                left: -100%;
+            }
+
+            to {
+                left: 100%;
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+
+            50% {
+                transform: scale(1.05);
+                opacity: 1;
+            }
+        }
+    </style>
+
+    <div id="premium-app">
+        <!-- Floating Elements -->
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+
+        <!-- Top Announcement Bar -->
+        <div class="top-bar-luxury">
+            <div class="container container-flex">
+                <div class="tb-item">
+                    <i class="fas fa-certificate"></i>
+                    <span>نضمن لك أفضل الأسعار في السوق</span>
+                </div>
+                <div class="tb-item hide-mobile">
+                    <i class="fas fa-clock"></i>
+                    <span id="top-bar-time-promo">عروض حصرية لفترة محدودة</span>
+                </div>
+                <div class="tb-item">
+                    <a href="#booking" class="tb-link">احجز تجربة قيادة <i class="fas fa-arrow-left"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Luxury Navigation -->
+        <nav class="nav-premium" id="main-nav">
+            <div class="container">
+                <div class="logo-wrap flex-center-gap" onclick="location.href='#ads-section'" style="cursor: pointer;">
+                    <img src="logo.jpg" id="nav-logo-img" alt="Logo" class="nav-logo-img-fixed">
+                    <script>if (window.__DYNAMIC_LOGO__) { document.getElementById('nav-logo-img').src = window.__DYNAMIC_LOGO__; }</script>
+                    <div class="logo-brand-divider logo-divider-v2">
+                        <div class="luxury-logo-gold dynamic-name-ar" style="font-size: 26px; letter-spacing: 0.5px;">
+                        </div>
+                        <span class="dynamic-name-en luxury-name-en-nav"></span>
+                        <script>
+                            if (window.__DYNAMIC_NAME_AR__) document.querySelector('.logo-brand-divider .dynamic-name-ar').innerText = window.__DYNAMIC_NAME_AR__;
+                            if (window.__DYNAMIC_NAME_EN__) document.querySelector('.logo-brand-divider .dynamic-name-en').innerText = window.__DYNAMIC_NAME_EN__;
+                        </script>
+                    </div>
+                </div>
+
+                <ul class="nav-menu">
+                    <li class="mobile-menu-header">
+                        <div class="m-logo-text">
+                            <span class="dynamic-name-ar"></span>
+                        </div>
+                        <button class="menu-close-btn" aria-label="أغلق القائمة"><i class="fas fa-times"></i></button>
+                    </li>
+                    <li><a href="#ads-section" class="active">الرئيسية</a></li>
+                    <li><a href="#inventory">السيارات</a></li>
+                    <li><a href="#financing">تمويل</a></li>
+                    <li><a href="#ads-section">العروض</a></li>
+                    <li><a href="#about">معلومات عنا</a></li>
+                    <li><a href="#admin" id="admin-trigger">تسجيل الدخول</a></li>
+                </ul>
+
+                <div class="nav-meta">
+                    <div class="meta-controls">
+                        <button id="lang-btn" class="icon-btn-lite" title="Switch Language">EN</button>
+                        <button id="theme-btn" class="icon-btn-lite" title="تغيير المظهر" aria-label="Toggle Theme"><i
+                                class="fas fa-moon"></i></button>
+                    </div>
+                    <button class="mobile-btn" title="القائمة" aria-label="Open Mobile Menu"><i
+                            class="fas fa-bars-staggered"></i></button>
+                </div>
+                <div class="mobile-nav-overlay"></div>
+            </div>
+        </nav>
+
+        <main>
+            <!-- Hero V2 -->
+            <!-- Hero Slider (Formerly Offers) -->
+            <section id="ads-section" class="hero-slider-v2">
+                <div class="container">
+                    <div class="premium-slider-wrap">
+                        <div class="slider-inner" id="slider-track">
+                            <!-- Dynamic Offers/Ads will load here -->
+                        </div>
+                        <div class="slider-nav">
+                            <button id="p-prev" class="s-nav-btn" title="العرض السابق" aria-label="Previous Offer"><i
+                                    class="fas fa-chevron-right"></i></button>
+                            <button id="p-next" class="s-nav-btn" title="العرض التالي" aria-label="Next Offer"><i
+                                    class="fas fa-chevron-left"></i></button>
+                        </div>
+                        <div class="slider-dots" id="slider-dots"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Featured Offers Showcase -->
+            <section id="featured-offers-section" class="section-padding featured-offers-bg">
+                <div class="container">
+                    <div class="luxury-heading text-center">
+                        <h2>عروض <span class="highlight">حصرية</span></h2>
+                        <p>اكتشف أفضل الصفقات المختارة بعناية</p>
+                    </div>
+                    <div id="featured-offers-container" class="grid-offers-v2">
+                        <!-- Dynamic Featured Ads -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Brand Introduction (Sophisticated Showcase) -->
+            <section id="brand-intro" class="hero-v2">
+                <div class="hero-visual"
+                    style="opacity: 0.1; background-image: url('https://images.unsplash.com/photo-1603386329225-868f9b1ee6c9?auto=format&fit=crop&w=1920&q=80');">
+                </div>
+                <div class="container">
+                    <div class="content-box content-centered">
+                        <span class="pre-title luxury-pre-title">وجهتكم الأولى في
+                            الرياض</span>
+                        <div class="brand-name-stack flex-column-center">
+                            <h1 class="luxury-logo-gold dynamic-name-ar hero-main-title"></h1>
+                            <div class="dynamic-name-en luxury-name-en-hero"></div>
+                            <script>
+                                if (window.__DYNAMIC_NAME_AR__) document.querySelector('#brand-intro .dynamic-name-ar').innerText = window.__DYNAMIC_NAME_AR__;
+                                if (window.__DYNAMIC_NAME_EN__) document.querySelector('#brand-intro .dynamic-name-en').innerText = window.__DYNAMIC_NAME_EN__;
+                            </script>
+                        </div>
+                        <h2 class="hero-title hero-secondary-title">سيارات
+                            جديدة <span class="highlight">بأفضل سعر</span></h2>
+                        <p class="hero-description hero-desc-text">نقدم لكم
+                            تجربة فريدة في عالم السيارات الفاخرة، حيث تجتمع الجودة العالية مع الأسعار التنافسية في قلب
+                            العاصمة الرياض. التميز هو خيارنا الوحيد لكم.</p>
+                        <div class="hero-btns flex-center-center gap-20">
+                            <a href="#inventory" class="btn-premium">تصفح الصالة</a>
+                            <a href="#booking" class="btn-premium btn-secondary">إحجز الآن</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Inventory Gallery (Bento Style) -->
+            <section id="inventory" class="section-padding">
+                <div class="container">
+                    <div class="luxury-heading">
+                        <div class="title-stack">
+                            <h2 class="section-title">صالة عرض <span class="highlight">السيارات</span></h2>
+                            <p class="section-subtitle">نخبة من أحدث السيارات العالمية المختارة
+                                بعناية
+                            </p>
+                        </div>
+                        <div class="advanced-filter-bar">
+                            <div class="search-box-wrap">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="car-search-input" placeholder="ابحث عن سيارة أحلامك..."
+                                    aria-label="Search cars by name">
+                                <button class="btn-premium btn-sm" onclick="window.resetFilters()">عرض الكل</button>
+                            </div>
+                            <div class="filters-row">
+                                <select id="filter-make" class="filter-select" aria-label="اختر الماركة"
+                                    title="الماركة">
+                                    <option value="all">كل الماركات</option>
+                                    <!-- Dynamic Makes -->
+                                </select>
+                                <select id="filter-type" class="filter-select" aria-label="اختر فئة السيارة"
+                                    title="الفئة">
+                                    <option value="all">كل الفئات</option>
+                                    <option value="sedan">سيدان</option>
+                                    <option value="suv">SUV</option>
+                                    <option value="luxury">فاخرة</option>
+                                </select>
+                                <select id="filter-year" class="filter-select" aria-label="اختر موديل السيارة"
+                                    title="الموديل">
+                                    <option value="all">كل الموديلات</option>
+                                    <!-- Dynamic Years -->
+                                </select>
+                                <select id="filter-sort" class="filter-select" aria-label="ترتيب النتائج"
+                                    title="الترتيب">
+                                    <option value="newest">الأحدث أولاً</option>
+                                    <option value="price-asc">السعر: من الأقل</option>
+                                    <option value="price-desc">السعر: من الأعلى</option>
+                                    <option value="year-asc">الموديل: الأقدم</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bento-grid" id="cars-container">
+                    </div>
+
+                    <!-- Pagination Container -->
+                    <div id="pagination-wrap" class="pagination-container"></div>
+                </div>
+            </section>
+
+            <!-- Delivery Moments -->
+            <section id="sales" class="section-padding">
+                <div class="container">
+                    <div class="luxury-heading text-center">
+                        <h2>لحظات <span class="highlight">النجاح</span></h2>
+                        <p>شاهد تجارب عملائنا المميزين</p>
+                    </div>
+                    <div class="video-grid-v2" id="sales-container">
+                        <!-- Dynamic Videos -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Customer Reviews Section -->
+            <section id="reviews" class="section-padding section-bg-dark section-bordered">
+                <div class="container">
+                    <div class="luxury-heading text-center">
+                        <h2>آراء <span class="highlight">العملاء</span></h2>
+                        <p>تجارب عملائنا هي مصدر فخرنا</p>
+                    </div>
+                    <div class="reviews-slider reviews-scroll no-scrollbar" id="public-reviews-container">
+                        <!-- Dynamic Reviews -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Financing Excellence Section -->
+            <section id="financing" class="section-padding alternate-bg">
+                <div class="container">
+                    <div class="luxury-heading text-center">
+                        <h2>مركز <span class="highlight">الحلول التمويلية</span></h2>
+                        <p>منصة تلبي احتياجك | تمويل سريع</p>
+                    </div>
+
+                    <div class="financing-hub">
+                        <!-- Left: Info & Partners -->
+                        <div class="fin-partners-info">
+                            <div class="fin-tagline luxury-font">حلول ذكية لتمويل ذكي</div>
+                            <div class="partner-cards-wrap">
+                                <div class="partner-card">
+                                    <div class="p-icon"><i class="fas fa-university"></i></div>
+                                    <div class="p-text">
+                                        <h4>تمويل البنوك</h4>
+                                        <p>شراكات مع كافة البنوك المحلية بهوامش ربح تنافسية.</p>
+                                    </div>
+                                </div>
+                                <div class="partner-card">
+                                    <div class="p-icon"><i class="fas fa-bolt"></i></div>
+                                    <div class="p-text">
+                                        <h4>موافقة فورية</h4>
+                                        <p>نساعدك في الحصول على الموافقة المبدئية في أقل من 24 ساعة.</p>
+                                    </div>
+                                </div>
+                                <div class="partner-card highlight-card">
+                                    <div class="p-icon"><i class="fas fa-percent"></i></div>
+                                    <div class="p-text">
+                                        <h4>أقل فائدة</h4>
+                                        <p>نضمن لك الحصول على أقل نسبة فائدة متاحة في السوق حالياً.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right: Interactive Calculator -->
+                        <div class="fin-calc-card">
+                            <h3 class="luxury-font">حاسبة التمويل <span class="badge">تقديرية</span></h3>
+                            <div class="calc-form">
+                                <div class="input-group">
+                                    <label for="calc-car-price">سعر السيارة</label>
+                                    <div class="input-wrap">
+                                        <input type="number" id="calc-car-price" value="180000" aria-label="سعر السيارة"
+                                            title="أدخل سعر السيارة">
+                                        <span>ريال</span>
+                                    </div>
+                                </div>
+                                <div class="input-group">
+                                    <label for="calc-down-pay">الدفعة الأولى</label>
+                                    <div class="input-wrap">
+                                        <input type="number" id="calc-down-pay" value="18000" aria-label="الدفعة الأولى"
+                                            title="أدخل قيمة الدفعة الأولى">
+                                        <span>ريال</span>
+                                    </div>
+                                </div>
+                                <div class="input-group">
+                                    <label for="calc-years">مدة التمويل (سنوات)</label>
+                                    <div class="input-wrap">
+                                        <select id="calc-years" class="filter-select"
+                                            aria-label="اختر عدد سنوات التمويل" title="مدة التمويل">
+                                            <option value="1">1 سنة</option>
+                                            <option value="2">2 سنتين</option>
+                                            <option value="3">3 سنوات</option>
+                                            <option value="4">4 سنوات</option>
+                                            <option value="5" selected>5 سنوات</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="calc-preview">
+                                    <div class="preview-item">
+                                        <span>القسط الشهري المتوقع</span>
+                                        <h2 id="calc-result-val" class="highlight">2,850 ريال</h2>
+                                    </div>
+                                    <button class="btn-premium btn-full" onclick="location.href='#booking'">ابدأ معاملتك
+                                        الآن</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+
+            <!-- About Us Section (Sophisticated Bento) -->
+            <section id="about" class="section-padding alternate-bg">
+                <div class="container">
+                    <div class="about-grid-v3">
+                        <!-- Main Content Card -->
+                        <div class="about-card hero-card">
+                            <span class="pre-title">وجهتكم الأولى في الرياض</span>
+                            <h2 class="luxury-font">إرثٌ من <span class="highlight">الثقة</span></h2>
+                            <p id="about-text-display">نقدم لكم تجربة استثنائية في عالم السيارات. منذ انطلاقتنا، وضعنا
+                                نصب أعيننا تقديم حلول مبتكرة وموثوقة تعزز نمط حياتك، وتجعلنا الشريك المفضل في رحلتك نحو
+                                التميز.</p>
+                        </div>
+
+                        <!-- Stats Card 1 -->
+                        <div class="about-card stat-card-v3">
+                            <div class="stat-icon"><i class="fas fa-history"></i></div>
+                            <div class="stat-info">
+                                <h3 class="highlight">14+</h3>
+                                <span>سنة من الريادة</span>
+                            </div>
+                        </div>
+
+                        <!-- Stats Card 2 -->
+                        <div class="about-card stat-card-v3">
+                            <div class="stat-icon"><i class="fas fa-users"></i></div>
+                            <div class="stat-info">
+                                <h3 class="highlight">10K+</h3>
+                                <span>عميل سعيد</span>
+                            </div>
+                        </div>
+
+                        <!-- Stats Card 3 -->
+                        <div class="about-card stat-card-v3">
+                            <div class="stat-icon"><i class="fas fa-certificate"></i></div>
+                            <div class="stat-info">
+                                <h3 class="highlight">100%</h3>
+                                <span>جودة معتمدة</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Partners Section -->
+            <section id="partners" class="section-padding alternate-bg" style="background: none;">
+                <div class="container">
+                    <div style="text-align: center; margin-bottom: 50px;">
+                        <span class="pre-title">شركاء النجاح</span>
+                        <h2 class="luxury-font">شركاؤنا <span class="highlight">الاستراتيجيون</span></h2>
+                        <p style="color:var(--text-dim); margin-top: 10px; font-size: 15px;">نفخر بشراكتنا مع نخبة من
+                            المؤسسات (بنوك، شركات تأمين، وغيرها) لتقديم أفضل المستويات الخدمية لكم.</p>
+                    </div>
+                    <div id="front-partners-grid"
+                        style="display: flex; flex-wrap: wrap; gap: 30px; justify-content: center; align-items: center;">
+                        <!-- Dynamic Partners will be rendered here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIP Concierge (Booking) -->
+            <section id="booking" class="section-padding">
+                <div class="container">
+                    <div class="concierge-card">
+
+                        <div class="concierge-form-wrap">
+                            <h2 class="luxury-font">إحجز<span class="highlight"> الآن</span></h2>
+                            <form id="booking-form" class="vip-form">
+                                <div class="form-row">
+                                    <div class="f-group">
+                                        <label>نوع الطلب</label>
+                                        <div class="tab-radio">
+                                            <input type="radio" id="f-ind" name="customer-type" value="individual"
+                                                checked>
+                                            <label for="f-ind">فرد</label>
+                                            <input type="radio" id="f-com" name="customer-type" value="company">
+                                            <label for="f-com">شركة</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="f-group">
+                                    <label id="lbl-b-car">السيارة المطلوبة</label>
+                                    <input type="text" id="b-car" placeholder="مثال: تويوتا كامري 2024" required>
+                                </div>
+                                <div class="f-group">
+                                    <label id="lbl-b-name">الإسم بالكامل</label>
+                                    <input type="text" id="b-name" placeholder="أدخل اسمك" autocomplete="name" required>
+                                </div>
+                                <div class="form-row">
+                                    <div class="f-group">
+                                        <label>رقم الجوال</label>
+                                        <input type="tel" id="b-phone" placeholder="05xxxxxxx" autocomplete="tel"
+                                            required>
+                                    </div>
+                                    <div class="f-group">
+                                        <label id="lbl-b-age">العمر</label>
+                                        <input type="number" id="b-age" placeholder="25" required>
+                                    </div>
+                                </div>
+                                <div class="f-group">
+                                    <label>البريد الإلكتروني (اختياري)</label>
+                                    <input type="email" id="b-email" placeholder="email@example.com"
+                                        autocomplete="email">
+                                </div>
+                                <div class="form-row">
+                                    <div class="f-group" id="nationality-wrap">
+                                        <label for="b-nationality" id="lbl-b-nat">الجنسية</label>
+                                        <select id="b-nationality" class="filter-select" aria-label="الجنسية"
+                                            title="اختر الجنسية">
+                                            <option value="سعودي" selected>سعودي</option>
+                                            <option value="مقيم">مقيم (جنسية أخرى)</option>
+                                        </select>
+                                    </div>
+                                    <div class="f-group">
+                                        <label for="b-city">المدينة</label>
+                                        <select id="b-city" class="filter-select" aria-label="المدينة"
+                                            title="اختر المدينة">
+                                            <option value="" disabled selected>اختر المدينة</option>
+                                            <option value="الرياض">الرياض</option>
+                                            <option value="جدة">جدة</option>
+                                            <option value="الدمام">الدمام</option>
+                                            <option value="مكة">مكة</option>
+                                            <option value="المدينة">المدينة</option>
+                                            <option value="أخرى">أخرى</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="f-group">
+                                    <label>طريقة الشراء</label>
+                                    <div class="tab-radio">
+                                        <input type="radio" id="pay-cash" name="payment-method" value="كاش" checked
+                                            onchange="document.getElementById('bank-name-wrap').style.display='none'; document.getElementById('b-bank-name').required=false; document.getElementById('installment-period-wrap').style.display='none'; document.getElementById('b-installment-period').required=false; document.getElementById('salary-commitments-wrap').style.display='none'; document.getElementById('work-details-wrap').style.display='none';">
+                                        <label for="pay-cash">كاش</label>
+                                        <input type="radio" id="pay-bank" name="payment-method" value="بنك"
+                                            onchange="document.getElementById('bank-name-wrap').style.display='block'; document.getElementById('b-bank-name').required=true; document.getElementById('installment-period-wrap').style.display='block'; document.getElementById('b-installment-period').required=true; document.getElementById('salary-commitments-wrap').style.display='flex'; document.getElementById('work-details-wrap').style.display='flex';">
+                                        <label for="pay-bank">بنك (تمويل)</label>
+                                    </div>
+                                </div>
+                                <div class="f-group" id="bank-name-wrap"
+                                    style="display: none; animation: toast-in 0.3s ease;">
+                                    <label>اسم البنك الراتب عليه أو المفضل</label>
+                                    <input type="text" id="b-bank-name" placeholder="مثال: الراجحي، الأهلي...">
+                                </div>
+                                <div class="f-group" id="installment-period-wrap"
+                                    style="display: none; animation: toast-in 0.3s ease;">
+                                    <label>مدة الأقساط المفضل</label>
+                                    <select id="b-installment-period" class="filter-select">
+                                        <option value="" disabled selected>اختر مدة الأقساط</option>
+                                        <option value="سنة">سنة</option>
+                                        <option value="سنتين">سنتين</option>
+                                        <option value="ثلاث سنوات">ثلاث سنوات</option>
+                                        <option value="اربع سنوات">اربع سنوات</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-row" id="salary-commitments-wrap" style="display: none; animation: toast-in 0.3s ease;">
+                                    <div class="f-group">
+                                        <label>الراتب الشهري (صافي)</label>
+                                        <input type="number" id="b-salary" placeholder="مثال: 8000">
+                                    </div>
+                                    <div class="f-group">
+                                        <label>الإلتزامات الشهرية</label>
+                                        <input type="number" id="b-commitments" placeholder="مثال: 2000">
+                                    </div>
+                                </div>
+                                <div class="form-row" id="work-details-wrap" style="display: none; animation: toast-in 0.3s ease;">
+                                    <div class="f-group">
+                                        <label for="b-work-entity">جهة العمل</label>
+                                        <select id="b-work-entity" class="filter-select" aria-label="جهة العمل"
+                                            title="جهة العمل">
+                                            <option value="حكومي" selected>حكومي</option>
+                                            <option value="خاص">خاص</option>
+                                        </select>
+                                    </div>
+                                    <div class="f-group">
+                                        <label for="b-work-status">حالة الجهة</label>
+                                        <select id="b-work-status" class="filter-select" aria-label="حالة الجهة"
+                                            title="حالة الجهة">
+                                            <option value="معتمد" selected>معتمد</option>
+                                            <option value="غير معتمد">غير معتمد</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="f-group">
+                                    <label>طريقة التواصل المفضلة</label>
+                                    <div class="tab-radio">
+                                        <input type="radio" id="c-phone" name="contact-method" value="الجوال" checked>
+                                        <label for="c-phone">اتصال هاتفي</label>
+                                        <input type="radio" id="c-wa" name="contact-method" value="واتساب">
+                                        <label for="c-wa">واتساب</label>
+                                    </div>
+                                </div>
+
+                                <div class="f-group">
+                                    <label>يرجى مراعاة أوقات عملنا</label>
+                                    <div class="tab-radio">
+                                        <input type="radio" id="time-morn" name="preferred-time" value="10am - 1pm"
+                                            checked>
+                                        <label for="time-morn">10am - 1pm</label>
+                                        <input type="radio" id="time-even" name="preferred-time" value="4pm - 9pm">
+                                        <label for="time-even">4pm - 9pm</label>
+                                    </div>
+                                </div>
+
+                                <div class="f-group">
+                                    <label>ملاحظات إضافية</label>
+                                    <textarea id="b-notes"
+                                        placeholder="هل هناك أي تفاصيل أخرى ترغب بإضافتها؟"></textarea>
+                                </div>
+                                <button type="submit" class="btn-premium btn-full">تأكيد طلب حجز الخدمة</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+
+
+        <!-- Premium Footer -->
+        <footer class="luxury-footer" id="footer">
+            <div class="container">
+                <div class="footer-main">
+                    <div class="f-brand">
+                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                            <img src="logo.jpg" id="footer-logo-img" alt="Logo"
+                                style="height: 55px; width: auto; object-fit: contain;">
+                            <script>if (window.__DYNAMIC_LOGO__) document.getElementById('footer-logo-img').src = window.__DYNAMIC_LOGO__;</script>
+                            <div
+                                style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1;">
+                                <div class="luxury-logo-gold dynamic-name-ar" style="font-size: 28px;"></div>
+                                <span class="dynamic-name-en"
+                                    style="font-family: 'Outfit'; font-size: 11px; color: var(--p-red); letter-spacing: 1px; font-weight: 800; text-transform: uppercase;"></span>
+                                <script>
+                                    if (window.__DYNAMIC_NAME_AR__) document.querySelector('.f-brand .dynamic-name-ar').innerText = window.__DYNAMIC_NAME_AR__;
+                                    if (window.__DYNAMIC_NAME_EN__) document.querySelector('.f-brand .dynamic-name-en').innerText = window.__DYNAMIC_NAME_EN__;
+                                </script>
+                            </div>
+                        </div>
+                        <p id="location-text-display">الرياض - معارض القادسية</p>
+                        <div class="f-social">
+                            <a id="f-insta" href="#" target="_blank" title="Instagram" aria-label="Instagram"><i
+                                    class="fab fa-instagram"></i></a>
+                            <a id="f-snap" href="#" target="_blank" title="Snapchat" aria-label="Snapchat"><i
+                                    class="fab fa-snapchat"></i></a>
+                            <a id="f-twitter" href="#" target="_blank" title="Twitter" aria-label="Twitter"><i
+                                    class="fab fa-x-twitter"></i></a>
+                        </div>
+                    </div>
+                    <div class="f-contact-info">
+                        <h4 class="luxury-font highlight" style="margin-bottom: 20px;">معلومات الاتصال</h4>
+                        <ul style="list-style: none; display: flex; flex-direction: column; gap: 10px;">
+                            <li id="contact-mgmt-display"><strong>الإدارة:</strong> <span id="f-phone-admin">...</span>
+                            </li>
+                            <li id="contact-sales-display"><strong>المبيعات:</strong> <span
+                                    id="f-phone-sales">...</span></li>
+                            <li id="contact-complaints-display"><strong>الشكاوي والاقتراحات:</strong> <span
+                                    id="f-phone-info">...</span></li>
+                            <li id="contact-email-display"><strong>البريد الإلكتروني:</strong> <span
+                                    id="f-email-display">...</span></li>
+                            <li style="margin-top: 10px;"><a id="contact-location-link" href="#" target="_blank"
+                                    class="btn-premium btn-sm" style="display: inline-block;">📍 موقعنا
+                                    على الخريطة</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="f-bottom">
+                    <p id="footer-copyright">&copy; 2026. Crafted with Excellence.</p>
+                    <script>
+                        const updateCopyright = () => {
+                            const name = window.__DYNAMIC_NAME_EN__ || 'Gallery';
+                            document.getElementById('footer-copyright').innerHTML = `&copy; 2026 ${name}. Crafted with Excellence.`;
+                        };
+                        updateCopyright();
+                    </script>
+                </div>
+            </div>
+        </footer>
+
+        <!-- Admin System -->
+        <div id="admin-modal" class="modal hidden">
+            <div class="modal-inner">
+                <button class="modal-close" aria-label="إغلاق النافذة" title="إغلاق النافذة">&times;</button>
+                <div id="admin-login-ui" class="admin-box">
+                    <h2 class="luxury-font">دخول <span class="highlight">الإدارة</span></h2>
+                    <form id="login-form" class="vip-form">
+                        <input type="email" id="admin-email" placeholder="البريد الإلكتروني" autocomplete="email"
+                            required>
+                        <input type="password" id="admin-pass" placeholder="كلمة المرور" autocomplete="current-password"
+                            required>
+                        <button type="submit" class="btn-premium btn-full">دخول</button>
+                    </form>
+                </div>
+
+                <div id="admin-dash-ui" class="admin-dash hidden dashboard-v2">
+                    <aside class="dash-sidebar">
+                        <div class="sidebar-brand">
+                            <img src="logo.jpg" alt="Logo" style="height: 40px;">
+                            <div
+                                style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1; gap: 2px;">
+                                <span class="luxury-logo-gold dynamic-name-ar" style="font-size: 16px;"></span>
+                                <span class="dynamic-name-en"
+                                    style="font-family: 'Outfit'; font-size: 8px; color: var(--p-red); letter-spacing: 1px; font-weight: 800; text-transform: uppercase;"></span>
+                                <script>
+                                    if (window.__DYNAMIC_NAME_AR__) document.querySelector('.sidebar-brand .dynamic-name-ar').innerText = window.__DYNAMIC_NAME_AR__;
+                                    if (window.__DYNAMIC_NAME_EN__) document.querySelector('.sidebar-brand .dynamic-name-en').innerText = window.__DYNAMIC_NAME_EN__;
+                                </script>
+                            </div>
+                            <button class="sidebar-close-btn"
+                                onclick="document.querySelector('.dash-sidebar').classList.remove('active')"
+                                title="إغلاق القائمة الجانبية" aria-label="إغلاق القائمة الجانبية">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="sidebar-user">
+                            <div class="user-avatar" id="user-avatar-v2"><i class="fas fa-user-shield"></i></div>
+                            <div class="user-info">
+                                <h4 id="user-display-name">المسؤول</h4>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span id="user-role-label">إدارة النظام</span>
+                                    <span id="user-status-badge" class="status-badge busy">●</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Staff Productivity Quick Stats (Staff Only) -->
+                        <div id="staff-quick-stats" class="staff-mini-stats hidden">
+                            <div class="mini-stat-item">
+                                <label for="availability-toggle">جاهزية الاستلام</label>
+                                <div class="toggle-switch" onclick="window.toggleAvailability()">
+                                    <input type="checkbox" id="availability-toggle" aria-label="تغيير جاهزية الاستلام"
+                                        title="تغيير الجاهزية">
+                                    <span class="slider round"></span>
+                                </div>
+                            </div>
+                            <div class="mini-stat-item">
+                                <label for="sound-toggle">تنبيهات صوتية</label>
+                                <div class="toggle-switch" onclick="window.toggleSound()">
+                                    <input type="checkbox" id="sound-toggle" checked
+                                        aria-label="تفعيل أو تعطيل التنبيهات الصوتية" title="التنبيهات الصوتية">
+                                    <span class="slider round"></span>
+                                </div>
+                            </div>
+                            <div class="dash-summary-stats">
+                                <div class="m-stat" title="طلبات جديدة بانتظارك">
+                                    <i class="fas fa-hourglass-start"
+                                        style="color:var(--p-copper); margin-bottom:5px;"></i>
+                                    <span id="staff-waiting-count">0</span>
+                                    <label>بالانتظار</label>
+                                </div>
+                                <div class="m-stat" title="إجمالي الطلبات المسندة لك">
+                                    <i class="fas fa-folder-open" style="color:var(--p-teal); margin-bottom:5px;"></i>
+                                    <span id="staff-total-assigned">0</span>
+                                    <label>مسندة</label>
+                                </div>
+                                <div class="m-stat" title="نسبة المبيعات المكتملة">
+                                    <i class="fas fa-trophy" style="color:var(--p-red); margin-bottom:5px;"></i>
+                                    <span id="staff-conversion-rate">0%</span>
+                                    <label>إنجاز</label>
+                                </div>
+                            </div>
+                        </div> <!-- End staff-mini-stats -->
+
+                        <nav class="dash-nav-v2">
+                            <button class="dash-tab active" data-tab="cars-mgmt"><i class="fas fa-warehouse"></i>
+                                مخزون السيارات</button>
+                            <button class="dash-tab admin-only" data-tab="ads-mgmt"><i class="fas fa-bullhorn"></i>
+                                التسويق</button>
+                            <button class="dash-tab" data-tab="plates-mgmt"><i class="fas fa-address-card"></i>
+                                اللوحات المميزة</button>
+                            <button class="dash-tab" data-tab="sales-mgmt"><i class="fas fa-clapperboard"></i>
+                                النجاحات</button>
+                            <button class="dash-tab admin-only" data-tab="partners-mgmt"><i
+                                    class="fas fa-handshake"></i>
+                                شركاؤنا</button>
+                            <button class="dash-tab admin-only" data-tab="locations-mgmt"><i
+                                    class="fas fa-globe-americas"></i>
+                                الدول والمدن</button>
+                            <button class="dash-tab admin-only" data-tab="brands-mgmt"><i class="fas fa-car-side"></i>
+                                العلامات التجارية</button>
+                            <button class="dash-tab admin-only" data-tab="agents-mgmt"><i class="fas fa-id-badge"></i>
+                                الوكلاء</button>
+                            <button class="dash-tab admin-only" data-tab="specs-mgmt"><i class="fas fa-cogs"></i>
+                                المواصفات</button>
+                            <button class="dash-tab admin-only" data-tab="packages-mgmt"><i class="fas fa-gift"></i>
+                                الباقات</button>
+                            <button class="dash-tab admin-only" data-tab="blogs-mgmt"><i class="fas fa-blog"></i>
+                                المدونة</button>
+                            <button class="dash-tab" data-tab="reviews-mgmt"><i class="fas fa-star"></i>
+                                آراء العملاء</button>
+                            <button class="dash-tab" data-tab="bookings-mgmt">
+                                <i class="fas fa-paper-plane"></i> الحجوزات
+                                <span id="bookings-badge" class="badge-v2 badge-v2-nav hidden">0</span>
+                            </button>
+                            <div id="bookings-submenu" class="dash-submenu">
+                                <button class="sub-tab b-filter active" onclick="window.setBookingFilter('all', this)">
+                                    <span><i class="fas fa-list-ul"></i> الكل</span>
+                                    <span class="count" id="count-all">0</span>
+                                </button>
+
+                                <div class="status-group">
+                                    <button class="sub-tab b-filter" onclick="window.setBookingFilter('new', this)">
+                                        <span><i class="fas fa-star"></i> جديد</span>
+                                        <span class="count" id="count-new">0</span>
+                                    </button>
+                                    <div class="deep-submenu">
+                                        <button class="deep-tab"
+                                            onclick="window.setBookingFilter('new', null, 'not_contacted', this)">
+                                            <span>لم يتم التواصل</span>
+                                            <span class="count" id="count-sub-not_contacted">0</span>
+                                        </button>
+                                        <button class="deep-tab"
+                                            onclick="window.setBookingFilter('new', null, 'contacted', this)">
+                                            <span>تم التواصل</span>
+                                            <span class="count" id="count-sub-contacted">0</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="status-group">
+                                    <button class="sub-tab b-filter" onclick="window.setBookingFilter('waiting', this)">
+                                        <span><i class="fas fa-clock"></i> بالانتظار</span>
+                                        <span class="count" id="count-waiting">0</span>
+                                    </button>
+                                    <div class="deep-submenu">
+                                        <button class="deep-tab"
+                                            onclick="window.setBookingFilter('waiting', null, 'docs_received', this)">
+                                            <span>تم استلام الاوراق</span>
+                                            <span class="count" id="count-sub-docs_received">0</span>
+                                        </button>
+                                        <button class="deep-tab"
+                                            onclick="window.setBookingFilter('waiting', null, 'waiting_calc', this)">
+                                            <span>انتظار رد العميل</span>
+                                            <span class="count" id="count-sub-waiting_calc">0</span>
+                                        </button>
+                                        <button class="deep-tab"
+                                            onclick="window.setBookingFilter('waiting', null, 'waiting_docs', this)">
+                                            <span>إنتظار إكمال الاوراق</span>
+                                            <span class="count" id="count-sub-waiting_docs">0</span>
+                                        </button>
+                                        <button class="deep-tab"
+                                            onclick="window.setBookingFilter('waiting', null, 'waiting_signature', this)">
+                                            <span>إنتظار توقيع العميل</span>
+                                            <span class="count" id="count-sub-waiting_signature">0</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="status-group">
+                                    <button class="sub-tab b-filter" onclick="window.setBookingFilter('inquiry', this)">
+                                        <span><i class="fas fa-question-circle"></i> استفسار</span>
+                                        <span class="count" id="count-inquiry">0</span>
+                                    </button>
+                                    <div class="deep-submenu">
+                                        <button class="deep-tab"
+                                            onclick="window.setBookingFilter('inquiry', null, 'docs_not_received', this)">
+                                            <span>لم يتم استلام الاوراق</span>
+                                            <span class="count" id="count-sub-docs_not_received">0</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="status-group">
+                                    <button class="sub-tab b-filter" onclick="window.setBookingFilter('sold', this)">
+                                        <span><i class="fas fa-check-double"></i> مكتمل</span>
+                                        <span class="count" id="count-sold">0</span>
+                                    </button>
+                                    <div class="deep-submenu">
+                                        <button class="deep-tab"
+                                            onclick="window.setBookingFilter('sold', null, 'signed', this)">
+                                            <span>تم التوقيع</span>
+                                            <span class="count" id="count-sub-signed">0</span>
+                                        </button>
+                                        <button class="deep-tab"
+                                            onclick="window.setBookingFilter('sold', null, 'delivered', this)">
+                                            <span>تم التسليم</span>
+                                            <span class="count" id="count-sub-delivered">0</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="status-group">
+                                    <button class="sub-tab b-filter" onclick="window.setBookingFilter('done', this)">
+                                        <span><i class="fas fa-tasks"></i> تم</span>
+                                        <span class="count" id="count-done">0</span>
+                                    </button>
+                                    <div class="deep-submenu">
+                                        <button class="deep-tab"
+                                            onclick="window.setBookingFilter('done', null, 'done', this)">
+                                            <span>تم</span>
+                                            <span class="count" id="count-sub-done">0</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="status-group">
+                                    <button class="sub-tab b-filter"
+                                        onclick="window.setBookingFilter('cancelled', this)">
+                                        <span><i class="fas fa-times-circle"></i> مرفوض</span>
+                                        <span class="count" id="count-cancelled">0</span>
+                                    </button>
+                                    <div class="deep-submenu">
+                                        <button class="deep-tab"
+                                            onclick="window.setBookingFilter('cancelled', null, 'no_response', this)">
+                                            <span>لم يتم رد العميل</span>
+                                            <span class="count" id="count-sub-no_response">0</span>
+                                        </button>
+                                        <button class="deep-tab"
+                                            onclick="window.setBookingFilter('cancelled', null, 'obligations', this)">
+                                            <span>التزامات</span>
+                                            <span class="count" id="count-sub-obligations">0</span>
+                                        </button>
+                                        <button class="deep-tab"
+                                            onclick="window.setBookingFilter('cancelled', null, 'calc_rejected', this)">
+                                            <span>رفض الحسبة</span>
+                                            <span class="count" id="count-sub-calc_rejected">0</span>
+                                        </button>
+                                        <button class="deep-tab"
+                                            onclick="window.setBookingFilter('cancelled', null, 'ineligible', this)">
+                                            <span>غير مسموح له</span>
+                                            <span class="count" id="count-sub-ineligible">0</span>
+                                        </button>
+                                        <button class="deep-tab"
+                                            onclick="window.setBookingFilter('cancelled', null, 'duplicate', this)">
+                                            <span>مكرر</span>
+                                            <span class="count" id="count-sub-duplicate">0</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="dash-tab" data-tab="notifications-mgmt">
+                                <i class="fas fa-bell"></i> الإشعارات
+                                <span id="notifications-badge" class="badge-v2 badge-v2-nav hidden">0</span>
+                            </button>
+                            <button class="dash-tab admin-only hidden" data-tab="users-mgmt"><i
+                                    class="fas fa-user-gear"></i> الموظفين</button>
+                            <button class="dash-tab admin-only hidden" data-tab="analytics-mgmt"><i
+                                    class="fas fa-chart-line"></i> تحليلات الزوار</button>
+                            <button class="dash-tab admin-only hidden" data-tab="ai-assistant-mgmt"><i
+                                    class="fas fa-brain"></i> المساعد الذكي</button>
+                            <button class="dash-tab" data-tab="whatsapp-mgmt"><i
+                                    class="fab fa-whatsapp"></i> ربط الواتساب</button>
+                            <button class="dash-tab admin-only hidden" data-tab="whatsapp-monitor-mgmt"><i
+                                    class="fab fa-whatsapp"></i> رقابة الرفض والدردشات</button>
+                            <button class="dash-tab admin-only hidden" data-tab="reports-mgmt"><i
+                                    class="fas fa-chart-bar"></i> التقارير</button>
+                            <button class="dash-tab admin-only hidden" data-tab="settings-mgmt"><i
+                                    class="fas fa-sliders-h"></i> الإعدادات</button>
+                            <button class="dash-tab admin-only hidden" data-tab="logs-mgmt"><i
+                                    class="fas fa-history"></i> سجل العمليات</button>
+                        </nav>
+                        <button id="logout-btn-v2" class="btn-logout-minimal" onclick="window.logout()">
+                            <i class="fas fa-power-off"></i> تسجيل الخروج
+                        </button>
+                        <button class="btn-logout-minimal" onclick="window.closeModal('admin-modal')"
+                            style="margin-top: 10px; color: var(--text-dim);" title="العودة للصفحة الرئيسية">
+                            <i class="fas fa-arrow-right" style="margin-left: 5px;"></i> العودة للرئيسية
+                        </button>
+                    </aside>
+                    <div class="dash-overlay"
+                        onclick="document.querySelector('.dash-sidebar').classList.remove('active')"></div>
+
+                    <main class="dash-main-content">
+                        <header class="dash-header">
+                            <div class="dash-welcome">
+                                <div class="dash-header-welcome-wrap">
+                                    <button class="dash-mobile-toggle" title="خيارات القائمة"
+                                        aria-label="تبديل القائمة الجانبية"
+                                        onclick="document.querySelector('.dash-sidebar').classList.toggle('active')">
+                                        <i class="fas fa-bars"></i>
+                                    </button>
+                                    <h2 class="luxury-font m-0">لوحة <span class="highlight">التحكم</span></h2>
+                                </div>
+                                <div class="dash-header-welcome-meta">
+                                    <p class="m-0">مرحباً بك مجدداً في نظام إدارة المبيعات</p>
+                                    <button class="icon-btn-lite rel" id="dash-notif-bell" title="مركز الإشعارات"
+                                        aria-label="مشاهدة الإشعارات"
+                                        onclick="document.querySelector('.dash-tab[data-tab=\'notifications-mgmt\']').click()">
+                                        <i class="fas fa-bell"></i>
+                                        <span id="bell-badge" class="notification-indicator hidden"></span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="dash-stats-v2">
+                                <div class="stat-mini admin-only hidden">
+                                    <i class="fas fa-car"></i>
+                                    <div>
+                                        <span id="stat-cars-count-v2">0</span>
+                                        <label>إجمالي السيارات</label>
+                                    </div>
+                                </div>
+                                <div class="stat-mini admin-only hidden">
+                                    <i class="fas fa-calendar-check"></i>
+                                    <div>
+                                        <span id="stat-bookings-count-v2">0</span>
+                                        <label>الطلبات الكلية</label>
+                                    </div>
+                                </div>
+                                <div class="stat-mini admin-only hidden">
+                                    <i class="fas fa-money-bill-trend-up"></i>
+                                    <div>
+                                        <span id="stat-total-value-v2">0</span>
+                                        <label>قيمة المخزون</label>
+                                    </div>
+                                </div>
+                                <div class="stat-mini admin-only hidden">
+                                    <i class="fas fa-address-card"></i>
+                                    <div>
+                                        <span id="stat-total-plates">0</span>
+                                        <label>لوحة مميزة</label>
+                                    </div>
+                                </div>
+                                <div class="stat-mini admin-only hidden">
+                                    <i class="fas fa-handshake"></i>
+                                    <div>
+                                        <span id="stat-total-partners">0</span>
+                                        <label>شريك استراتيجي</label>
+                                    </div>
+                                </div>
+                                <div class="stat-mini admin-only hidden">
+                                    <i class="fas fa-clapperboard"></i>
+                                    <div>
+                                        <span id="stat-total-sales">0</span>
+                                        <label>فيديو تسليم</label>
+                                    </div>
+                                </div>
+
+                                <div class="stat-mini staff-only hidden">
+                                    <i class="fas fa-tasks"></i>
+                                    <div>
+                                        <span id="stat-staff-total-assigned">0</span>
+                                        <label>إجمالي طلباتي</label>
+                                    </div>
+                                </div>
+                                <div class="stat-mini staff-only hidden">
+                                    <i class="fas fa-clock"></i>
+                                    <div>
+                                        <span id="stat-staff-active">0</span>
+                                        <label>نشط / معلق</label>
+                                    </div>
+                                </div>
+                                <div class="stat-mini staff-only hidden">
+                                    <i class="fas fa-trophy"></i>
+                                    <div>
+                                        <span id="stat-staff-sold">0</span>
+                                        <label>تم تسليمه / بيع</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </header>
+
+                        <div class="dash-scroll-area">
+                            <div id="cars-mgmt" class="pane active">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>إدارة المخزون</h3>
+                                        <p>إدارة وتسجيل كافة السيارات المتوفرة والواردة</p>
+                                    </div>
+                                    <button id="add-car-btn-v2" class="btn-premium btn-sm admin-only hidden"
+                                        onclick="window.openCRUDModal('cars')">إضافة للمخزون</button>
+                                </div>
+                                <div class="advanced-filter-bar mb-20">
+                                    <div class="search-box-wrap">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="admin-cars-search" placeholder="بحث باسم السيارة..."
+                                            oninput="window.syncAdminTables('cars')" aria-label="بحث عن السيارات"
+                                            title="بحث السيارات">
+                                    </div>
+                                    <div class="filters-row">
+                                        <select id="admin-filter-car-make" class="filter-select"
+                                            onchange="window.syncAdminTables('cars')" aria-label="تصفية حسب الماركة"
+                                            title="الماركة">
+                                            <option value="all">كل الماركات</option>
+                                        </select>
+                                        <select id="admin-filter-car-status" class="filter-select"
+                                            onchange="window.syncAdminTables('cars')" aria-label="تصفية حسب الحالة"
+                                            title="الحالة">
+                                            <option value="all">كل المخزون</option>
+                                            <option value="available">متاح</option>
+                                            <option value="reserved">محجوز</option>
+                                            <option value="sold">مباع</option>
+                                            <option value="incoming">قادم قريباً</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div id="admin-cars-table" class="admin-list-v2"></div>
+                            </div>
+
+                            <div id="ads-mgmt" class="pane hidden">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>إدارة التسويق والعروض</h3>
+                                        <p>إدارة الحملات التسويقية والبنرات والمنبثقات</p>
+                                    </div>
+                                    <button class="btn-premium btn-sm admin-only hidden"
+                                        onclick="window.openCRUDModal('ads')">
+                                        <i class="fas fa-plus"></i> إضافة عرض جديد
+                                    </button>
+                                </div>
+                                <div class="filters-container-v2 mb-20">
+                                    <div class="search-box-v2">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="ads-search" placeholder="ابحث باسم العرض..."
+                                            oninput="window.syncAdminTables('ads')" aria-label="بحث العروض"
+                                            title="بحث العروض">
+                                    </div>
+                                </div>
+                                <div id="admin-ads-table" class="admin-grid-v2"></div>
+                            </div>
+
+                            <div id="plates-mgmt" class="pane hidden">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>إدارة اللوحات المميزة</h3>
+                                        <p>عرض وإدارة لوحات السيارات الفاخرة المتاحة للبيع</p>
+                                    </div>
+                                    <button id="add-plate-btn-v2" class="btn-premium btn-sm admin-only hidden"
+                                        onclick="window.openCRUDModal('plates')">
+                                        <i class="fas fa-plus"></i> إضافة لوحة جديدة
+                                    </button>
+                                </div>
+
+                                <div class="advanced-filter-bar mb-25">
+                                    <div class="search-box-wrap">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="plate-search" placeholder="بحث برقم أو حروف اللوحة..."
+                                            oninput="window.syncAdminTables('plates')" aria-label="بحث اللوحات"
+                                            title="بحث اللوحات">
+                                    </div>
+                                    <div class="filters-row">
+                                        <select id="filter-plate-status" class="filter-select"
+                                            onchange="window.syncAdminTables('plates')" aria-label="تصفية اللوحات"
+                                            title="تصفية">
+                                            <option value="all">كل الحالات</option>
+                                            <option value="available">متاح</option>
+                                            <option value="sold">مباع</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div id="admin-plates-table" class="admin-grid-v2"></div>
+                            </div>
+
+                            <div id="partners-mgmt" class="pane hidden">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>إدارة الشركاء</h3>
+                                        <p>إدارة الشركات والمؤسسات الشريكة (بنوك، شركات تأمين، إلخ)</p>
+                                    </div>
+                                    <button class="btn-premium btn-sm admin-only hidden"
+                                        onclick="window.openCRUDModal('partners')">
+                                        <i class="fas fa-plus"></i> إضافة شريك جديد
+                                    </button>
+                                </div>
+                                <div id="admin-partners-table" class="admin-grid-v2"></div>
+                            </div>
+
+                            <div id="brands-mgmt" class="pane hidden">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>إدارة العلامات التجارية</h3>
+                                        <p>إدارة الشركات المصنعة للسيارات</p>
+                                    </div>
+                                    <button class="btn-premium btn-sm admin-only hidden"
+                                        onclick="window.openCRUDModal('brands')">
+                                        <i class="fas fa-plus"></i> إضافة علامة تجارية
+                                    </button>
+                                </div>
+                                <div class="filters-container-v2 mb-20">
+                                    <div class="search-box-v2">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="brands-search" placeholder="ابحث عن علامة تجارية..."
+                                            oninput="window.syncAdminTables('brands')">
+                                    </div>
+                                </div>
+                                <div id="admin-brands-table" class="admin-grid-v2"></div>
+                            </div>
+
+                            <div id="agents-mgmt" class="pane hidden">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>إدارة الوكلاء</h3>
+                                        <p>إدارة وكلاء السيارات</p>
+                                    </div>
+                                    <button class="btn-premium btn-sm admin-only hidden"
+                                        onclick="window.openCRUDModal('agents')">
+                                        <i class="fas fa-plus"></i> إضافة وكيل
+                                    </button>
+                                </div>
+                                <div class="filters-container-v2 mb-20">
+                                    <div class="search-box-v2">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="agents-search" placeholder="ابحث عن وكيل..."
+                                            oninput="window.syncAdminTables('agents')">
+                                    </div>
+                                </div>
+                                <div id="admin-agents-table" class="admin-grid-v2"></div>
+                            </div>
+
+                            <div id="specs-mgmt" class="pane hidden">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>إدارة المواصفات</h3>
+                                        <p>إدارة المواصفات والميزات للسيارات</p>
+                                    </div>
+                                    <button class="btn-premium btn-sm admin-only hidden"
+                                        onclick="window.openCRUDModal('specs')">
+                                        <i class="fas fa-plus"></i> إضافة ميزة أو مواصفة
+                                    </button>
+                                </div>
+                                <div class="filters-container-v2 mb-20">
+                                    <div class="search-box-v2">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="specs-search" placeholder="ابحث عن مواصفة..."
+                                            oninput="window.syncAdminTables('specs')">
+                                    </div>
+                                </div>
+                                <div id="admin-specs-table" class="admin-grid-v2"></div>
+                            </div>
+
+                            <div id="packages-mgmt" class="pane hidden">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>إدارة الباقات</h3>
+                                        <p>إدارة الباقات الإضافية وقيمتها</p>
+                                    </div>
+                                    <button class="btn-premium btn-sm admin-only hidden"
+                                        onclick="window.openCRUDModal('packages')">
+                                        <i class="fas fa-plus"></i> إضافة باقة
+                                    </button>
+                                </div>
+                                <div class="filters-container-v2 mb-20">
+                                    <div class="search-box-v2">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="packages-search" placeholder="ابحث عن باقة..."
+                                            oninput="window.syncAdminTables('packages')">
+                                    </div>
+                                </div>
+                                <div id="admin-packages-table" class="admin-grid-v2"></div>
+                            </div>
+
+                            <div id="blogs-mgmt" class="pane hidden">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>إدارة المدونة</h3>
+                                        <p>إدارة المقالات والأخبار المنشورة في موقع المعرض</p>
+                                    </div>
+                                    <button class="btn-premium btn-sm admin-only hidden"
+                                        onclick="window.openCRUDModal('blogs')">
+                                        <i class="fas fa-plus"></i> كتابة مقال جديد
+                                    </button>
+                                </div>
+                                <div class="filters-container-v2 mb-20">
+                                    <div class="search-box-v2">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="blogs-search" placeholder="ابحث في المقالات..."
+                                            oninput="window.syncAdminTables('blogs')">
+                                    </div>
+                                </div>
+                                <div id="admin-blogs-table" class="admin-grid-v2"></div>
+                            </div>
+
+                            <div id="reviews-mgmt" class="pane hidden">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>إدارة آراء العملاء</h3>
+                                        <p>إدارة تقييمات وتجارب العملاء لعرضها في الموقع</p>
+                                    </div>
+                                    <button class="btn-premium btn-sm admin-only hidden"
+                                        onclick="window.openCRUDModal('reviews')">
+                                        <i class="fas fa-plus"></i> إضافة رأي جديد
+                                    </button>
+                                </div>
+                                <div class="filters-container-v2 mb-20">
+                                    <div class="search-box-v2">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="reviews-search"
+                                            placeholder="ابحث باسم العميل أو السيارة..."
+                                            oninput="window.syncAdminTables('reviews')">
+                                    </div>
+                                </div>
+                                <div id="admin-reviews-table" class="admin-grid-v2"></div>
+                            </div>
+
+                            <div id="locations-mgmt" class="pane hidden">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>إدارة الدول والمدن</h3>
+                                        <p>إدارة المناطق الجغرافية للتسليم والفروع</p>
+                                    </div>
+                                    <button class="btn-premium btn-sm admin-only hidden"
+                                        onclick="window.openCRUDModal('locations')">
+                                        <i class="fas fa-plus"></i> إضافة منطقة
+                                    </button>
+                                </div>
+                                <div class="filters-container-v2 mb-20">
+                                    <div class="search-box-v2">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="locations-search" placeholder="ابحث عن دولة أو مدينة..."
+                                            oninput="window.syncAdminTables('locations')" aria-label="بحث المواقع">
+                                    </div>
+                                </div>
+                                <div id="admin-locations-table" class="admin-grid-v2"></div>
+                            </div>
+
+                            <div id="sales-mgmt" class="pane hidden">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>لحظات النجاح</h3>
+                                        <p>إدارة مقاطع الفيديو والتوثيق</p>
+                                    </div>
+                                    <button id="add-sale-btn-v2" class="btn-premium btn-sm admin-only hidden"
+                                        onclick="window.openCRUDModal('sales')">إضافة فيديو</button>
+                                </div>
+                                <div class="filters-container-v2 mb-20">
+                                    <div class="search-box-v2">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="sales-search" placeholder="ابحث عن فيديو بالاسم..."
+                                            oninput="window.syncAdminTables('sales')" aria-label="بحث الفيديوهات">
+                                    </div>
+                                </div>
+                                <div id="admin-sales-table" class="admin-grid-v2"></div>
+                            </div>
+
+                            <div id="bookings-mgmt" class="pane hidden">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>طلبات التواصل</h3>
+                                        <p>متابعة حجوزات العملاء والرد عليها</p>
+                                    </div>
+                                    <div class="pane-actions-v2 pane-actions-v2-flex">
+                                        <button class="btn-premium btn-sm" onclick="window.openCRUDModal('bookings')">
+                                            <i class="fas fa-plus"></i> إضافة طلب يدوي
+                                        </button>
+                                        <div class="search-box-v2">
+                                            <i class="fas fa-search"></i>
+                                            <input type="text" id="booking-search"
+                                                placeholder="بحث باسم العميل أو الجوال..."
+                                                oninput="window.syncAdminTables('bookings')" aria-label="بحث الحجوزات">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="booking-filters-v2 booking-filters-v2-wrap">
+                                    <div class="booking-filters-v2-inner">
+                                        <div class="booking-filter-col-main">
+                                            <label for="filter-booking-status"
+                                                class="booking-filter-label-v2">الحالة</label>
+                                            <select id="filter-booking-status"
+                                                onchange="window.setBookingFilter(this.value, null)"
+                                                class="filter-select-v2" aria-label="الحالة الرئيسية"
+                                                title="تصفية الحالات">
+                                                <option value="all">جميع الحالات</option>
+                                                <option value="new">جديد</option>
+                                                <option value="waiting">بالانتظار</option>
+                                                <option value="inquiry">استفسار</option>
+                                                <option value="sold">مكتمل</option>
+                                                <option value="done">تم</option>
+                                                <option value="cancelled">مرفوض</option>
+                                            </select>
+                                        </div>
+                                        <div class="booking-filter-col-main">
+                                            <label for="filter-booking-sub-status"
+                                                class="booking-filter-label-v2">الحالة الفرعية</label>
+                                            <select id="filter-booking-sub-status"
+                                                onchange="window.setBookingFilter(document.getElementById('filter-booking-status').value, null, this.value)"
+                                                class="filter-select-v2" aria-label="الحالة الفرعية"
+                                                title="تصفية الحالات الفرعية">
+                                                <option value="all">جميع الحالات الفرعية</option>
+                                            </select>
+                                        </div>
+                                        <div class="admin-only booking-filter-col-main">
+                                            <label for="filter-booking-staff" class="booking-filter-label-v2">الموظف
+                                                المسئول</label>
+                                            <select id="filter-booking-staff"
+                                                onchange="window.syncAdminTables('bookings')" class="filter-select-v2"
+                                                aria-label="الموظف المسؤول" title="تصفية الموظفين">
+                                                <option value="all">جميع الموظفين</option>
+                                            </select>
+                                        </div>
+                                        <div class="booking-filter-col-sub">
+                                            <label for="filter-booking-type" class="booking-filter-label-v2">نوع
+                                                العميل</label>
+                                            <select id="filter-booking-type"
+                                                onchange="window.syncAdminTables('bookings')" class="filter-select-v2"
+                                                aria-label="نوع العميل" title="أفراد أم شركات">
+                                                <option value="all">الأفراد والشركات</option>
+                                                <option value="individual">أفراد</option>
+                                                <option value="company">شركات</option>
+                                            </select>
+                                        </div>
+                                        <div class="booking-filter-col-sub">
+                                            <label for="filter-booking-sort"
+                                                class="booking-filter-label-v2">الترتيب</label>
+                                            <select id="filter-booking-sort"
+                                                onchange="window.syncAdminTables('bookings')" class="filter-select-v2"
+                                                aria-label="ترتيب الحجوزات" title="خيارات الترتيب">
+                                                <option value="newest">الأحدث أولاً</option>
+                                                <option value="oldest">الأقدم أولاً</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="admin-bookings-table" class="admin-list-v2"></div>
+                            </div>
+
+                            <div id="users-mgmt" class="pane hidden admin-only">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>فريق العمل</h3>
+                                        <p>إدارة صلاحيات الموظفين والمسؤولين</p>
+                                    </div>
+                                    <div style="display:flex; gap:10px;">
+                                        <button id="add-user-btn-v2" class="btn-premium btn-sm"
+                                            onclick="window.openCRUDModal('users')">إضافة موظف</button>
+                                    </div>
+                                </div>
+
+                                <div class="mini-stats-row-grid">
+                                    <div class="m-stat-card-v2">
+                                        <span id="stat-users-total" class="m-stat-card-val c-copper">0</span>
+                                        <label class="m-stat-card-label">إجمالي الفريق</label>
+                                    </div>
+                                    <div class="m-stat-card-v2">
+                                        <span id="stat-users-active" class="m-stat-card-val c-teal">0</span>
+                                        <label class="m-stat-card-label">متواجد حالياً</label>
+                                    </div>
+                                    <div class="m-stat-card-v2">
+                                        <span id="stat-users-admins" class="m-stat-card-val c-red">0</span>
+                                        <label class="m-stat-card-label">مدراء النظام</label>
+                                    </div>
+                                </div>
+
+                                <div class="advanced-filter-bar" style="margin-bottom: 20px;">
+                                    <div class="search-box-wrap">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="user-search" placeholder="بحث باسم أو إيميل الموظف..."
+                                            oninput="window.syncAdminTables('users')" aria-label="بحث الموظفين">
+                                    </div>
+                                </div>
+
+                                <div id="admin-users-table" class="admin-grid-v2"></div>
+                            </div>
+
+                            <div id="reports-mgmt" class="pane hidden admin-only">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>مركز التقارير والإحصائيات</h3>
+                                        <p>تحليل أداء النظام، مبيعات الفريق، وجرد المخزون</p>
+                                    </div>
+                                </div>
+
+                                <!-- Analytics Dashboard v2 -->
+                                <div class="analytics-overview-v2">
+                                    <div class="stat-premium-card">
+                                        <div class="sp-icon"><i class="fas fa-vault"></i></div>
+                                        <div class="sp-info">
+                                            <span class="sp-label">قيمة المخزون الإجمالية</span>
+                                            <h2 id="total-inventory-value">0 ريال</h2>
+                                            <span class="sp-trend positive"><i class="fas fa-arrow-up"></i> +12% هذا
+                                                الشهر</span>
+                                        </div>
+                                    </div>
+                                    <div class="stat-premium-card">
+                                        <div class="sp-icon"><i class="fas fa-hand-holding-dollar"></i></div>
+                                        <div class="sp-info">
+                                            <span class="sp-label">معدل التحويل (Lead to Sale)</span>
+                                            <h2 id="overall-conversion-rate">0%</h2>
+                                            <div class="progress-lite-wrap">
+                                                <div class="progress-lite-bar" id="conversion-bar" style="width: 0%">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="stat-premium-card">
+                                        <div class="sp-icon"><i class="fas fa-chart-line"></i></div>
+                                        <div class="sp-info">
+                                            <span class="sp-label">نشاط الحجوزات</span>
+                                            <h2 id="active-bookings-count">0</h2>
+                                            <span class="sp-subtext" id="bookings-trend-text">طلبات قيد
+                                                المتابعة</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Periodical Reports v2 -->
+                                <div class="periodical-reports-section">
+                                    <div class="section-title-v2">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        <span>تقارير الطلبات الدورية</span>
+                                    </div>
+                                    <div class="period-tabs">
+                                        <button class="p-tab active"
+                                            onclick="window.switchPeriodReport('day', this)">اليوم</button>
+                                        <button class="p-tab"
+                                            onclick="window.switchPeriodReport('week', this)">الأسبوع</button>
+                                        <button class="p-tab"
+                                            onclick="window.switchPeriodReport('month', this)">الشهر</button>
+                                        <button class="p-tab"
+                                            onclick="window.switchPeriodReport('year', this)">السنة</button>
+                                    </div>
+
+                                    <div class="period-stats-grid">
+                                        <div class="p-stat-card">
+                                            <label>إجمالي الطلبات</label>
+                                            <h3 id="period-total-count">0</h3>
+                                            <div class="p-stat-icon"><i class="fas fa-file-invoice"></i></div>
+                                        </div>
+                                        <div class="p-stat-card success">
+                                            <label>عمليات مكتملة</label>
+                                            <h3 id="period-sold-count">0</h3>
+                                            <div class="p-stat-icon"><i class="fas fa-check-circle"></i></div>
+                                        </div>
+                                        <div class="p-stat-card warning">
+                                            <label>قيد المتابعة</label>
+                                            <h3 id="period-active-count">0</h3>
+                                            <div class="p-stat-icon"><i class="fas fa-clock"></i></div>
+                                        </div>
+                                        <div class="p-stat-card premium">
+                                            <label>معدل التحويل</label>
+                                            <h3 id="period-conv-rate">0%</h3>
+                                            <div class="p-stat-icon"><i class="fas fa-trophy"></i></div>
+                                        </div>
+                                        <div class="p-stat-card primary">
+                                            <label>مبيعات مؤكدة</label>
+                                            <h3 id="period-sold-value"
+                                                style="font-size: 1.5rem; color: var(--p-copper);">0 ريال</h3>
+                                            <div class="p-stat-icon"><i class="fas fa-money-bill-wave"></i></div>
+                                        </div>
+                                        <div class="p-stat-card info">
+                                            <label>سيارات/لوحات مضافة</label>
+                                            <h3 id="period-inventory-added">0</h3>
+                                            <div class="p-stat-icon"><i class="fas fa-car-side"></i></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="reports-content-wrap">
+                                    <div class="report-section">
+                                        <div class="section-title-v2">
+                                            <i class="fas fa-medal"></i>
+                                            <span>أداء فريق المبيعات</span>
+                                        </div>
+                                        <div id="staff-performance-table" class="staff-perf-list">
+                                            <!-- Dynamic Staff Perf -->
+                                        </div>
+                                    </div>
+
+                                    <div class="report-section">
+                                        <div class="section-title-v2">
+                                            <i class="fas fa-file-export"></i>
+                                            <span>تصدير البيانات</span>
+                                        </div>
+                                        <div class="export-options">
+                                            <div class="export-tile" onclick="window.exportToCSV('cars')">
+                                                <div class="et-icon"><i class="fas fa-car-side"></i></div>
+                                                <div class="et-text">جرد السيارات</div>
+                                            </div>
+                                            <div class="export-tile" onclick="window.exportToCSV('bookings')">
+                                                <div class="et-icon"><i class="fas fa-file-invoice"></i></div>
+                                                <div class="et-text">سجل الحجوزات</div>
+                                            </div>
+                                            <div class="export-tile" onclick="window.exportToCSV('users')">
+                                                <div class="et-icon"><i class="fas fa-users-gear"></i></div>
+                                                <div class="et-text">بيانات الموظفين</div>
+                                            </div>
+                                            <div class="export-tile" onclick="window.exportToCSV('logs')">
+                                                <div class="et-icon"><i class="fas fa-history"></i></div>
+                                                <div class="et-text">سجل العمليات</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="analytics-mgmt" class="pane hidden admin-only">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>تحليلات الزوار</h3>
+                                        <p>مراقبة زوار الموقع وسلوكهم في الوقت الفعلي</p>
+                                    </div>
+                                    <div class="header-actions">
+                                        <div class="live-indicator">
+                                            <span class="dot pulse"></span> مباشر الآن
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="analytics-grid-v2">
+                                    <div class="stat-premium-card">
+                                        <div class="sp-icon gold"><i class="fas fa-users"></i></div>
+                                        <div class="sp-info">
+                                            <h4 id="analytics-total-visits">0</h4>
+                                            <label>إجمالي الزيارات</label>
+                                            <span class="sp-subtext">منذ إطلاق النظام</span>
+                                        </div>
+                                    </div>
+                                    <div class="stat-premium-card">
+                                        <div class="sp-icon teal"><i class="fas fa-user-clock"></i></div>
+                                        <div class="sp-info">
+                                            <h4 id="analytics-today-visits">0</h4>
+                                            <label>زيارات اليوم</label>
+                                            <div class="progress-lite-wrap">
+                                                <div id="today-visit-progress" class="progress-lite-bar"
+                                                    style="width: 0%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="stat-premium-card">
+                                        <div class="sp-icon purple"><i class="fas fa-mobile-alt"></i></div>
+                                        <div class="sp-info">
+                                            <h4 id="analytics-mobile-percent">0%</h4>
+                                            <label>زيارات الجوال</label>
+                                            <span class="sp-subtext">مقارنة بالأجهزة المكتبية</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="analytics-content-split">
+                                    <div class="analytics-main-col">
+                                        <div class="report-section">
+                                            <div class="section-title-v2">
+                                                <i class="fas fa-car"></i>
+                                                <span>أكثر السيارات مشاهدة</span>
+                                            </div>
+                                            <div id="popular-cars-list" class="popular-items-grid">
+                                                <!-- Dynamic Popular Cars -->
+                                                <div class="loading-placeholder"
+                                                    style="padding:20px; text-align:center; color:var(--text-dim);">
+                                                    <i class="fas fa-spinner fa-spin"></i> جاري تحميل البيانات...
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="analytics-side-col">
+                                        <div class="report-section">
+                                            <div class="section-title-v2">
+                                                <i class="fas fa-globe"></i>
+                                                <span>المتصفحات المستخدمة</span>
+                                            </div>
+                                            <div id="browser-stats-list" class="browser-perf-list">
+                                                <!-- Dynamic Browser Stats -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="settings-mgmt" class="pane hidden admin-only">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>إعدادات المنصة</h3>
+                                        <p>تخصيص الهوية البصرية، بيانات التواصل، والتفضيلات العامة</p>
+                                    </div>
+                                    <button class="btn-premium" onclick="window.saveAppSettings()">
+                                        <i class="fas fa-save"></i> حفظ التغييرات
+                                    </button>
+                                </div>
+
+                                <div class="settings-container-v2">
+                                    <aside class="settings-sidebar">
+                                        <button class="set-tab active"
+                                            onclick="window.switchSettingsTab('set-tab-identity', this)">
+                                            <i class="fas fa-id-card"></i> هوية المعرض
+                                        </button>
+                                        <button class="set-tab"
+                                            onclick="window.switchSettingsTab('set-tab-appearance', this)">
+                                            <i class="fas fa-palette"></i> المظهر والتصميم
+                                        </button>
+                                        <button class="set-tab"
+                                            onclick="window.switchSettingsTab('set-tab-contact', this)">
+                                            <i class="fas fa-phone-alt"></i> أرقام التواصل
+                                        </button>
+                                        <button class="set-tab"
+                                            onclick="window.switchSettingsTab('set-tab-about', this)">
+                                            <i class="fas fa-info-circle"></i> عن المعرض وروابطنا
+                                        </button>
+                                        <button class="set-tab"
+                                            onclick="window.switchSettingsTab('set-tab-advanced', this)">
+                                            <i class="fas fa-cog"></i> إعدادات متقدمة
+                                        </button>
+                                    </aside>
+
+                                    <main class="settings-content">
+                                        <form id="settings-form" onsubmit="event.preventDefault();">
+                                            <!-- Tab: Identity -->
+                                            <div id="set-tab-identity" class="set-pane">
+                                                <div class="f-section-title">بيانات الهوية</div>
+                                                <div class="form-grid-v2">
+                                                    <div class="f-group">
+                                                        <label>اسم المعرض (عربي)</label>
+                                                        <input type="text" id="set-name-ar"
+                                                            placeholder="أدخل اسم المعرض">
+                                                    </div>
+                                                    <div class="f-group">
+                                                        <label>اسم المعرض (EN)</label>
+                                                        <input type="text" id="set-name-en"
+                                                            placeholder="Enter Gallery Name">
+                                                    </div>
+                                                    <div class="f-group full-width">
+                                                        <label>شعار المعرض</label>
+                                                        <div class="logo-upload-preview">
+                                                            <div class="preview-box">
+                                                                <img id="logo-preview-img" src="logo.jpg"
+                                                                    alt="معاينة الشعار المرفوع">
+                                                            </div>
+                                                            <div class="upload-controls">
+                                                                <div class="upload-btn-wrapper">
+                                                                    <button class="btn-premium btn-sm" type="button"
+                                                                        title="تغيير الشعار"
+                                                                        aria-label="تغيير الشعار"><i
+                                                                            class="fas fa-upload"></i>
+                                                                        تغيير
+                                                                        الشعار</button>
+                                                                    <input type="file" id="set-logo-file"
+                                                                        accept="image/*"
+                                                                        onchange="window.previewLogo(this)"
+                                                                        title="اختر ملف الشعار"
+                                                                        aria-label="اختر ملف الشعار">
+                                                                </div>
+                                                                <input type="hidden" id="set-logo-b64">
+                                                                <p class="f-hint">يفضل استخدام شعار بخلفية شفافة
+                                                                    (PNG)
+                                                                    وبجودة عالية.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Tab: Appearance -->
+                                            <div id="set-tab-appearance" class="set-pane hidden">
+                                                <div class="f-section-title">الألوان والسمات</div>
+                                                <div class="form-grid-v2">
+                                                    <div class="f-group">
+                                                        <label for="set-color-primary">اللون الأساسي (Primary)</label>
+                                                        <div class="color-picker-wrap">
+                                                            <input type="color" id="set-color-primary" value="#a11d21"
+                                                                aria-label="اختر اللون الأساسي" title="اللون الأساسي">
+                                                            <span id="val-color-primary">#a11d21</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="f-group">
+                                                        <label for="set-color-secondary">اللون الثانوي
+                                                            (Secondary)</label>
+                                                        <div class="color-picker-wrap">
+                                                            <input type="color" id="set-color-secondary" value="#1c7c8c"
+                                                                aria-label="اختر اللون الثانوي" title="اللون الثانوي">
+                                                            <span id="val-color-secondary">#1c7c8c</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="f-group">
+                                                        <label for="set-color-accent">لون التميز (Accent)</label>
+                                                        <div class="color-picker-wrap">
+                                                            <input type="color" id="set-color-accent" value="#b8860b"
+                                                                aria-label="اختر لون التميز" title="لون التميز">
+                                                            <span id="val-color-accent">#b8860b</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="f-group">
+                                                        <label for="set-default-theme">الثيم الافتراضي</label>
+                                                        <select id="set-default-theme" class="filter-select"
+                                                            aria-label="اختر الثيم الافتراضي" title="الثيم الافتراضي">
+                                                            <option value="dark">داكن (Dark Mode)</option>
+                                                            <option value="light">فاتح (Light Mode)</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+
+                                                <div class="f-section-title" style="margin-top:40px;">التصميم
+                                                    والخطوط
+                                                </div>
+                                                <div class="form-grid-v2">
+                                                    <div class="f-group">
+                                                        <label for="set-font-family">نوع الخط (Font)</label>
+                                                        <select id="set-font-family" class="filter-select"
+                                                            title="اختر نوع الخط">
+                                                            <option value="'Cairo', sans-serif">Cairo (الافتراضي)
+                                                            </option>
+                                                            <option value="'Tajawal', sans-serif">Tajawal (تجوال)
+                                                            </option>
+                                                            <option value="'Almarai', sans-serif">Almarai (المراعي)
+                                                            </option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="f-group">
+                                                        <label for="set-border-radius">تدوير الحواف (Radius)</label>
+                                                        <select id="set-border-radius" class="filter-select"
+                                                            title="اختر تدوير الحواف">
+                                                            <option value="16px">متوسط (16px)</option>
+                                                            <option value="8px">صغير (8px)</option>
+                                                            <option value="30px">دائري عصري (30px)</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="f-group">
+                                                        <label for="set-card-style">نمط البطاقات</label>
+                                                        <select id="set-card-style" class="filter-select"
+                                                            title="اختر نمط البطاقات">
+                                                            <option value="glass">زجاجي (Glass)</option>
+                                                            <option value="solid">صلب (Solid)</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="f-group">
+                                                        <label for="set-logo-blend">دمج خلفية الشعار</label>
+                                                        <select id="set-logo-blend" class="filter-select"
+                                                            title="اختر نمط دمج الشعار">
+                                                            <option value="auto">تلقائي ذكي (Auto)</option>
+                                                            <option value="normal">طبيعي (Normal)</option>
+                                                            <option value="multiply">إخفاء الأبيض (Multiply)
+                                                            </option>
+                                                            <option value="screen">إخفاء الأسود (Screen)</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="f-group">
+                                                        <label for="set-logo-scale">تصغير/تكبير الشعار</label>
+                                                        <input type="range" id="set-logo-scale" min="0.5" max="1.5"
+                                                            step="0.1" value="1"
+                                                            oninput="document.getElementById('val-logo-scale').innerText = this.value + 'x'"
+                                                            title="حجم الشعار">
+                                                        <span id="val-logo-scale"
+                                                            style="font-size:12px; opacity:0.7;">1x</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Tab: Contact -->
+                                            <div id="set-tab-contact" class="set-pane hidden">
+                                                <div class="f-section-title">أرقام التواصل الرسمية</div>
+                                                <div class="form-grid-v2">
+                                                    <div class="f-group">
+                                                        <label><i class="fab fa-whatsapp"></i> واتساب
+                                                            الإدارة</label>
+                                                        <input type="text" id="set-contact-mgmt"
+                                                            placeholder="9665xxxxxxxx">
+                                                    </div>
+                                                    <div class="f-group">
+                                                        <label><i class="fas fa-phone"></i> هاتف المبيعات</label>
+                                                        <input type="text" id="set-contact-sales"
+                                                            placeholder="9665xxxxxxxx">
+                                                    </div>
+                                                    <div class="f-group">
+                                                        <label><i class="fas fa-headset"></i> رقم الشكاوى</label>
+                                                        <input type="text" id="set-contact-complaints"
+                                                            placeholder="9665xxxxxxxx">
+                                                    </div>
+                                                    <div class="f-group">
+                                                        <label><i class="fas fa-envelope"></i> البريد
+                                                            الإلكتروني</label>
+                                                        <input type="email" id="set-contact-email"
+                                                            placeholder="info@example.com">
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Tab: About -->
+                                            <div id="set-tab-about" class="set-pane hidden">
+                                                <div class="f-section-title">حول المعرض والموقع</div>
+                                                <div class="form-grid-v2">
+                                                    <div class="f-group full-width">
+                                                        <label>النص التعريفي (Footer About)</label>
+                                                        <textarea id="set-about-text" rows="4"
+                                                            placeholder="اكتب نبذة قصيرة عن المعرض هنا..."></textarea>
+                                                    </div>
+                                                    <div class="f-group">
+                                                        <label>رابط الموقع على الخريطة</label>
+                                                        <input type="text" id="set-location-link"
+                                                            placeholder="https://goo.gl/maps/...">
+                                                    </div>
+                                                    <div class="f-group">
+                                                        <label>اسم الموقع (نصياً)</label>
+                                                        <input type="text" id="set-location-text"
+                                                            placeholder="الرياض، معارض القادسية">
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Tab: Advanced -->
+                                            <div id="set-tab-advanced" class="set-pane hidden">
+                                                <div class="f-section-title">الحالة والأمان</div>
+                                                <div class="form-grid-v2">
+                                                    <div class="f-group maintenance-mode-box">
+                                                        <div class="maintenance-content">
+                                                            <label class="m-0" for="set-maintenance-mode">وضع الصيانة
+                                                                (قفل
+                                                                الموقع)</label>
+                                                            <p class="maintenance-p">عند
+                                                                التفعيل سيظهر الموقع واللوحة مغلقان للجميع باستثناء
+                                                                المدير.</p>
+                                                        </div>
+                                                        <div class="toggle-switch">
+                                                            <input type="checkbox" id="set-maintenance-mode"
+                                                                title="وضع الصيانة" aria-label="تفعيل وضع الصيانة">
+                                                            <span class="slider round"></span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="reset-settings-container">
+                                                    <p class="reset-settings-hint">
+                                                        إعادة كافة الإعدادات إلى وضع المصنع (الألوان، الشعار،
+                                                        الأسماء)
+                                                    </p>
+                                                    <button type="button" class="btn-premium btn-danger btn-sm"
+                                                        onclick="window.resetToDefaultSettings()">
+                                                        <i class="fas fa-undo"></i> إعادة تعيين الإعدادات
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </main>
+                                </div>
+                            </div>
+                            <div id="notifications-mgmt" class="pane hidden">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>مركز الإشعارات</h3>
+                                        <p>متابعة التنبيهات والنشاطات الأخيرة في النظام</p>
+                                    </div>
+                                    <button class="btn-premium btn-secondary btn-sm"
+                                        onclick="window.markAllNotificationsRead()">
+                                        <i class="fas fa-check-double"></i> تحديد الكل كمقروء
+                                    </button>
+                                </div>
+
+                                <div id="admin-notifications-table" class="admin-list-v2">
+                                    <!-- Notifications will be rendered here -->
+                                    <div class="placeholder-centered">
+                                        جاري تحميل الإشعارات...
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="logs-mgmt" class="pane hidden">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>سجل العمليات (Logs)</h3>
+                                        <p>مراقبة كافة التحركات والعمليات التي تمت في النظام</p>
+                                    </div>
+                                    <div style="display:flex; gap:10px;">
+                                        <button class="btn-premium btn-secondary btn-sm"
+                                            onclick="window.exportToCSV('logs')">
+                                            <i class="fas fa-file-csv"></i> تصدير السجل
+                                        </button>
+                                        <button class="btn-premium btn-sm" style="background:var(--p-red);"
+                                            onclick="window.clearAllLogs()">
+                                            <i class="fas fa-trash-alt"></i> مسح السجل
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="advanced-filter-bar" style="margin-bottom: 20px;">
+                                    <div class="search-box-wrap">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="log-search" placeholder="بحث في السجلات..."
+                                            oninput="window.syncAdminTables('logs')" aria-label="Search logs"
+                                            title="بحث في السجلات">
+                                    </div>
+                                    <div class="filters-row">
+                                        <select id="log-filter-type" class="filter-select"
+                                            onchange="window.syncAdminTables('logs')" aria-label="Filter logs by type"
+                                            title="تصفية السجلات">
+                                            <option value="all">كل العمليات</option>
+                                            <option value="create">إضافة</option>
+                                            <option value="update">تعديل</option>
+                                            <option value="delete">حذف</option>
+                                            <option value="auth">دخول/خروج</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div id="admin-logs-table" class="admin-list-v2">
+                                    <div class="placeholder-centered">
+                                        جاري تحميل السجلات...
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- WhatsApp Connection MGMT (For Staff) -->
+                            <div id="whatsapp-mgmt" class="pane hidden">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>إعدادات الواتساب الخاصة بك</h3>
+                                        <p>اربط حسابك لتتمكن من الدردشة مع العملاء مباشرة من لوحة التحكم</p>
+                                    </div>
+                                    <button class="btn-premium btn-secondary btn-sm"
+                                        onclick="window.startCurrentWASession()">
+                                        <i class="fas fa-sync-alt"></i> تحديث الحالة
+                                    </button>
+                                </div>
+
+                                <div class="admin-grid-v2">
+                                    <div class="desc-card-v5" style="display:flex; flex-direction:column; align-items:center; text-align:center; padding:40px;">
+                                        <div id="wa-connection-status-container">
+                                            <div class="wa-status-icon" style="font-size:60px; color:var(--text-dim); margin-bottom:20px;">
+                                                <i class="fab fa-whatsapp"></i>
+                                            </div>
+                                            <h3 id="wa-my-status-title">واتساب غير متصل</h3>
+                                            <p id="wa-my-status-desc" style="max-width:400px; margin:10px auto 25px; opacity:0.7;">
+                                                قم بمسح رمز QR لربط حساب الواتساب الخاص بك. سيتم استخدام هذا الحساب للرد على العملاء المسندين إليك.
+                                            </p>
+                                            
+                                            <div id="wa-my-qr-container" style="display:none; background:white; padding:15px; border-radius:15px; margin-bottom:20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                                                <canvas id="wa-my-qr-canvas"></canvas>
+                                                <p style="color:#333; font-size:12px; margin-top:10px; font-weight:bold;">افتح واتساب في هاتفك > الأجهزة المرتبطة > ربط جهاز</p>
+                                            </div>
+
+                                            <div class="wa-actions" style="display:flex; gap:10px; justify-content:center;">
+                                                <button id="btn-start-my-wa" onclick="window.startCurrentWASession()" class="btn-premium">
+                                                    <i class="fas fa-qrcode"></i> إظهار رمز الربط أو تنشيط الاتصال
+                                                </button>
+                                                <button id="btn-logout-my-wa" onclick="window.logoutCurrentWASession()" class="btn-premium btn-secondary" style="display:none; background:#ff4d4d; border:none; color:white; box-shadow: 0 4px 15px rgba(255, 77, 77, 0.3);">
+                                                    <i class="fas fa-sign-out-alt"></i> فصل حساب واتساب
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- AI Assistant MGMT -->
+                            <div id="ai-assistant-mgmt" class="pane hidden admin-only">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>المساعد الذكي (AI Assistant)</h3>
+                                        <p>اسأل المساعد عن إحصائيات المعرض، أداء الموظفين، أو أي استفسار تقني</p>
+                                    </div>
+                                    <button class="btn-premium btn-secondary btn-sm" onclick="window.clearAIChat()">
+                                        <i class="fas fa-trash-alt"></i> مسح المحادثة
+                                    </button>
+                                </div>
+
+                                <div class="ai-chat-container">
+                                    <div id="ai-messages-area" class="ai-messages-area">
+                                        <div class="ai-msg bot">
+                                            <div class="msg-icon"><i class="fas fa-robot"></i></div>
+                                            <div class="msg-content">
+                                                <p>مرحباً بك في لوحة تحكم المعرض. أنا مساعدك الذكي، كيف يمكنني
+                                                    مساعدتك اليوم؟ يمكنك سؤالي عن مبيعات الشهر، جرد السيارات، أو أداء
+                                                    فريق المبيعات.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="ai-input-wrapper">
+                                        <input type="text" id="ai-chat-input" placeholder="اكتب سؤالك هنا..."
+                                            onkeydown="if(event.key==='Enter') window.askLuxuryAI()">
+                                        <button class="ai-send-btn" onclick="window.askLuxuryAI()" title="إرسال"
+                                            aria-label="إرسال سؤال للمساعد الذكي">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="ai-suggestions">
+                                        <button onclick="window.fillAIInput('ما هو إجمالي قيمة المخزون حالياً؟')">قيمة
+                                            المخزون</button>
+                                        <button onclick="window.fillAIInput('من هو أفضل موظف مبيعات لهذا الشهر؟')">أفضل
+                                            موظف</button>
+                                        <button onclick="window.fillAIInput('أعطني ملخصاً لأداء الحجوزات اليوم')">ملخص
+                                            اليوم</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- WhatsApp Monitor MGMT -->
+                            <div id="whatsapp-monitor-mgmt" class="pane hidden admin-only">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>سجل الرفض وإعدادات سيرفر الواتساب</h3>
+                                        <p>متابعة وتفعيل خادم الواتساب لمحادثات الموظفين والعملاء</p>
+                                    </div>
+                                    <button class="btn-premium btn-secondary btn-sm"
+                                        onclick="window.renderWhatsAppMonitor()">
+                                        <i class="fas fa-sync-alt"></i> تحديث السجل
+                                    </button>
+                                </div>
+
+                                <!-- إعداد السيرفر (QR Code) -->
+                                <div class="admin-grid-v2" style="margin-bottom: 30px;">
+                                    <div class="desc-card-v5"
+                                        style="display:flex; justify-content:space-between; align-items:center;">
+                                        <div>
+                                            <h3><i class="fas fa-server"></i> تفعيل واتساب للموظفين</h3>
+                                            <p style="color:var(--text-dim); margin-bottom:10px;">اختر الموظف لربط رقم
+                                                الواتساب الخاص به للرد على عملائه</p>
+                                            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px; padding:15px; background:rgba(0,0,0,0.2); border-radius:10px;">
+                                                <label style="font-size:13px; color:var(--p-copper); font-weight:bold;"><i class="fas fa-link"></i> رابط سيرفر الواتساب (Public URL)</label>
+                                                <div style="display:flex; gap:10px;">
+                                                    <input type="text" id="wa-server-url-config" class="filter-select" style="flex:1;" placeholder="مثال: http://35.212.158.144:3001">
+                                                    <button onclick="window.saveWAServerURL()" class="btn-premium btn-sm">حفظ الرابط <i class="fas fa-save"></i></button>
+                                                </div>
+                                                <p style="font-size:11px; opacity:0.6;">* عند استخدام LocalTunnel أو Render، ضع الرابط هنا واضغط حفظ، ثم أعد تحميل الصفحة.</p>
+                                            </div>
+                                            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                                                <select id="wa-staff-select" class="filter-select"
+                                                    style="min-width:200px;">
+                                                    <option value="">-- اختر الموظف --</option>
+                                                </select>
+                                                <button onclick="window.startStaffWASession()"
+                                                    class="btn-premium btn-sm"><i class="fas fa-qrcode"></i> طلب ربط
+                                                    الكود</button>
+                                                <button onclick="window.logoutStaffWASession()"
+                                                    class="btn-premium btn-sm btn-secondary"
+                                                    style="background:#ff4d4d; color:white; border:none;"><i
+                                                        class="fas fa-sign-out-alt"></i> فصل الرقم</button>
+                                            </div>
+                                            <p id="wa-server-status" style="color:var(--text-dim); font-weight:bold;">
+                                                يرجى اختيار الموظف من القائمة أولاً لمحاولة الاتصال...</p>
+                                        </div>
+                                        <div id="wa-qr-container"
+                                            style="display:none; text-align:center; padding: 10px; background:white; border-radius:10px;">
+                                            <canvas id="wa-qr-canvas"></canvas>
+                                            <p style="color:black; font-size:12px; margin-top:5px;">امسح الكود عبر هاتف
+                                                الموظف</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="advanced-filter-bar" style="margin-bottom: 25px;">
+                                    <div class="search-box-wrap">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="wa-monitor-search"
+                                            placeholder="بحث برقم العميل أو اسم الموظف..."
+                                            oninput="window.renderWhatsAppMonitor()">
+                                    </div>
+                                    <div class="filters-row">
+                                        <select id="wa-monitor-filter" class="filter-select"
+                                            onchange="window.renderWhatsAppMonitor()" title="تصفية السجل">
+                                            <option value="all">الكل (المرفوضات وإثباتات المحادثة)</option>
+                                            <option value="with_proof">شملت إثبات (لقطة شاشة)</option>
+                                            <option value="no_proof">بدون إثبات</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div id="admin-wa-monitor-table" class="admin-grid-v2"></div>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Modal -->
+    <div id="details-modal" class="modal hidden">
+        <div class="modal-inner extra-large" style="padding: 20px;">
+            <button class="modal-close">&times;</button>
+            <div id="details-modal-body"></div>
+        </div>
+    </div>
+
+    <div id="item-modal" class="modal hidden">
+        <div class="modal-inner large">
+            <button class="modal-close">&times;</button>
+            <h3 id="item-modal-title">تعديل بيانات</h3>
+            <form id="item-form" class="vip-form">
+                <div id="dynamic-form-fields"></div>
+                <button type="submit" class="btn-premium btn-full">حفظ</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="floating-actions">
+        <!-- WhatsApp Button to Toggle Widget -->
+        <button id="float-wa" class="float-btn whatsapp" title="تواصل عبر واتساب" onclick="window.toggleWAWidget()">
+            <i class="fab fa-whatsapp"></i>
+        </button>
+        <a href="tel:" id="float-call" class="float-btn call" title="اتصال هاتفي">
+            <i class="fas fa-phone-alt"></i>
+        </a>
+        <a href="#booking" class="float-btn primary">
+            <i class="fas fa-concierge-bell"></i>
+            <span>احجز الآن</span>
+        </a>
+        <button id="scroll-jump" class="float-btn" title="انتقال للأعلى" aria-label="Scroll to top">
+            <i class="fas fa-chevron-up"></i>
+        </button>
+    </div>
+
+    <!-- WhatsApp Chat Widget -->
+    <div id="wa-widget" class="wa-widget hidden">
+        <div class="wa-header">
+            <div class="wa-agent">
+                <div class="wa-icon"><i class="fab fa-whatsapp"></i></div>
+                <div class="wa-info">
+                    <h4 id="wa-widget-name" class="dynamic-name-ar">ديار الشهمة للسيارات</h4>
+                    <p>فريق خدمة العملاء متاح الآن للرد على استفساراتك</p>
+                </div>
+            </div>
+            <button class="wa-close" onclick="window.toggleWAWidget()" title="إغلاق المحادثة"
+                aria-label="Close Chat">&times;</button>
+        </div>
+        <div class="wa-body" id="wa-body-chat">
+            <div class="wa-message bot">
+                مرحباً بك في ديار الشهمة 👋<br>
+                يسعدنا خدمتك عزيزي العميل.. كيف يمكننا مساعدتك اليوم؟
+                <span class="wa-time" id="wa-current-time">الآن</span>
+            </div>
+        </div>
+        <div class="wa-footer">
+            <input type="text" id="wa-input" placeholder="اكتب سؤالك أو استفسارك هنا..."
+                onkeydown="if(event.key==='Enter') window.sendWAWidgetMsg()">
+            <button onclick="window.sendWAWidgetMsg()" class="wa-send-btn" title="إرسال عبر واتساب"
+                aria-label="Send Message">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Image Viewer Modal -->
+    <div id="image-viewer-modal" class="modal hidden" style="z-index: 10000;">
+        <div class="modal-inner large image-viewer-inner">
+            <button class="modal-close image-viewer-close" title="إغلاق" aria-label="Close Modal">&times;</button>
+            <img id="image-viewer-img" src="" alt="صورة مكبرة" class="image-viewer-main-img">
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="toast-container-v2">
+    </div>
+
+    <!-- Socket.io and QRCode for Local WhatsApp Server -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>

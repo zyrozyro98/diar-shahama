@@ -1,0 +1,105 @@
+{
+    "rules": {
+        "users": {
+            ".read": true,
+            "$uid": {
+                ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || auth.uid === $uid)"
+            },
+            ".indexOn": [
+                "role",
+                "email"
+            ]
+        },
+        "cars": {
+            ".read": true,
+            ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'supervisor')",
+            ".indexOn": [
+                "type",
+                "make",
+                "year",
+                "price"
+            ]
+        },
+        "ads": {
+            ".read": true,
+            ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+        },
+        "sales": {
+            ".read": true,
+            ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+        },
+        "bookings": {
+            ".read": "auth != null",
+            "$booking_id": {
+                ".write": "!data.exists() || (auth != null && root.child('users').child(auth.uid).exists())",
+                ".validate": "!data.exists() ? newData.hasChildren(['name', 'phone']) : true"
+            }
+        },
+        "config": {
+            ".read": true,
+            "lastAssignedStaffIndex_v2": {
+                ".write": true,
+                ".validate": "newData.isNumber()"
+            },
+            "$other": {
+                ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+            }
+        },
+        "settings": {
+            ".read": true,
+            ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+        },
+        "plates": {
+            ".read": true,
+            ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+        },
+        "partners": {
+            ".read": true,
+            ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+        },
+        "locations": {
+            ".read": true,
+            ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+        },
+        "brands": {
+            ".read": true,
+            ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+        },
+        "agents": {
+            ".read": true,
+            ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+        },
+        "specs": {
+            ".read": true,
+            ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+        },
+        "packages": {
+            ".read": true,
+            ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+        },
+        "blogs": {
+            ".read": true,
+            ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+        },
+        "reviews": {
+            ".read": true,
+            ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+        },
+        "logs": {
+            ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'supervisor')",
+            ".write": "auth != null"
+        },
+        "notifications": {
+            ".read": "auth != null",
+            "$uid": {
+                ".write": "auth != null || (newData.child('type').val() === 'new_booking')"
+            }
+        },
+        "analytics": {
+            ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'supervisor')",
+            ".write": true
+        },
+        ".read": false,
+        ".write": false
+    }
+}
