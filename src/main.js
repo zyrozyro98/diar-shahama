@@ -464,7 +464,9 @@ async function initFirebase() {
       onValue(pRef, (s) => {
         window.state.userProfile = { ...s.val(), id: u.uid };
         updateAppUI();
-        if (window.initWhatsAppServer) window.initWhatsAppServer();
+        if (window.state.userProfile.role === 'admin' || window.state.userProfile.role === 'supervisor' || window.state.userProfile.role === 'staff') {
+            if (window.initWhatsAppServer) window.initWhatsAppServer();
+        }
       });
       // Attach private listeners now that we are authenticated
       privatePaths.forEach(attachListener);
@@ -3008,9 +3010,5 @@ document.addEventListener('DOMContentLoaded', () => {
             window.switchLuxuryTab(btn.dataset.tab);
         }
     });
-
-    setTimeout(() => {
-        window.initWhatsAppServer();
-    }, 3000);
 });
 
