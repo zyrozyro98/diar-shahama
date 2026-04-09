@@ -14,12 +14,10 @@ app.use(cors());
 app.use(express.json());
 
 const server = http.createServer(app);
-const io = new Server(server, { 
-    cors: { origin: "*", methods: ["GET", "POST"] },
-    transports: ['polling', 'websocket']
-});
+const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
 
 const sessions = {};
+const qrCache = {}; // ذاكرة لتخزين آخر رمز QR لكل مستخدم
 const log = pino({ level: 'error' });
 const AUTH_FOLDER = path.join(__dirname, 'auth_info_baileys');
 
@@ -27,7 +25,12 @@ if (!fs.existsSync(AUTH_FOLDER)) fs.mkdirSync(AUTH_FOLDER, { recursive: true });
 
 async function startWASession(rawUserId) {
     const userId = rawUserId.toString().replace('session-', '').trim();
-    if (sessions[userId]?.isReady || sessions[userId]?.initializing) return;
+    
+    if (sessions[userId]?.isReady) {
+        io.emit('ready', { userId, msg: 'متصل بالفعل' });
+        return;
+    }
+    if (sessions[userId]?.initializing) return;
 
     console.log(`[Action] Starting WhatsApp for: ${userId}`);
     sessions[userId] = { initializing: true };
@@ -40,9 +43,7 @@ async function startWASession(rawUserId) {
 
     try {
         const sock = makeWASocket({
-            version,
-            logger: log,
-            auth: state,
+            version, logger: log, auth: state,
             printQRInTerminal: false,
             browser: ['Diar-Shahama', 'Chrome', '1.0.0']
         });
@@ -53,38 +54,40 @@ async function startWASession(rawUserId) {
             const { connection, lastDisconnect, qr } = update;
 
             if (qr) {
-                console.log(`[QR] EMIT for: ${userId}`);
+                console.log(`[QR] Cache updated for: ${userId}`);
+                qrCache[userId] = qr; // حفظ الرمز في الذاكرة
                 io.emit('qr', { userId, qr });
             }
 
             if (connection === 'close') {
-                const retry = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-                // الحماية القصوى من الانهيار
                 if (sessions[userId]) sessions[userId].isReady = false;
-                
-                if (retry) {
-                    setTimeout(() => startWASession(userId), 5000);
-                } else {
-                    console.log(`[Auth] User ${userId} logged out.`);
-                    delete sessions[userId];
-                }
+                const retry = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+                if (retry) setTimeout(() => startWASession(userId), 5000);
             } else if (connection === 'open') {
                 console.log(`[Ready] ${userId} is ONLINE`);
+                qrCache[userId] = null; // مسح الرمز عند نجاح الاتصال
                 if (sessions[userId]) sessions[userId].isReady = true;
                 io.emit('ready', { userId, msg: 'متصل' });
             }
         });
 
         sock.ev.on('creds.update', saveCreds);
-    } catch (err) {
-        console.error(`[Fail] ${userId}:`, err);
-        delete sessions[userId];
-    }
+    } catch (err) { delete sessions[userId]; }
 }
 
 io.on('connection', (socket) => {
-    socket.on('start_session', ({ userId }) => { if (userId) startWASession(userId); });
-    socket.on('join_room', (userId) => { if (userId) socket.join(userId.replace('session-', '')); });
+    // بمجرد اتصال أي شخص، إذا كان هناك رمز QR مخزن له، نرسله له فوراً
+    socket.on('join_room', (userId) => {
+        const cleanId = userId.toString().replace('session-', '').trim();
+        socket.join(cleanId);
+        if (qrCache[cleanId]) {
+            socket.emit('qr', { userId: cleanId, qr: qrCache[cleanId] });
+        }
+    });
+
+    socket.on('start_session', ({ userId }) => {
+        if (userId) startWASession(userId);
+    });
 });
 
 app.post('/api/send', async (req, res) => {
@@ -99,11 +102,10 @@ app.post('/api/send', async (req, res) => {
 });
 
 server.listen(3001, '0.0.0.0', () => {
-    console.log(`>>> SERVER LIVE ON 3001 <<<`);
+    console.log(">>> SERVER LIVE <<<");
     if (fs.existsSync(AUTH_FOLDER)) {
         fs.readdirSync(AUTH_FOLDER).forEach(file => {
-            const p = path.join(AUTH_FOLDER, file);
-            if (fs.lstatSync(p).isDirectory()) startWASession(file);
+            if (fs.lstatSync(path.join(AUTH_FOLDER, file)).isDirectory()) startWASession(file);
         });
     }
 });
