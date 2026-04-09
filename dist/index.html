@@ -45,8 +45,8 @@
             }
         })();
     </script>
-  <script type="module" crossorigin src="/assets/index-C6hDZqd8.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-05FFAdYW.css">
+  <script type="module" crossorigin src="/assets/index-C9eYqvI5.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BH1oufVp.css">
 </head>
 
 <body>
@@ -480,8 +480,17 @@
                                 <div class="form-row">
                                     <div class="f-group">
                                         <label>رقم الجوال</label>
-                                        <input type="tel" id="b-phone" placeholder="05xxxxxxx" autocomplete="tel"
-                                            required>
+                                        <div style="display: flex; flex-direction:row-reverse; gap: 10px; direction: ltr;">
+                                            <select id="b-phone-code" class="filter-select" style="min-width: 110px; padding: 0 5px;" 
+                                                    onchange="if(this.value==='other') { this.style.display='none'; document.getElementById('b-phone-code-other').style.display='block'; document.getElementById('b-phone-code-other').focus(); }">
+                                                <option value="966" selected>+966 (SA)</option>
+                                                <option value="971">+971 (AE)</option>
+                                                <option value="965">+965 (KW)</option>
+                                                <option value="other">+ أخرى...</option>
+                                            </select>
+                                            <input type="text" id="b-phone-code-other" placeholder="+000" style="display:none; width: 110px; direction:ltr;" onblur="if(!this.value){ this.style.display='none'; document.getElementById('b-phone-code').style.display='block'; document.getElementById('b-phone-code').value='966'; }">
+                                            <input type="tel" id="b-phone" placeholder="5xxxxxxxx" autocomplete="tel" required style="flex:1; direction:ltr;">
+                                        </div>
                                     </div>
                                     <div class="f-group">
                                         <label id="lbl-b-age">العمر</label>
@@ -497,15 +506,16 @@
                                     <div class="f-group" id="nationality-wrap">
                                         <label for="b-nationality" id="lbl-b-nat">الجنسية</label>
                                         <select id="b-nationality" class="filter-select" aria-label="الجنسية"
-                                            title="اختر الجنسية">
+                                            title="اختر الجنسية" onchange="document.getElementById('b-nationality-other').style.display = this.value === 'مقيم' ? 'block' : 'none';">
                                             <option value="سعودي" selected>سعودي</option>
                                             <option value="مقيم">مقيم (جنسية أخرى)</option>
                                         </select>
+                                        <input type="text" id="b-nationality-other" placeholder="اكتب الجنسية..." class="filter-select" style="display:none; margin-top:10px;">
                                     </div>
                                     <div class="f-group">
                                         <label for="b-city">المدينة</label>
                                         <select id="b-city" class="filter-select" aria-label="المدينة"
-                                            title="اختر المدينة">
+                                            title="اختر المدينة" onchange="document.getElementById('b-city-other').style.display = this.value === 'أخرى' ? 'block' : 'none';">
                                             <option value="" disabled selected>اختر المدينة</option>
                                             <option value="الرياض">الرياض</option>
                                             <option value="جدة">جدة</option>
@@ -514,6 +524,7 @@
                                             <option value="المدينة">المدينة</option>
                                             <option value="أخرى">أخرى</option>
                                         </select>
+                                        <input type="text" id="b-city-other" placeholder="اكتب اسم المدينة..." class="filter-select" style="display:none; margin-top:10px;">
                                     </div>
                                 </div>
                                 <div class="f-group">
@@ -541,6 +552,7 @@
                                         <option value="سنتين">سنتين</option>
                                         <option value="ثلاث سنوات">ثلاث سنوات</option>
                                         <option value="اربع سنوات">اربع سنوات</option>
+                                        <option value="خمس سنوات">خمس سنوات</option>
                                     </select>
                                 </div>
 
@@ -575,10 +587,10 @@
                                 <div class="f-group">
                                     <label>طريقة التواصل المفضلة</label>
                                     <div class="tab-radio">
-                                        <input type="radio" id="c-phone" name="contact-method" value="الجوال" checked>
-                                        <label for="c-phone">اتصال هاتفي</label>
-                                        <input type="radio" id="c-wa" name="contact-method" value="واتساب">
+                                        <input type="radio" id="c-wa" name="contact-method" value="واتساب" checked>
                                         <label for="c-wa">واتساب</label>
+                                        <input type="radio" id="c-phone" name="contact-method" value="الجوال">
+                                        <label for="c-phone">اتصال هاتفي</label>
                                     </div>
                                 </div>
 
@@ -933,6 +945,8 @@
                                     class="fab fa-whatsapp"></i> ربط الواتساب</button>
                             <button class="dash-tab admin-only hidden" data-tab="whatsapp-monitor-mgmt"><i
                                     class="fab fa-whatsapp"></i> رقابة الرفض والدردشات</button>
+                            <button class="dash-tab admin-only hidden" data-tab="quick-replies-mgmt"><i
+                                    class="fas fa-bolt"></i> الرسائل السريعة</button>
                             <button class="dash-tab admin-only hidden" data-tab="reports-mgmt"><i
                                     class="fas fa-chart-bar"></i> التقارير</button>
                             <button class="dash-tab admin-only hidden" data-tab="settings-mgmt"><i
@@ -1909,7 +1923,7 @@
                                         <h3>مركز الإشعارات</h3>
                                         <p>متابعة التنبيهات والنشاطات الأخيرة في النظام</p>
                                     </div>
-                                    <button class="btn-premium btn-secondary btn-sm"
+                                    <button class="btn-premium btn-secondary btn-sm admin-only hidden"
                                         onclick="window.markAllNotificationsRead()">
                                         <i class="fas fa-check-double"></i> تحديد الكل كمقروء
                                     </button>
@@ -2007,6 +2021,27 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- Quick Replies MGMT -->
+                            <div id="quick-replies-mgmt" class="pane hidden admin-only">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>إدارة الرسائل السريعة</h3>
+                                        <p>أضف وعدّل الردود الجاهزة التي تظهر للمندوبين أثناء المحادثات</p>
+                                    </div>
+                                    <div class="pane-actions-v2 pane-actions-v2-flex">
+                                        <button class="btn-premium btn-sm" onclick="window.openCRUDModal('quickReplies')">
+                                            <i class="fas fa-plus"></i> إضافة رسالة
+                                        </button>
+                                        <div class="search-box-v2">
+                                            <i class="fas fa-search"></i>
+                                            <input type="text" id="qr-search" placeholder="ابحث في الرسائل..."
+                                                oninput="if(window.renderQuickRepliesAdmin) window.renderQuickRepliesAdmin()" aria-label="بحث الرسائل السريعة">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="quick-replies-list" class="admin-grid-v2"></div>
                             </div>
 
                             <!-- AI Assistant MGMT -->
