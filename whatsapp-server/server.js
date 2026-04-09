@@ -12,11 +12,10 @@ const {
 const pino = require('pino');
 const path = require('path');
 const fs = require('fs');
-const QRCode = require('qrcode');
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json());
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -30,10 +29,18 @@ const AUTH_FOLDER = path.join(__dirname, 'auth_info_baileys');
 if (!fs.existsSync(AUTH_FOLDER)) fs.mkdirSync(AUTH_FOLDER, { recursive: true });
 
 async function startWASession(userId) {
-    if (sessions[userId]?.isReady) return;
+    // منع البدء المتكرر لنفس الجلسة
+    if (sessions[userId]?.initializing) return;
+    if (sessions[userId]?.isReady) {
+        io.emit('ready', { userId, msg: 'متصل بالفعل' });
+        return;
+    }
 
-    console.log(`[Session] Starting for: ${userId}`);
-    const userFolder = path.join(AUTH_FOLDER, `session-${userId}`);
+    console.log(`[Session] Starting session for: ${userId}`);
+    sessions[userId] = { initializing: true };
+
+    // استخدام اسم المجلد كما هو بدون بادئة ليتطابق مع المتصفح
+    const userFolder = path.join(AUTH_FOLDER, userId);
     if (!fs.existsSync(userFolder)) fs.mkdirSync(userFolder, { recursive: true });
 
     const { state, saveCreds } = await useMultiFileAuthState(userFolder);
@@ -47,7 +54,7 @@ async function startWASession(userId) {
         browser: ['Diar-Shahama', 'Chrome', '1.0.0']
     });
 
-    // Custom Store for history
+    // متجر رسائل بسيط لضمان استقرار الذاكرة
     const store = {
         messages: {},
         bind: function(ev) {
@@ -58,7 +65,7 @@ async function startWASession(userId) {
                         if (!jid) continue;
                         if (!this.messages[jid]) this.messages[jid] = { array: [] };
                         this.messages[jid].array.push(msg);
-                        if (this.messages[jid].array.length > 50) this.messages[jid].array.shift();
+                        if (this.messages[jid].array.length > 20) this.messages[jid].array.shift();
                     }
                 }
             });
@@ -66,29 +73,30 @@ async function startWASession(userId) {
     };
     store.bind(sock.ev);
 
-    sessions[userId] = { sock, store, isReady: false };
+    sessions[userId] = { sock, store, isReady: false, initializing: false };
 
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
 
         if (qr) {
-            console.log(`[QR] Generated for ${userId}`);
-            const qrImage = await QRCode.toDataURL(qr);
-            // إرسال الرمز لكل المستخدمين أو لغرفة المستخدم
-            io.emit('qr', { userId, qr: qrImage });
+            console.log(`[QR] Sending QR to browser for user: ${userId}`);
+            // إرسال الرمز كـ نص خام كما يتوقعه كود المتصفح لديك
+            io.emit('qr', { userId, qr });
         }
 
         if (connection === 'close') {
             const statusCode = lastDisconnect?.error?.output?.statusCode;
             const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-            console.log(`[Session] Closed for ${userId}. Reconnecting: ${shouldReconnect}`);
+            console.log(`[Session] Connection closed for ${userId}. Reconnecting: ${shouldReconnect}`);
             
             sessions[userId].isReady = false;
-            if (shouldReconnect) setTimeout(() => startWASession(userId), 5000);
+            if (shouldReconnect) {
+                setTimeout(() => startWASession(userId), 5000);
+            }
         } else if (connection === 'open') {
-            console.log(`[Session] Ready for ${userId}`);
+            console.log(`[Session] Connection opened successfully for: ${userId}`);
             sessions[userId].isReady = true;
-            io.emit('ready', { userId, msg: 'متصل بنجاح' });
+            io.emit('ready', { userId, msg: 'تم الاتصال بنجاح' });
         }
     });
 
@@ -96,18 +104,24 @@ async function startWASession(userId) {
 }
 
 io.on('connection', (socket) => {
-    socket.on('join_room', (userId) => socket.join(userId));
-    socket.on('start_session', ({ userId }) => startWASession(userId));
+    socket.on('start_session', ({ userId }) => {
+        if (userId) startWASession(userId);
+    });
+    
+    // الانضمام لغرفة لضمان استقبال التحديثات الخاصة بالموظف
+    socket.on('join_room', (userId) => {
+        if (userId) socket.join(userId);
+    });
 });
 
-app.get('/ping', (req, res) => res.send('ALIVE'));
+app.get('/ping', (req, res) => res.send('SERVER_OK'));
 
 app.post('/api/send', async (req, res) => {
     const { userId, phone, message } = req.body;
     if (!sessions[userId]?.isReady) return res.status(403).json({ error: 'غير متصل' });
 
     try {
-        const jid = phone.replace(/\D/g, '') + '@s.whatsapp.net';
+        const jid = phone.toString().replace(/\D/g, '') + '@s.whatsapp.net';
         await sessions[userId].sock.sendMessage(jid, { text: message });
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: err.toString() }); }
@@ -115,12 +129,16 @@ app.post('/api/send', async (req, res) => {
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`SERVER_LIVE_ON_${PORT}`);
-    // بدء الجلسات تلقائياً
-    fs.readdirSync(AUTH_FOLDER).forEach(file => {
-        if (file.startsWith('session-')) {
-            const id = file.replace('session-', '');
-            startWASession(id);
-        }
-    });
+    console.log(`>>> WHATSAPP SERVER RUNNING ON PORT ${PORT} <<<`);
+    
+    // بدء الجلسات القديمة تلقائياً عند التشغيل
+    if (fs.existsSync(AUTH_FOLDER)) {
+        fs.readdirSync(AUTH_FOLDER).forEach(file => {
+            const fullPath = path.join(AUTH_FOLDER, file);
+            if (fs.lstatSync(fullPath).isDirectory()) {
+                console.log(`[Auto-Start] Resuming: ${file}`);
+                startWASession(file);
+            }
+        });
+    }
 });
