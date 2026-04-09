@@ -1,164 +1,123 @@
 const express = require('express');
-const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestWaWebVersion, downloadMediaMessage } = require('@whiskeysockets/baileys');
+const { 
+    default: makeWASocket, 
+    useMultiFileAuthState, 
+    DisconnectReason, 
+    fetchLatestWaWebVersion, 
+    makeInMemoryStore, 
+    jidDecode 
+} = require('@whiskeysockets/baileys');
 const pino = require('pino');
-const path = require('path');
+const { Boom } = require('@hapi/boom');
 const fs = require('fs');
+const path = require('path');
+const QRCode = require('qrcode');
 
 const app = express();
-app.use(cors());
 app.use(express.json({ limit: '50mb' }));
-
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: { origin: "*", methods: ["GET", "POST"], credentials: true },
-    allowEIO3: true
+    cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
 const sessions = {};
-const log = pino({ level: 'error' });
 
-async function clearSession(userId) {
-    const authFolder = path.join(__dirname, 'auth_info_baileys', `session-${userId}`);
-    if (sessions[userId]) {
-        if (sessions[userId].intervalId) clearInterval(sessions[userId].intervalId);
-        if (sessions[userId].sock) {
-            try { sessions[userId].sock.ws.close(); } catch (err) { }
-        }
-        delete sessions[userId];
+// Clean folder on start to avoid corruption
+const AUTH_FOLDER = 'auth_info_baileys';
+
+/**
+ * Robust Phone/JID Cleaner
+ * Strips suffixes and returns only digits. Handles SA, Yemen, etc.
+ */
+function cleanPhone(id) {
+    if (!id) return '';
+    let raw = id.split('@')[0]; // Remove @s.whatsapp.net or @lid
+    let clean = raw.replace(/\D/g, '');
+    
+    // Normalize leading zeros
+    if (clean.startsWith('00')) clean = clean.substring(2);
+    if (clean.startsWith('0')) clean = clean.substring(1);
+
+    // Auto-detect based on mobile start digits
+    if (clean.length === 9) {
+        if (clean.startsWith('5')) return '966' + clean; // Saudi
+        if (clean.startsWith('7')) return '967' + clean; // Yemen
     }
-    try { if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true }); } catch (e) { }
+    
+    return clean;
 }
 
-async function startWASession(userId) {
-    if (sessions[userId] && sessions[userId].isReady) {
-        io.emit('ready', { userId, msg: 'متصل مسبقاً' });
-        return;
-    }
+const startWASession = async (userId) => {
+    if (sessions[userId]?.initializing) return;
+    
+    console.log(`[Session] Starting for user: ${userId}`);
+    if (!sessions[userId]) sessions[userId] = { initializing: true };
+    else sessions[userId].initializing = true;
 
-    const authFolder = path.join(__dirname, 'auth_info_baileys', `session-${userId}`);
-    if (!fs.existsSync(authFolder)) fs.mkdirSync(authFolder, { recursive: true });
-
-    const { state, saveCreds } = await useMultiFileAuthState(authFolder);
+    const userAuthFolder = path.join(AUTH_FOLDER, userId);
+    const { state, saveCreds } = await useMultiFileAuthState(userAuthFolder);
     const { version } = await fetchLatestWaWebVersion().catch(() => ({ version: [2, 3000, 1015901307] }));
 
     const sock = makeWASocket({
         version,
-        logger: log,
         auth: state,
-        syncFullHistory: true,
-        connectTimeoutMs: 60000,
-        keepAliveIntervalMs: 10000,
         printQRInTerminal: false,
-        browser: ['Diar-Shahama', 'Chrome', '1.0.0']
+        logger: pino({ level: 'silent' }),
+        browser: ['Diar-Shahama', 'Chrome', '1.0.0'],
+        patchMessageBeforeSending: (message) => {
+            const requiresPatch = !!(message.buttonsMessage || message.templateMessage || message.listMessage);
+            if (requiresPatch) {
+                message = {
+                    viewOnceMessage: {
+                        message: {
+                            messageContextInfo: {
+                                deviceListMetadata: {},
+                                deviceListMetadataVersion: 2
+                            },
+                            ...message
+                        }
+                    }
+                };
+            }
+            return message;
+        }
     });
 
-    const storePath = path.join(__dirname, 'auth_info_baileys', `store-${userId}.json`);
-
-    const store = {
-        messages: {},
-        writeToFile: function () {
-            try {
-                const toSave = {};
-                for (const jid in this.messages) {
-                    toSave[jid] = this.messages[jid].array;
-                }
-                fs.writeFileSync(storePath, JSON.stringify(toSave));
-            } catch (e) { }
-        },
-        readFromFile: function () {
-            try {
-                if (fs.existsSync(storePath)) {
-                    const parsed = JSON.parse(fs.readFileSync(storePath));
-                    for (const jid in parsed) {
-                        this.messages[jid] = { array: parsed[jid] || [] };
-                    }
-                }
-            } catch (e) { }
-        },
-        bind: function (ev) {
-            ev.on('messages.upsert', (m) => {
-                if (m.type === 'notify' || m.type === 'append') {
-                    for (const msg of m.messages) {
-                        const jid = msg.key.remoteJid;
-                        if (!jid) continue;
-                        if (!this.messages[jid]) this.messages[jid] = { array: [] };
-
-                        const existingIdx = this.messages[jid].array.findIndex(x => x.key.id === msg.key.id);
-                        if (existingIdx !== -1) {
-                            this.messages[jid].array[existingIdx] = msg;
-                        } else {
-                            this.messages[jid].array.push(msg);
-                        }
-
-                        if (this.messages[jid].array.length > 500) this.messages[jid].array.shift();
-                    }
-                }
-            });
-            ev.on('messages.update', (updates) => {
-                for (const update of updates) {
-                    const jid = update.key.remoteJid;
-                    if (!jid || !this.messages[jid]) continue;
-                    const msgToUpdate = this.messages[jid].array.find(m => m.key.id === update.key.id);
-                    if (msgToUpdate) {
-                        if (update.update.status !== undefined) {
-                            msgToUpdate.status = update.update.status;
-                        }
-                    }
-                }
-            });
-            ev.on('messaging-history.set', ({ messages }) => {
-                const msgs = messages || [];
-                for (const msg of msgs) {
-                    const jid = msg.key.remoteJid;
-                    if (!jid) continue;
-                    if (!this.messages[jid]) this.messages[jid] = { array: [] };
-                    if (!this.messages[jid].array.some(m => m.key.id === msg.key.id)) {
-                        this.messages[jid].array.push(msg);
-                    }
-                }
-                for (const jid in this.messages) {
-                    this.messages[jid].array.sort((a, b) => (Number(a.messageTimestamp) || 0) - (Number(b.messageTimestamp) || 0));
-                    if (this.messages[jid].array.length > 500) {
-                        this.messages[jid].array = this.messages[jid].array.slice(-500);
-                    }
-                }
-            });
-        }
-    };
-    store.readFromFile();
+    const store = makeInMemoryStore({});
     store.bind(sock.ev);
 
-    if (sessions[userId] && sessions[userId].intervalId) {
-        clearInterval(sessions[userId].intervalId);
-    }
-
-    const intervalId = setInterval(() => {
-        if (sessions[userId]?.store && typeof sessions[userId].store.writeToFile === 'function') {
-            try { sessions[userId].store.writeToFile(storePath); } catch (e) { }
-        }
-    }, 10000);
-
-    sessions[userId] = { sock, isReady: false, store, initializing: true, intervalId, lastQr: null };
+    sessions[userId].sock = sock;
+    sessions[userId].store = store;
 
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
+
         if (qr) {
-            sessions[userId].lastQr = { userId, qr };
-            io.emit('qr', sessions[userId].lastQr);
+            console.log(`[QR] Generated for ${userId}`);
+            sessions[userId].lastQr = await QRCode.toDataURL(qr);
+            io.emit('qr', { userId, qr: sessions[userId].lastQr });
         }
+
         if (connection === 'close') {
-            const statusCode = (lastDisconnect?.error)?.output?.statusCode;
-            const isLogout = statusCode === DisconnectReason.loggedOut || statusCode === 405 || statusCode === 401;
-            if (!isLogout) {
-                setTimeout(() => startWASession(userId), 5000);
+            const shouldReconnect = (lastDisconnect.error instanceof Boom) ? 
+                lastDisconnect.error.output?.statusCode !== DisconnectReason.loggedOut : true;
+            
+            console.log(`[Connection] Closed for ${userId}. Reconnecting: ${shouldReconnect}`);
+            sessions[userId].initializing = false;
+            sessions[userId].isReady = false;
+
+            if (shouldReconnect) {
+                startWASession(userId);
             } else {
-                await clearSession(userId);
-                io.emit('disconnected', { userId, msg: 'تم تسجيل الخروج أو جلسة تالفة.' });
+                console.log(`[Session] Logged out: ${userId}`);
+                if (fs.existsSync(userAuthFolder)) fs.rmSync(userAuthFolder, { recursive: true, force: true });
+                delete sessions[userId];
+                io.emit('logged_out', { userId });
             }
         } else if (connection === 'open') {
+            console.log(`[Connection] OPEN for ${userId}`);
             sessions[userId].isReady = true;
             sessions[userId].initializing = false;
             sessions[userId].lastQr = null;
@@ -168,54 +127,47 @@ async function startWASession(userId) {
 
     sock.ev.on('creds.update', saveCreds);
 
-    sock.ev.on('messages.upsert', (m) => {
+    sock.ev.on('messages.upsert', async (m) => {
         if (m.type === 'notify') {
             for (const msg of m.messages) {
-                if (msg.message) {
-                    let body = msg.message.conversation || msg.message.extendedTextMessage?.text;
-                    if (!body) {
-                        const msgType = Object.keys(msg.message)[0];
-                        if (msgType.includes('image')) body = '📷 صورة';
-                        else if (msgType.includes('video')) body = '🎥 فيديو';
-                        else if (msgType.includes('audio')) body = '🎵 مقطع صوتي';
-                        else if (msgType.includes('document')) body = '📄 ملف';
-                        else body = '📩 رسالة جديدة (وسائط/ملصق)';
-                    }
-                    io.emit('message', {
-                        userId: userId,
-                        from: msg.key.remoteJid,
-                        body: body,
-                        timestamp: msg.messageTimestamp,
-                        isMe: msg.key.fromMe
-                    });
-                }
+                if (!msg.message || msg.key.fromMe) continue;
+
+                const fromJid = msg.key.remoteJid;
+                const fromPhone = cleanPhone(fromJid);
+                
+                // Extract body
+                const body = msg.message.conversation || 
+                             msg.message.extendedTextMessage?.text || 
+                             msg.message.imageMessage?.caption || 
+                             (msg.message.imageMessage ? 'صورة' : '') || 
+                             (msg.message.audioMessage ? 'صوت' : '') || '';
+
+                console.log(`[Message] From: ${fromPhone} | Body: ${body.substring(0, 20)}`);
+
+                // Emit to frontend IMMEDIATELY
+                io.emit('message', {
+                    userId: userId,
+                    from: fromPhone,
+                    fullJid: fromJid,
+                    body: body,
+                    timestamp: Number(msg.messageTimestamp) || Math.floor(Date.now() / 1000),
+                    isMe: false
+                });
             }
+        }
+    });
+};
+
+// Start sessions for existing folders
+if (fs.existsSync(AUTH_FOLDER)) {
+    fs.readdirSync(AUTH_FOLDER).forEach(folder => {
+        if (fs.lstatSync(path.join(AUTH_FOLDER, folder)).isDirectory()) {
+            startWASession(folder);
         }
     });
 }
 
-io.on('connection', (socket) => {
-    socket.on('start_session', async ({ userId }) => {
-        if (!userId) return;
-        if (sessions[userId]?.isReady) {
-            socket.emit('ready', { userId, msg: 'متصل بنجاح' });
-            return;
-        }
-        if (sessions[userId]?.initializing) {
-            if (sessions[userId].lastQr) socket.emit('qr', sessions[userId].lastQr);
-            return;
-        }
-        await startWASession(userId);
-    });
-
-    socket.on('logout_session', async ({ userId }) => {
-        if (sessions[userId]?.sock) {
-            try { await sessions[userId].sock.logout(); } catch (e) { }
-            await clearSession(userId);
-        }
-    });
-});
-
+// REST API
 app.get('/ping', (req, res) => res.send('Codespace is ALIVE'));
 
 app.post('/api/send', async (req, res) => {
@@ -223,141 +175,80 @@ app.post('/api/send', async (req, res) => {
     if (!userId || !sessions[userId]?.isReady) return res.status(403).json({ error: 'غير متصل' });
 
     try {
-        let formattedPhone = phone.toString().replace(/\D/g, '');
-        if (formattedPhone.startsWith('00')) formattedPhone = formattedPhone.substring(2);
-        if (formattedPhone.startsWith('0')) formattedPhone = formattedPhone.substring(1);
-        if (formattedPhone.length === 9 && formattedPhone.startsWith('5')) {
-            formattedPhone = '966' + formattedPhone;
-        }
-        const jid = formattedPhone + '@s.whatsapp.net';
-
-        let sendContent;
+        const targetPhone = cleanPhone(phone.toString());
+        const jid = targetPhone + '@s.whatsapp.net';
+        
+        let protocol;
         if (media && media.data) {
-            const buffer = Buffer.from(media.data, 'base64');
-            if (media.mimetype.startsWith('image/')) {
-                sendContent = { image: buffer, caption: message || '' };
-            } else if (media.mimetype.startsWith('video/')) {
-                sendContent = { video: buffer, caption: message || '' };
-            } else if (media.mimetype.startsWith('audio/')) {
-                sendContent = { audio: buffer, mimetype: media.mimetype, ptt: true };
-            } else {
-                sendContent = { document: buffer, mimetype: media.mimetype, fileName: media.filename || 'وثيقة', caption: message || '' };
-            }
+            const buffer = Buffer.from(media.data.split(',')[1], 'base64');
+            if (media.mimetype.startsWith('image/')) protocol = { image: buffer, caption: message || '' };
+            else if (media.mimetype.startsWith('video/')) protocol = { video: buffer, caption: message || '' };
+            else if (media.mimetype.startsWith('audio/')) protocol = { audio: buffer, mimetype: media.mimetype, ptt: true };
+            else protocol = { document: buffer, mimetype: media.mimetype, fileName: media.filename || 'file', caption: message || '' };
         } else {
-            sendContent = { text: message };
+            protocol = { text: message };
         }
 
-        const sentMsg = await sessions[userId].sock.sendMessage(jid, sendContent);
-
-        // Manually push to store immediately so next fetch sees it instantly
-        if (sentMsg && sessions[userId]?.store?.messages) {
-            if (!sessions[userId].store.messages[jid]) {
-                sessions[userId].store.messages[jid] = { array: [] };
-            }
-            if (!sessions[userId].store.messages[jid].array.some(m => m.key.id === sentMsg.key.id)) {
-                sessions[userId].store.messages[jid].array.push(sentMsg);
-            }
-            // Cache local media instantly
-            if (media && media.data) {
-                sentMsg.localMediaData = media.data;
-            }
+        const sent = await sessions[userId].sock.sendMessage(jid, protocol);
+        
+        // Manual push to store for history tracking
+        if (sessions[userId].store) {
+            const msgArray = sessions[userId].store.messages[jid] || { array: [] };
+            msgArray.array.push(sent);
+            sessions[userId].store.messages[jid] = msgArray;
         }
 
-        res.json({ success: true });
-    } catch (err) { res.status(500).json({ error: err.toString() }); }
+        res.json({ success: true, message: 'Message sent', id: sent.key.id });
+    } catch (err) {
+        console.error('[Send Error]', err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.get('/api/chat/:userId/:phone', async (req, res) => {
     const { userId, phone: rawPhone } = req.params;
     if (!userId || !sessions[userId]?.isReady) return res.json({ messages: [] });
 
-    let formattedPhone = rawPhone.toString().replace(/\D/g, '');
-    if (formattedPhone.startsWith('00')) formattedPhone = formattedPhone.substring(2);
-    if (formattedPhone.startsWith('0')) formattedPhone = formattedPhone.substring(1);
-    if (formattedPhone.length === 9 && formattedPhone.startsWith('5')) {
-        formattedPhone = '966' + formattedPhone;
+    const targetPhone = cleanPhone(rawPhone);
+    const jid = targetPhone + '@s.whatsapp.net';
+    const store = sessions[userId].store;
+    
+    let messages = [];
+    if (store && store.messages[jid]) {
+        messages = store.messages[jid].array || [];
     }
-    const jid = formattedPhone + '@s.whatsapp.net';
 
-    let dbMsgs = [];
-    try {
-        dbMsgs = sessions[userId]?.store?.messages[jid]?.array || [];
-    } catch (err) { }
-
-    const extractMessageContent = (msgObj) => {
-        if (!msgObj) return null;
-        if (msgObj.ephemeralMessage) return extractMessageContent(msgObj.ephemeralMessage.message);
-        if (msgObj.viewOnceMessage) return extractMessageContent(msgObj.viewOnceMessage.message);
-        if (msgObj.viewOnceMessageV2) return extractMessageContent(msgObj.viewOnceMessageV2.message);
-        if (msgObj.viewOnceMessageV2Extension) return extractMessageContent(msgObj.viewOnceMessageV2Extension.message);
-        if (msgObj.documentWithCaptionMessage) return extractMessageContent(msgObj.documentWithCaptionMessage.message);
-        return msgObj;
-    };
-
-    const parsedMessages = await Promise.all(dbMsgs.map(async m => {
-        const actualMsg = extractMessageContent(m.message);
-        let body = actualMsg?.conversation || actualMsg?.extendedTextMessage?.text || '';
-        let media = null;
-
-        if (actualMsg) {
-            const msgType = Object.keys(actualMsg).find(k => k.endsWith('Message')) || Object.keys(actualMsg)[0];
-            if (msgType === 'imageMessage' || msgType === 'videoMessage' || msgType === 'audioMessage' || msgType === 'documentMessage') {
-                body = actualMsg[msgType].caption || body;
-                // Do NOT download media here to avoid performance issues and blue ticks
-                media = {
-                    data: null, // Indicates it needs to be downloaded later
-                    mimetype: actualMsg[msgType].mimetype || 'application/octet-stream',
-                    filename: actualMsg[msgType].fileName || 'Media',
-                    messageId: m.key.id
-                };
-            }
-        }
-
+    const result = messages.map(m => {
+        const actual = m.message?.conversation || m.message?.extendedTextMessage?.text || m.message?.imageMessage?.caption || (m.message?.imageMessage ? 'صورة' : '') || '';
         return {
             id: m.key.id,
-            body: body,
-            timestamp: m.messageTimestamp ? Number(m.messageTimestamp) : Math.floor(Date.now() / 1000),
+            body: actual,
             isMe: m.key.fromMe,
-            status: m.status !== undefined ? m.status : undefined,
-            ack: m.status !== undefined ? m.status : undefined,
-            media: media,
-            type: actualMsg?.audioMessage?.ptt ? 'ptt' : undefined
+            timestamp: Number(m.messageTimestamp) || 0,
+            media: !!(m.message?.imageMessage || m.message?.videoMessage || m.message?.audioMessage || m.message?.documentMessage)
         };
-    }));
+    });
 
-    res.json({ messages: parsedMessages });
+    res.json({ messages: result });
 });
 
-app.get('/api/media/:userId/:phone/:messageId', async (req, res) => {
-    const { userId, phone: rawPhone, messageId } = req.params;
-    if (!userId || !sessions[userId]?.isReady) return res.status(403).json({ error: 'Session not ready' });
-
-    let formattedPhone = rawPhone.replace(/\D/g, '');
-    if (formattedPhone.startsWith('0')) formattedPhone = '966' + formattedPhone.substring(1);
-    const jid = formattedPhone + '@s.whatsapp.net';
-
-    let dbMsgs = sessions[userId]?.store?.messages[jid]?.array || [];
-    const msgToDownload = dbMsgs.find(m => m.key.id === messageId);
-
-    if (!msgToDownload || !msgToDownload.message) return res.status(404).json({ error: 'Message not found' });
-
-    try {
-        let buffer;
-        if (msgToDownload.localMediaData) {
-            buffer = Buffer.from(msgToDownload.localMediaData, 'base64');
-        } else {
-            buffer = await downloadMediaMessage(msgToDownload, 'buffer', {}, {
-                logger: log,
-                reuploadRequest: sessions[userId].sock.updateMediaMessage
-            });
+io.on('connection', (socket) => {
+    socket.on('start_session', ({ userId }) => {
+        if (userId) startWASession(userId);
+    });
+    
+    socket.on('logout_session', async ({ userId }) => {
+        if (sessions[userId]?.sock) {
+            try { await sessions[userId].sock.logout(); } catch(e){}
+            const folder = path.join(AUTH_FOLDER, userId);
+            if (fs.existsSync(folder)) fs.rmSync(folder, { recursive: true, force: true });
+            delete sessions[userId];
+            io.emit('logged_out', { userId });
         }
-        res.json({ data: buffer.toString('base64') });
-    } catch (err) {
-        res.status(500).json({ error: 'Failed to download' });
-    }
+    });
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = 3001;
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`ULTRA_ENGINE_${PORT}_LIVE`);
+    console.log(`\x1b[32m%s\x1b[0m`, `>>> WHATSAPP SERVER REDESIGNED & RUNNING ON PORT ${PORT} <<<`);
 });

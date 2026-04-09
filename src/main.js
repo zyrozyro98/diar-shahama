@@ -216,10 +216,14 @@ window.normalizePhone = function (phone) {
   if (clean.startsWith("00")) clean = clean.substring(2);
   if (clean.startsWith("0")) clean = clean.substring(1);
 
-  // Default to Saudi if it's a 9-digit number starting with 5
-  if (clean.length === 9 && clean.startsWith("5")) {
-    return "966" + clean;
-  }
+  // Saudi Logic
+  if (clean.length === 9 && clean.startsWith("5")) return "966" + clean;
+  if (clean.startsWith("966") && clean.length > 10) return clean;
+
+  // Yemen Logic
+  if (clean.length === 9 && clean.startsWith("7")) return "967" + clean;
+  if (clean.startsWith("967") && clean.length > 10) return clean;
+
   return clean;
 };
 
@@ -3325,15 +3329,8 @@ window.initWhatsAppServer = async function() {
         });
 
         waSocketContainer.on('message', (data) => {
-            const normalizePhone = (p) => {
-                if (!p) return '';
-                let f = p.replace(/\D/g, '');
-                if (f.startsWith('0')) f = '966' + f.substring(1);
-                return f;
-            };
-            
-            const incomingPhoneStr = normalizePhone(data.from);
-            const currentWaStr = normalizePhone(window._currentWaPhone);
+            const incomingPhoneStr = window.normalizePhone(data.from);
+            const currentWaStr = window.normalizePhone(window._currentWaPhone);
             const modalEl = document.getElementById('details-modal');
             const isModalOpen = modalEl && !modalEl.classList.contains('hidden');
             
@@ -3344,10 +3341,7 @@ window.initWhatsAppServer = async function() {
                  
                  const bookings = window.state.bookings || [];
                  const bookingFound = bookings.find(b => {
-                     if (!b.phone) return false;
-                     let formatted = b.phone.replace(/\D/g, '');
-                     if (formatted.startsWith('0')) formatted = '966' + formatted.substring(1);
-                     return formatted === incomingPhoneStr;
+                     return window.normalizePhone(b.phone) === incomingPhoneStr;
                  });
                  
                  if (!bookingFound) return; // Ignore messages from numbers not in the system
