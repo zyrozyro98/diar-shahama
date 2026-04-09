@@ -3475,13 +3475,17 @@ window.showWAPushNotification = async function(phone, body, assignedUserId) {
 window.startCurrentWASession = async function() {
     if(!window.state.user) return;
     
+    // Ensure we are connected and in our own room before starting
     const emitStart = () => {
         if (!waSocketContainer) return;
+        console.log("Emitting start_session for self:", window.state.user.uid);
+        waSocketContainer.emit('join_room', window.state.user.uid);
         waSocketContainer.emit('start_session', { userId: window.state.user.uid });
+        
         const statusTitle = document.getElementById('wa-my-status-title');
         const statusDesc = document.getElementById('wa-my-status-desc');
-        if (statusTitle) statusTitle.innerText = 'جاري الاتصال...';
-        if (statusDesc) statusDesc.innerText = 'يتم الآن التواصل مع خادم الواتساب لتوليد رمز الاستجابة السريعة...';
+        if (statusTitle) statusTitle.innerText = 'جاري الاتصال بالسيرفر...';
+        if (statusDesc) statusDesc.innerText = 'يتم الآن التواصل مع خادم الواتساب السحابي لتوليد رمز الاستجابة السريعة لمسابقة الدخول...';
     };
 
     if(waSocketContainer) {
@@ -3493,8 +3497,7 @@ window.startCurrentWASession = async function() {
         }
     } else {
        await window.initWhatsAppServer();
-       // wait a half sec for socket to potentially start connecting
-       setTimeout(emitStart, 500);
+       setTimeout(emitStart, 800);
     }
 };
 
