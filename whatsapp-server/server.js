@@ -1,14 +1,41 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const Baileys = require('@whiskeysockets/baileys');
+const makeWASocket = Baileys.default || Baileys;
 const { 
-    default: makeWASocket, 
     useMultiFileAuthState, 
     DisconnectReason, 
     fetchLatestWaWebVersion, 
-    makeInMemoryStore, 
     jidDecode 
-} = require('@whiskeysockets/baileys');
+} = Baileys;
+
+// Robust fallback for makeInMemoryStore if missing in some Baileys versions
+let makeInMemoryStore = Baileys.makeInMemoryStore;
+if (!makeInMemoryStore) {
+    console.warn('[Session] makeInMemoryStore not found in Baileys exports. Using internal fallback.');
+    makeInMemoryStore = () => ({
+        messages: {},
+        chats: { all: () => [], get: () => null, upsert: () => {} },
+        contacts: {},
+        bind: function(ev) {
+            ev.on('messages.upsert', (m) => {
+                if (m.type === 'notify') {
+                    for (const msg of m.messages) {
+                        const jid = msg.key.remoteJid;
+                        if (!jid) continue;
+                        if (!this.messages[jid]) this.messages[jid] = { array: [] };
+                        this.messages[jid].array.push(msg);
+                        if (this.messages[jid].array.length > 50) this.messages[jid].array.shift();
+                    }
+                }
+            });
+        },
+        writeToFile: () => {},
+        readFromFile: () => {}
+    });
+}
+
 const pino = require('pino');
 const { Boom } = require('@hapi/boom');
 const fs = require('fs');
@@ -248,7 +275,7 @@ io.on('connection', (socket) => {
     });
 });
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`\x1b[32m%s\x1b[0m`, `>>> WHATSAPP SERVER REDESIGNED & RUNNING ON PORT ${PORT} <<<`);
 });
