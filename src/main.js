@@ -1158,10 +1158,10 @@ window.viewBookingDetails = function (id) {
           </div>
           
           <div class="details-footer-actions-v3" style="margin-top:25px; display:flex; gap:15px; padding-bottom:15px;">
-             <button onclick="document.getElementById('wa-iframe').src='https://web.whatsapp.com/send?phone=${window.normalizePhone ? window.normalizePhone(item.phone) : item.phone}'" class="btn-luxury-v2 wa-btn" style="flex:1; border:none; cursor:pointer; background:#00a884; color:white; padding:14px; border-radius:14px; display:flex; justify-content:center; align-items:center; gap:12px; font-family:inherit; transition:0.3s; box-shadow:0 4px 15px rgba(0,168,132,0.3);">
+             <button onclick="window.fetchServerWAChat('${item.phone}', '${item.assignedTo || ''}')" class="btn-luxury-v2 wa-btn" style="flex:1; border:none; cursor:pointer; background:#00a884; color:white; padding:14px; border-radius:14px; display:flex; justify-content:center; align-items:center; gap:12px; font-family:inherit; transition:0.3s; box-shadow:0 4px 15px rgba(0,168,132,0.3);">
                <i class="fab fa-whatsapp" style="font-size:24px;"></i>
                <div class="btn-txt" style="text-align:right;">
-                 <strong style="display:block; font-size:14px;">إعادة تحميل واتساب</strong>
+                 <strong style="display:block; font-size:14px;">تزامن الواتساب</strong>
                </div>
              </button>
              <a href="tel:${item.phone}" class="btn-luxury-v2 call-btn" style="flex:1; border:none; text-decoration:none; cursor:pointer; background:var(--bg-card); color:var(--text-main); padding:14px; border-radius:14px; border:1px solid var(--glass-border); display:flex; justify-content:center; align-items:center; gap:12px; font-family:inherit; transition:0.3s;">
@@ -1176,21 +1176,21 @@ window.viewBookingDetails = function (id) {
 
       <!-- العمود الأيسر: واجهة الدردشة المبرمجة مع السيرفر الاحترافي -->
       <div class="details-wa-v4" style="flex: 0 0 500px; display: flex; flex-direction: column; background: #efeae2; border-left: 1px solid var(--glass-border); height: 100%; position: relative;">
-          <div style="background: #00a884; color: white; padding: 16px 20px; display: flex; align-items: center; gap: 15px; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.1); flex-shrink: 0;">
+          <div class="chat-header">
              <div style="background: rgba(255,255,255,0.2); width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                  <i class="fab fa-whatsapp" style="font-size: 24px;"></i>
              </div>
              <div style="flex: 1; overflow: hidden; min-width: 0;">
                  <h3 style="margin: 0; font-size: 16px; font-weight: 700; font-family: inherit; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${item.name || 'محادثة العميل'}</h3>
-                 <p style="margin: 0; font-size: 12px; opacity: 0.9; display:flex; align-items:center; gap:5px;"><i class="fas fa-lock" style="font-size:10px;"></i> مشفرة تماماً</p>
+                 <p style="margin: 0; font-size: 12px; opacity: 0.9; display:flex; align-items:center; gap:5px;"><i class="fas fa-circle" id="chat-polling-dot" style="font-size:8px; color:#ffffff; animation: pulse 1.5s infinite;"></i> متصل بالخادم</p>
              </div>
-             <button class="btn-premium btn-sm" style="margin-right: auto; padding: 8px 16px; font-size: 12px; background: rgba(0,0,0,0.15); color:white; border:1px solid rgba(255,255,255,0.2); border-radius: 20px; flex-shrink:0; transition:0.3s;" onclick="window.fetchServerWAChat('${item.phone}', '${item.assignedTo || ''}')" onmouseover="this.style.background='rgba(0,0,0,0.25)'" onmouseout="this.style.background='rgba(0,0,0,0.15)'"><i class="fas fa-sync-alt" style="margin-left: 6px;"></i> تحديث</button>
+             <button class="icon-btn-lite" style="background:rgba(0,0,0,0.1); border:none; width:36px; height:36px;" onclick="window.fetchServerWAChat('${item.phone}', '${item.assignedTo || ''}')" title="تحديث يدوي"><i class="fas fa-sync-alt" style="color:white;"></i></button>
           </div>
           
-          <div id="wa-server-chat-box" style="flex-grow: 1; background: #efeae2 url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png') repeat; background-size: 400px; position: relative; overflow-y:auto; overflow-x:hidden; padding: 20px; display:flex; flex-direction:column; gap:12px; scroll-behavior: smooth;">
+          <div id="wa-server-chat-box" class="chat-messages">
              <div style="text-align:center; margin-top: auto; margin-bottom: auto;">
                  <i class="fas fa-circle-notch fa-spin" style="font-size: 36px; color: #00a884; margin-bottom: 15px;"></i><br>
-                 <div style="background: rgba(255,255,255,0.95); display: inline-block; padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight:600; color: #444; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">جاري الاتصال بالخادم الداخلي لجلب المحادثة...</div>
+                 <div style="background: rgba(255,255,255,0.95); display: inline-block; padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight:600; color: #444; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">جاري الاتصال بالخادم الداخلي...</div>
              </div>
           </div>
           
@@ -1198,17 +1198,17 @@ window.viewBookingDetails = function (id) {
                <emoji-picker style="width: 100%; --num-columns: 8; --category-font-size: 14px; --emoji-size: 24px; --background: white; border: none;"></emoji-picker>
           </div>
           
-          <div id="wa-quick-replies-bar" style="display:flex; gap:10px; padding:10px 20px; background:#f5f1eb; overflow-x:auto; border-top:1px solid rgba(0,0,0,0.05); align-items:center; z-index: 10; flex-shrink: 0;">
+          <div id="wa-quick-replies-bar" style="display:flex; gap:10px; padding:10px 20px; background:#f5f1eb; overflow-x:auto; border-top:1px solid rgba(0,0,0,0.05); align-items:center; z-index: 10; flex-shrink: 0; min-height: 50px;">
                <!-- rendered via js -->
           </div>
           
-          <div style="padding: 15px 20px; display:flex; gap:15px; background: #f0f2f5; align-items:center; z-index: 10; flex-shrink: 0;">
-             <i class="far fa-smile" style="font-size: 26px; color: #54656f; cursor: pointer; transition: color 0.2s;" onclick="const p = document.getElementById('wa-emoji-picker'); p.style.display = p.style.display === 'none' ? 'flex' : 'none';" onmouseover="this.style.color='#00a884'" onmouseout="this.style.color='#54656f'"></i>
+          <div class="chat-input-area">
+             <i class="far fa-smile" style="font-size: 24px; color: #54656f; cursor: pointer;" onclick="document.getElementById('wa-emoji-picker').style.display = document.getElementById('wa-emoji-picker').style.display === 'none' ? 'flex' : 'none';"></i>
              <input type="file" id="wa-media-upload" style="display:none" onchange="window.handleWAMediaSelect('${item.phone}', '${item.assignedTo || ''}')">
-             <i class="fas fa-paperclip" style="font-size: 24px; color: #54656f; cursor: pointer; transition: color 0.2s;" onclick="document.getElementById('wa-media-upload').click()" onmouseover="this.style.color='#00a884'" onmouseout="this.style.color='#54656f'"></i>
-             <i id="wa-mic-btn" class="fas fa-microphone" style="font-size: 24px; color: #54656f; cursor: pointer; transition: color 0.2s;" onpointerdown="window.startWARecording()" onpointerup="window.stopWARecording('${item.phone}', '${item.assignedTo || ''}')" onpointerleave="window.stopWARecording('${item.phone}', '${item.assignedTo || ''}')" onmouseover="if(this.style.color!=='red') this.style.color='#00a884'" onmouseout="if(this.style.color!=='red') this.style.color='#54656f'" title="اضغط باستمرار للتسجيل الصوتي"></i>
-             <input type="text" id="wa-server-input" placeholder="اكتب رسالة للرد..." style="flex:1; min-width:0; padding: 14px 22px; border-radius: 30px; border: 1px solid rgba(0,0,0,0.05); background: #ffffff; color: #111b21; outline: none; font-size: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); transition:0.3s;" onfocus="this.style.border='1px solid #00a884'" onblur="this.style.border='1px solid rgba(0,0,0,0.05)'" onkeydown="if(event.key==='Enter') { window.sendServerWAMessage('${item.phone}', '${item.assignedTo || ''}'); document.getElementById('wa-emoji-picker').style.display='none'; }">
-             <button onclick="window.sendServerWAMessage('${item.phone}', '${item.assignedTo || ''}'); document.getElementById('wa-emoji-picker').style.display='none';" style="border:none; border-radius:50%; width:48px; height:48px; flex-shrink:0; cursor:pointer; background:#00a884; display:flex; justify-content:center; align-items:center; box-shadow: 0 4px 10px rgba(0,168,132,0.4); transition:0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"><i class="fas fa-paper-plane" style="margin-right:4px; color: white; font-size: 20px;"></i></button>
+             <i class="fas fa-paperclip" style="font-size: 22px; color: #54656f; cursor: pointer;" onclick="document.getElementById('wa-media-upload').click()"></i>
+             <i id="wa-mic-btn" class="fas fa-microphone" style="font-size: 22px; color: #54656f; cursor: pointer; transition: 0.2s;" onpointerdown="window.startWARecording()" onpointerup="window.stopWARecording('${item.phone}', '${item.assignedTo || ''}')" onpointerleave="window.stopWARecording('${item.phone}', '${item.assignedTo || ''}')" title="اضغط باستمرار للتسجيل الصوتي"></i>
+             <input type="text" id="wa-server-input" class="chat-input" placeholder="اكتب رسالة للرد..." onkeydown="if(event.key==='Enter') { window.sendServerWAMessage('${item.phone}', '${item.assignedTo || ''}'); document.getElementById('wa-emoji-picker').style.display='none'; }">
+             <button onclick="window.sendServerWAMessage('${item.phone}', '${item.assignedTo || ''}'); document.getElementById('wa-emoji-picker').style.display='none';" class="chat-btn"><i class="fas fa-paper-plane" style="margin-right:4px;"></i></button>
           </div>
       </div>
     </div>
@@ -1224,7 +1224,11 @@ window.viewBookingDetails = function (id) {
     
     // Auto-fetch WhatsApp server chat && Register modern emoji picker
     setTimeout(() => {
-       if (window.fetchServerWAChat) window.fetchServerWAChat(item.phone, item.assignedTo || '');
+       if (window.fetchServerWAChat) {
+           window.fetchServerWAChat(item.phone, item.assignedTo || '');
+           // Start Polling
+           window.startChatPolling(item.phone, item.assignedTo || '');
+       }
        if (window.updateSubStatusOptions) window.updateSubStatusOptions(item.status || 'new', item.subStatus || 'not_contacted');
        if (window.renderQuickRepliesBar) window.renderQuickRepliesBar();
        
@@ -1240,6 +1244,25 @@ window.viewBookingDetails = function (id) {
        }
     }, 100);
   }
+};
+
+window._chatPollInterval = null;
+window.startChatPolling = function(phone, staffId) {
+    if (window._chatPollInterval) clearInterval(window._chatPollInterval);
+    window._chatPollInterval = setInterval(() => {
+        const modal = document.getElementById('details-modal');
+        if (modal && !modal.classList.contains('hidden')) {
+            window.fetchServerWAChat(phone, staffId, true); // true = silent/background fetch
+        } else {
+            clearInterval(window._chatPollInterval);
+        }
+    }, 7000); // Poll every 7 seconds
+};
+
+window.copyMessage = function(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        window.showLuxuryToast("تم نسخ النص بنجاح", "success");
+    });
 };
 
 window.updateSubStatusOptions = function (status, currentSub = null) {
@@ -3481,7 +3504,7 @@ window.logoutCurrentWASession = function() {
 
 window._waMediaCache = window._waMediaCache || {};
 
-window.fetchServerWAChat = async function(phone, staffId) {
+window.fetchServerWAChat = async function(phone, staffId, silent = false) {
     if(!phone) return;
     const chatBox = document.getElementById('wa-server-chat-box');
     if(!chatBox) return;
@@ -3490,17 +3513,18 @@ window.fetchServerWAChat = async function(phone, staffId) {
     if (window.state.userProfile.role === 'admin') {
        if (staffId) {
            userIdToUse = staffId;
-       } else {
+       } else if (!silent) {
            chatBox.innerHTML = '<div style="text-align:center; margin-top:auto; margin-bottom:auto;"><div style="background:rgba(255,255,255,0.95); display:inline-block; padding:15px 25px; border-radius:15px; font-size:13px; color:#555; box-shadow:0 3px 10px rgba(0,0,0,0.08); max-width:80%;"><i class="fas fa-info-circle" style="color:#00a884; font-size:24px; margin-bottom:10px; display:block;"></i>هذا الحجز غير مسند لأي موظف.<br>يرجى إسناد الحجز أولاً لموظف محدد ليتم عرض سجل المحادثات الخاص به.</div></div>';
            return;
-       }
+       } else return;
     }
 
     window._currentWaPhone = phone;
     
-    // Only show loading if empty to prevent blink on new messages
-    if(!chatBox.hasChildNodes() || chatBox.innerHTML.includes('fa-circle-notch') || chatBox.innerHTML.includes('fa-comment-dots')) {
-        chatBox.innerHTML = '<div style="text-align:center; margin-top:auto; margin-bottom:auto;"><i class="fas fa-circle-notch fa-spin" style="font-size: 30px; color: #00a884; margin-bottom: 12px;"></i><br><div style="background: rgba(255,255,255,0.9); display: inline-block; padding: 8px 16px; border-radius: 12px; font-size: 12px; color: #555; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">جاري مزامنة الرسائل...</div></div>';
+    if(!silent) {
+        if(!chatBox.hasChildNodes() || chatBox.innerHTML.includes('fa-circle-notch') || chatBox.innerHTML.includes('fa-comment-dots')) {
+            chatBox.innerHTML = '<div style="text-align:center; margin-top:auto; margin-bottom:auto;"><i class="fas fa-circle-notch fa-spin" style="font-size: 30px; color: #00a884; margin-bottom: 12px;"></i><br><div style="background: rgba(255,255,255,0.9); display: inline-block; padding: 8px 16px; border-radius: 12px; font-size: 12px; color: #555; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">جاري مزامنة الرسائل...</div></div>';
+        }
     }
     
     try {
@@ -3508,78 +3532,64 @@ window.fetchServerWAChat = async function(phone, staffId) {
         const response = await fetch(`${activeUrl}/api/chat/${userIdToUse}/${phone}`);
         if(response.ok) {
             const data = await response.json();
+            
+            // Check if there are new messages for notification
+            const currentMessagesCount = chatBox.querySelectorAll('.chat-bubble').length;
+            const newMessagesCount = data.messages ? data.messages.length : 0;
+            
+            if (silent && newMessagesCount > currentMessagesCount) {
+                const lastMsg = data.messages[newMessagesCount - 1];
+                if (!lastMsg.isMe && window.state.soundEnabled) {
+                    new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3').play().catch(() => {});
+                }
+            }
+
             if(data.messages && data.messages.length > 0) {
-                // Determine if user was at bottom before re-render
-                const isAtBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < 50;
+                const isAtBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < 100;
 
-                chatBox.innerHTML = '';
+                // Build HTML string for better performance on periodic refresh
+                let html = `
+                    <div class="chat-security-hint">
+                        <span><i class="fas fa-lock" style="margin-left:4px; font-size:10px;"></i> الرسائل محمية ومسجلة عبر الخادم الداخلي</span>
+                    </div>
+                `;
                 
-                const securityMsg = document.createElement('div');
-                securityMsg.style.cssText = "text-align:center; margin:10px 0 15px;";
-                securityMsg.innerHTML = '<span style="background:#fefed7; color:#54656f; font-size:11px; padding:6px 12px; border-radius:8px; box-shadow:0 1px 1px rgba(0,0,0,0.05); display:inline-block;"><i class="fas fa-lock" style="margin-left:4px; font-size:10px;"></i> الرسائل محمية ومسجلة عبر الخادم الداخلي</span>';
-                chatBox.appendChild(securityMsg);
-
                 data.messages.forEach(m => {
                     const tsNum = m.timestamp ? Number(m.timestamp) : null;
                     const timeStr = (tsNum && !isNaN(tsNum)) ? new Date(tsNum * 1000).toLocaleTimeString('ar-SA', {hour: '2-digit', minute:'2-digit'}) : '';
                     let safeBody = (m.body || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
                     safeBody = safeBody.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#027eb5; text-decoration:underline;">$1</a>');
                     
-                    const div = document.createElement('div');
-                    div.style.padding = '6px 8px 8px 10px';
-                    div.style.maxWidth = '75%';
-                    div.style.fontSize = '14.5px';
-                    div.style.marginBottom = '4px';
-                    div.style.position = 'relative';
-                    div.style.boxShadow = '0 1px 1.5px rgba(11,20,26,0.1)';
-                    div.style.whiteSpace = 'pre-wrap';
-                    div.style.lineHeight = '1.4';
-                    div.style.wordBreak = 'break-word';
-                    div.style.overflowWrap = 'anywhere';
-                    
-                    if(m.isMe) {
-                        div.style.alignSelf = 'flex-end';
-                        div.style.background = '#d9fdd3';
-                        div.style.color = '#111b21';
-                        div.style.borderRadius = '12px 0 12px 12px';
-                    } else {
-                        div.style.alignSelf = 'flex-start';
-                        div.style.background = '#ffffff';
-                        div.style.color = '#111b21';
-                        div.style.borderRadius = '0 12px 12px 12px';
-                    }
+                    const sideClass = m.isMe ? 'me' : 'them';
                     
                     let content = `<div>${safeBody}</div>`;
                     if (m.media) {
-                        // Apply cached media if available
-                        if (window._waMediaCache[m.id]) {
-                            m.media.data = window._waMediaCache[m.id];
-                        }
+                        if (window._waMediaCache[m.id]) m.media.data = window._waMediaCache[m.id];
+                        
                         if (m.media.data === null) {
-                            const btnId = `btn-dl-${m.id}`;
-                            const contId = `cont-dl-${m.id}`;
                             let mediaTypeName = "مرفق";
                             if (m.media.mimetype.startsWith('image/')) mediaTypeName = "صورة";
                             else if (m.media.mimetype.startsWith('video/')) mediaTypeName = "فيديو";
                             else if (m.media.mimetype.startsWith('audio/') || m.type === 'ptt') mediaTypeName = "مقطع صوتي";
                             
-                            content = `<div id="${contId}" style="margin-bottom:8px; display:flex; align-items:center; gap:10px; background:rgba(0,0,0,0.05); padding:10px; border-radius:8px;">
-                                <i class="fas fa-file-download" style="font-size:24px; color:#54656f;"></i>
-                                <div style="flex:1;">
-                                    <strong style="display:block; font-size:13px;">${mediaTypeName} سابق</strong>
-                                    <span style="font-size:11px; opacity:0.7;">${m.media.filename || 'اضغط للتحميل من السيرفر'}</span>
-                                </div>
-                                <button id="${btnId}" class="btn-premium btn-sm" onclick="window.downloadWAMedia('${userIdToUse}', '${phone}', '${m.id}', '${contId}', '${m.media.mimetype}', '${m.type}')" style="padding:4px 10px; min-width:40px;"><i class="fas fa-download"></i></button>
-                            </div>` + (safeBody ? `<div>${safeBody}</div>` : '');
+                            content = `
+                                <div id="cont-dl-${m.id}" class="media-dl-box">
+                                    <i class="fas fa-file-download" style="font-size:24px; color:#54656f;"></i>
+                                    <div style="flex:1;">
+                                        <strong style="display:block; font-size:13px;">${mediaTypeName}</strong>
+                                        <span style="font-size:11px; opacity:0.7;">${m.media.filename || 'تحميل من السيرفر'}</span>
+                                    </div>
+                                    <button class="btn-premium btn-sm" onclick="window.downloadWAMedia('${userIdToUse}', '${phone}', '${m.id}', 'cont-dl-${m.id}', '${m.media.mimetype}', '${m.type}')" style="padding:6px 12px; min-width:40px;"><i class="fas fa-download"></i></button>
+                                </div>` + (safeBody ? `<div style="margin-top:5px;">${safeBody}</div>` : '');
                         } else {
                             if (m.media.mimetype.startsWith('image/')) {
-                                content = `<div style="margin:-4px -6px 4px -8px; background:rgba(0,0,0,0.02); border-radius:10px 10px 0 0; overflow:hidden; text-align:center;"><img src="data:${m.media.mimetype};base64,${m.media.data}" style="max-width:100%; max-height:220px; border-radius:8px; display:inline-block; cursor:pointer; object-fit:cover;" onclick="window.viewFullImage(this.src)"></div>` + (safeBody ? `<div>${safeBody}</div>` : '');
+                                content = `<div class="media-container"><img class="media-image" src="data:${m.media.mimetype};base64,${m.media.data}" onclick="window.viewFullImage(this.src)"></div>` + (safeBody ? `<div>${safeBody}</div>` : '');
                             } else if (m.media.mimetype.startsWith('audio/') || m.type === 'ptt') {
-                                content = `<div style="display:flex; align-items:center; gap:10px;"><div style="background:#00a884; width:40px; height:40px; border-radius:50%; display:flex; justify-content:center; align-items:center; flex-shrink:0;"><i class="fas fa-play" style="color:white; margin-right:-2px; font-size:14px;"></i></div> <audio controls style="max-width:200px; height:35px;"><source src="data:${m.media.mimetype};base64,${m.media.data}" type="${m.media.mimetype}"></audio></div>` + (safeBody ? `<div style="margin-top:5px;">${safeBody}</div>` : '');
+                                content = `<div style="display:flex; align-items:center; gap:10px;"><div style="background:#00a884; width:36px; height:36px; border-radius:50%; display:flex; justify-content:center; align-items:center; flex-shrink:0;"><i class="fas fa-play" style="color:white; margin-right:-2px; font-size:12px;"></i></div> <audio controls style="max-width:180px; height:30px;"><source src="data:${m.media.mimetype};base64,${m.media.data}" type="${m.media.mimetype}"></audio></div>` + (safeBody ? `<div style="margin-top:5px;">${safeBody}</div>` : '');
                             } else if (m.media.mimetype.startsWith('video/')) {
                                 content = `<video controls style="max-width:100%; border-radius:8px; margin-bottom:5px;"><source src="data:${m.media.mimetype};base64,${m.media.data}" type="${m.media.mimetype}"></video>` + (safeBody ? `<div>${safeBody}</div>` : '');
                             } else {
-                                content = `<div style="background:rgba(0,0,0,0.05); padding:10px; border-radius:8px; display:flex; align-items:center; gap:10px; margin-bottom:5px;"><i class="fas fa-file-alt" style="font-size:24px; color:#54656f;"></i> <div><strong style="display:block; font-size:13px;">ملف ${m.media.filename || 'مرفق'}</strong><span style="font-size:11px; opacity:0.7;">تنزيل للعرض</span></div></div>` + (safeBody ? `<div>${safeBody}</div>` : '');
+                                content = `<div class="media-dl-box"><i class="fas fa-file-alt" style="font-size:24px; color:#54656f;"></i> <div><strong style="display:block; font-size:13px;">${m.media.filename || 'ملف'}</strong><span style="font-size:11px; opacity:0.7;">جاهز للعرض</span></div></div>` + (safeBody ? `<div>${safeBody}</div>` : '');
                             }
                         }
                     }
@@ -3587,36 +3597,36 @@ window.fetchServerWAChat = async function(phone, staffId) {
                     let ticks = '';
                     if (m.isMe) {
                         let ack = m.ack !== undefined ? m.ack : (m.status === 'read' ? 3 : m.status === 'delivered' ? 2 : m.status === 'sent' ? 1 : undefined);
-                        if (ack === 1 || ack === 0) {
-                            ticks = `<i class="fas fa-check" style="font-size:12px; margin-right:4px; color:#c7c7c7;"></i>`; // صح واحد (تم الارسال)
-                        } else if (ack === 2) {
-                            ticks = `<i class="fas fa-check-double" style="font-size:12px; margin-right:4px; color:#c7c7c7;"></i>`; // صحين رماديين (تم الاستلام)
-                        } else if (ack >= 3) {
-                            ticks = `<i class="fas fa-check-double" style="font-size:12px; margin-right:4px; color:#53bdeb;"></i>`; // صحين زرقاء (تم المشاهدة)
-                        } else {
-                            ticks = `<i class="fas fa-check" style="font-size:12px; margin-right:4px; color:#c7c7c7;"></i>`; // الافتراضي صح رمادي واحد بدلاً من أزرق
-                        }
+                        if (ack === 1 || ack === 0) ticks = `<i class="fas fa-check" style="font-size:11px; color:#c7c7c7;"></i>`;
+                        else if (ack === 2) ticks = `<i class="fas fa-check-double" style="font-size:11px; color:#c7c7c7;"></i>`;
+                        else if (ack >= 3) ticks = `<i class="fas fa-check-double" style="font-size:11px; color:#53bdeb;"></i>`;
+                        else ticks = `<i class="fas fa-clock" style="font-size:11px; color:#c7c7c7;"></i>`;
                     }
 
-                    div.innerHTML = `${content} <div style="display:flex; justify-content:flex-end; align-items:center; margin-top:2px; float:left; margin-left:-5px; padding-left:10px; padding-top:2px;">
-                      <span style="font-size:11px; color:#667781;">${timeStr}</span>
-                      ${ticks}
-                    </div><div style="clear:both;"></div>`;
-
-                    chatBox.appendChild(div);
+                    html += `
+                        <div class="chat-bubble ${sideClass}">
+                            <button class="chat-copy-btn" onclick="window.copyMessage(\`${(m.body || "").replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`)" title="نسخ النص"><i class="fas fa-copy"></i></button>
+                            ${content}
+                            <div class="chat-time">
+                                <span>${timeStr}</span>
+                                ${ticks}
+                            </div>
+                        </div>
+                    `;
                 });
                 
-                // Only scroll down smoothly if user was already at the bottom to avoid annoyance
-                if (isAtBottom || chatBox.innerHTML.includes('fa-lock')) {
+                chatBox.innerHTML = html;
+                
+                if (isAtBottom || !silent) {
                     setTimeout(() => {
-                        chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
-                    }, 100);
+                        chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: silent ? 'smooth' : 'auto' });
+                    }, 50);
                 }
                 
-            } else {
+            } else if (!silent) {
                 chatBox.innerHTML = '<div style="text-align:center; margin-top:auto; margin-bottom:auto;"><div style="background:rgba(255,255,255,0.95); display:inline-block; padding:15px 30px; border-radius:15px; font-size:13px; color:#555; box-shadow:0 3px 10px rgba(0,0,0,0.08);"><i class="fas fa-comment-dots" style="color:#00a884; font-size:24px; margin-bottom:10px; display:block;"></i>لا توجد رسائل سابقة مع هذا الرقم.<br>يمكنك بدء دردشة جديدة الآن.</div></div>';
             }
-        } else {
+        } else if (!silent) {
             chatBox.innerHTML = `
                 <div style="text-align:center; margin-top:auto; margin-bottom:auto;">
                     <div style="background:rgba(255,255,255,0.95); display:inline-block; padding:25px; border-radius:15px; font-size:14px; color:#555; box-shadow:0 3px 10px rgba(0,0,0,0.08);">
@@ -3628,7 +3638,7 @@ window.fetchServerWAChat = async function(phone, staffId) {
             `;
         }
     } catch(err) {
-        chatBox.innerHTML = `<div style="text-align:center; margin-top:auto; margin-bottom:auto;"><div style="background:rgba(255,255,255,0.95); display:inline-block; padding:15px 25px; border-radius:15px; font-size:13px; color:#e02424; box-shadow:0 3px 10px rgba(0,0,0,0.08);"><i class="fas fa-exclamation-triangle" style="font-size:24px; margin-bottom:10px; display:block;"></i>فشل الاتصال بالخادم. يرجى التأكد من تشغيل السيرفر.</div></div>`;
+        if (!silent) chatBox.innerHTML = `<div style="text-align:center; margin-top:auto; margin-bottom:auto;"><div style="background:rgba(255,255,255,0.95); display:inline-block; padding:15px 25px; border-radius:15px; font-size:13px; color:#e02424; box-shadow:0 3px 10px rgba(0,0,0,0.08);"><i class="fas fa-exclamation-triangle" style="font-size:24px; margin-bottom:10px; display:block;"></i>فشل الاتصال بالخادم الداخلي.</div></div>`;
     }
 };
 
@@ -3723,62 +3733,43 @@ window.handleWAMediaSelect = function(phone, staffId) {
 };
 window.sendServerWAMessage = async function(phone, staffId, mediaObj = null, forcedMessage = null) {
     const input = document.getElementById('wa-server-input');
-    
-    // Prevent double clicking only if disabled
     if (input && input.disabled) return;
     
     const message = forcedMessage !== null ? forcedMessage : (input ? input.value.trim() : '');
-    
     if(!mediaObj && !message) return;
     
     let userIdToUse = window.state.userProfile.id;
     if (window.state.userProfile.role === 'admin' && staffId) userIdToUse = staffId;
 
-    // Clear input immediately for better UX
     if (input && forcedMessage === null) {
         input.value = '';
         input.focus();
     }
 
-    // Optimistic UI Append
     const chatBox = document.getElementById('wa-server-chat-box');
     if (chatBox) {
-        if (chatBox.innerHTML.includes('fa-comment-dots') || chatBox.innerHTML.includes('fa-circle-notch') || !chatBox.hasChildNodes()) {
-            chatBox.innerHTML = '<div style="text-align:center; margin:10px 0 15px;"><span style="background:#fefed7; color:#54656f; font-size:11px; padding:6px 12px; border-radius:8px; box-shadow:0 1px 1px rgba(0,0,0,0.05); display:inline-block;"><i class="fas fa-lock" style="margin-left:4px; font-size:10px;"></i> الرسائل محمية ومسجلة عبر الخادم الداخلي</span></div>';
-        }
-        
         const timeStr = new Date().toLocaleTimeString('ar-SA', {hour: '2-digit', minute:'2-digit'});
         let safeBody = (message || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         safeBody = safeBody.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#027eb5; text-decoration:underline;">$1</a>');
         
-        const div = document.createElement('div');
-        div.style.padding = '6px 8px 8px 10px';
-        div.style.maxWidth = '75%';
-        div.style.fontSize = '14.5px';
-        div.style.marginBottom = '4px';
-        div.style.position = 'relative';
-        div.style.boxShadow = '0 1px 1.5px rgba(11,20,26,0.1)';
-        div.style.whiteSpace = 'pre-wrap';
-        div.style.lineHeight = '1.4';
-        div.style.wordBreak = 'break-word';
-        div.style.overflowWrap = 'anywhere';
-        div.style.alignSelf = 'flex-end';
-        div.style.background = '#d9fdd3';
-        div.style.color = '#111b21';
-        div.style.borderRadius = '12px 0 12px 12px';
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-bubble me optimistic';
         
         let content = `<div>${safeBody}</div>`;
         if (mediaObj) {
-            content = `<div style="margin-bottom:5px; font-size:12px; color:#555;"><i class="fas fa-paperclip"></i> تم إرسال مرفق</div>` + content;
+            content = `<div style="margin-bottom:5px; font-size:12px; color:#555; display:flex; align-items:center; gap:5px;"><i class="fas fa-paperclip"></i> جارٍ إرسال مرفق...</div>` + content;
         }
         
-        let ticks = `<i class="fas fa-clock" style="font-size:12px; margin-right:4px; color:#c7c7c7;"></i>`;
-        div.innerHTML = `${content} <div style="display:flex; justify-content:flex-end; align-items:center; margin-top:2px; float:left; margin-left:-5px; padding-left:10px; padding-top:2px;"><span style="font-size:11px; color:#667781;">${timeStr}</span>${ticks}</div><div style="clear:both;"></div>`;
+        bubble.innerHTML = `
+            ${content}
+            <div class="chat-time">
+                <span>${timeStr}</span>
+                <i class="fas fa-clock" style="font-size:11px; opacity:0.5;"></i>
+            </div>
+        `;
         
-        chatBox.appendChild(div);
-        setTimeout(() => {
-            chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
-        }, 50);
+        chatBox.appendChild(bubble);
+        chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
     }
 
     try {
@@ -3793,15 +3784,15 @@ window.sendServerWAMessage = async function(phone, staffId, mediaObj = null, for
         });
         
         if(response.ok) {
-            // Real fetch to update states (e.g. ticks) slightly after
-            setTimeout(() => window.fetchServerWAChat(phone, userIdToUse), 1500);
+            // Background update to confirm send (get ticks)
+            setTimeout(() => window.fetchServerWAChat(phone, userIdToUse, true), 1000);
         } else {
-            window.showLuxuryToast('الواتساب غير متصل في الإدارة، المرجو فحص الاتصال', 'error');
-            if(input && forcedMessage === null && !mediaObj) input.value = message;
+            window.showLuxuryToast('فشل الإرسال: الواتساب غير متصل', 'error');
+            const optimistic = chatBox.querySelector('.optimistic');
+            if (optimistic) optimistic.style.opacity = "0.5";
         }
     } catch(err) {
-        window.showLuxuryToast('الخادم البرمجي مغلق أو متوقف', 'error');
-        if(input && forcedMessage === null && !mediaObj) input.value = message;
+        window.showLuxuryToast('خطأ في الاتصال بالسيرفر', 'error');
     } finally {
         const fileInput = document.getElementById('wa-media-upload');
         if (fileInput) fileInput.value = '';
