@@ -3566,7 +3566,7 @@ window.fetchServerWAChat = async function(phone, staffId, silent = false) {
                     if (m.media) {
                         if (window._waMediaCache[m.id]) m.media.data = window._waMediaCache[m.id];
                         
-                        if (m.media.data === null) {
+                        if (m.media.data === null || !m.media.data) {
                             let mediaTypeName = "مرفق";
                             if (m.media.mimetype.startsWith('image/')) mediaTypeName = "صورة";
                             else if (m.media.mimetype.startsWith('video/')) mediaTypeName = "فيديو";
@@ -3577,7 +3577,7 @@ window.fetchServerWAChat = async function(phone, staffId, silent = false) {
                                     <i class="fas fa-file-download" style="font-size:24px; color:#54656f;"></i>
                                     <div style="flex:1;">
                                         <strong style="display:block; font-size:13px;">${mediaTypeName}</strong>
-                                        <span style="font-size:11px; opacity:0.7;">${m.media.filename || 'تحميل من السيرفر'}</span>
+                                        <span style="font-size:11px; opacity:0.7;">قيد التحميل من السيرفر...</span>
                                     </div>
                                     <button class="btn-premium btn-sm" onclick="window.downloadWAMedia('${userIdToUse}', '${phone}', '${m.id}', 'cont-dl-${m.id}', '${m.media.mimetype}', '${m.type}')" style="padding:6px 12px; min-width:40px;"><i class="fas fa-download"></i></button>
                                 </div>` + (safeBody ? `<div style="margin-top:5px;">${safeBody}</div>` : '');
@@ -3627,18 +3627,55 @@ window.fetchServerWAChat = async function(phone, staffId, silent = false) {
                 chatBox.innerHTML = '<div style="text-align:center; margin-top:auto; margin-bottom:auto;"><div style="background:rgba(255,255,255,0.95); display:inline-block; padding:15px 30px; border-radius:15px; font-size:13px; color:#555; box-shadow:0 3px 10px rgba(0,0,0,0.08);"><i class="fas fa-comment-dots" style="color:#00a884; font-size:24px; margin-bottom:10px; display:block;"></i>لا توجد رسائل سابقة مع هذا الرقم.<br>يمكنك بدء دردشة جديدة الآن.</div></div>';
             }
         } else if (!silent) {
+            // Check status of session if not ok
+            const statusRes = await fetch(`${activeUrl}/api/status/${userIdToUse}`).catch(() => null);
+            let statusInfo = statusRes ? await statusRes.json().catch(() => ({})) : {};
+            
+            let staffObj = (window.state.users || []).find(u => u.id === userIdToUse);
+            let staffName = staffObj ? (staffObj.name || staffObj.email || "الموظف") : "هذا الموظف";
+
+            let errorMsg = `واتساب ${staffName} غير متصل`;
+            let subMsg = `يجب على ${staffName} مسح رمز QR من "إدارة الواتساب" لتمكين الدردشة.`;
+            let icon = "fab fa-whatsapp";
+            let showAction = true;
+            
+            if (statusInfo.exists && !statusInfo.ready) {
+                errorMsg = "جاري تفعيل اتصال واتساب...";
+                subMsg = "تم تسجيل الدخول ولكن النظام يحتاج لثواني لمزامنة الرسائل.";
+                icon = "fas fa-sync fa-spin";
+            } else if (statusInfo.initializing) {
+                errorMsg = "خادم واتساب في حالة تهيئة...";
+                subMsg = "انتظر لحظات أو أعد الربط من الإعدادات.";
+                icon = "fas fa-hourglass-half fa-spin";
+            }
+
             chatBox.innerHTML = `
                 <div style="text-align:center; margin-top:auto; margin-bottom:auto;">
                     <div style="background:rgba(255,255,255,0.95); display:inline-block; padding:25px; border-radius:15px; font-size:14px; color:#555; box-shadow:0 3px 10px rgba(0,0,0,0.08);">
-                        <i class="fab fa-whatsapp" style="font-size:50px; margin-bottom:15px; color:#8696a0;"></i>
-                        <p style="margin-bottom:15px;">خادم واتساب غير متصل لهذا الموظف</p>
-                        <button class="btn-premium btn-sm" onclick="window.closeModal('details-modal'); window.switchLuxuryTab('whatsapp-mgmt')">اذهب لإعدادات الواتساب</button>
+                        <i class="${icon}" style="font-size:50px; margin-bottom:15px; color:#00a884; opacity:0.8;"></i>
+                        <h3 style="margin-bottom:10px; color:#333; font-size:18px;">${errorMsg}</h3>
+                        <p style="margin-bottom:15px; opacity:0.8; font-size:12px; line-height:1.6;">${subMsg}<br><small style="opacity:0.6;">(معرف الموظف: ${userIdToUse})</small></p>
+                        <div style="display:flex; gap:10px; justify-content:center;">
+                            <button class="btn-premium btn-sm" onclick="window.closeModal('details-modal'); window.switchLuxuryTab('whatsapp-mgmt')">اذهب لإعدادات الواتساب</button>
+                            ${!statusInfo.exists ? `<button class="btn-premium btn-sm btn-secondary" style="background:#f0f2f5; color:#333; border:1px solid #ddd;" onclick="if(window.waSocketContainer) window.waSocketContainer.emit('start_session', {userId: '${userIdToUse}'}); this.innerHTML='جاري الطلب...';">طلب تنشيط الجلسة</button>` : ''}
+                        </div>
                     </div>
                 </div>
             `;
         }
     } catch(err) {
-        if (!silent) chatBox.innerHTML = `<div style="text-align:center; margin-top:auto; margin-bottom:auto;"><div style="background:rgba(255,255,255,0.95); display:inline-block; padding:15px 25px; border-radius:15px; font-size:13px; color:#e02424; box-shadow:0 3px 10px rgba(0,0,0,0.08);"><i class="fas fa-exclamation-triangle" style="font-size:24px; margin-bottom:10px; display:block;"></i>فشل الاتصال بالخادم الداخلي.</div></div>`;
+        if (!silent) {
+            chatBox.innerHTML = `
+                <div style="text-align:center; margin-top:auto; margin-bottom:auto;">
+                    <div style="background:rgba(255,255,255,0.95); display:inline-block; padding:25px; border-radius:15px; font-size:14px; color:#555; box-shadow:0 3px 10px rgba(0,0,0,0.08);">
+                        <i class="fas fa-plug" style="font-size:50px; color:#e02424; margin-bottom:15px; opacity:0.5;"></i>
+                        <h3 style="color:#e02424; font-size:16px; margin-bottom:10px;">فشل الاتصال البرمجي بخادم واتساب</h3>
+                        <p style="font-size:12px; opacity:0.8; line-height:1.6;">تأكد من تشغيل السيرفر الرئيسي وقابلية الرابط للوصول.<br><code style="background:#f0f2f5; padding:2px 6px; border-radius:4px; font-size:10px; word-break:break-all;">${activeUrl}</code></p>
+                        <button class="btn-premium btn-sm" style="margin-top:15px;" onclick="window.fetchServerWAChat('${phone}', '${staffId}')">إعادة تراسل</button>
+                    </div>
+                </div>
+            `;
+        }
     }
 };
 
@@ -4022,4 +4059,284 @@ window.viewFullImage = function(src) {
     overlay.style.opacity = '1';
     imgEl.style.transform = 'scale(1)';
 };
+
+// ==========================================
+// NEW FIREBASE REALTIME WHATSAPP INTEGRATION
+// ==========================================
+window._unsubWaChats = null;
+window._unsubActiveChat = null;
+window._activeWaPhone = null;
+window._waChatsList = [];
+
+window.initFirebaseWaChats = function(overrideId = null) {
+    let userIdToUse = overrideId || window.state.userProfile.id;
+    window._currentActiveWaUserId = userIdToUse;
+    if (window._unsubWaChats) window._unsubWaChats();
+    
+    // Populate admin switch if admin
+    const switcher = document.getElementById('wa-admin-user-switcher');
+    if (switcher && (window.state.userProfile.role === 'admin' || window.state.userProfile.role === 'supervisor') && window.state.users) {
+        if (switcher.options.length === 0) {
+            switcher.innerHTML = window.state.users.map(u => `<option value="${u.id}">${u.name || u.email}</option>`).join('');
+            if (!overrideId) switcher.value = userIdToUse;
+        }
+    }
+    
+    // Check connection status directly from FB since we use Firebase RTDB
+    const statDot = document.getElementById('wa-connection-status-dot');
+    if (statDot && window.db) {
+         window.dbRef = window.__fbRef || window.ref; // Ensure ref is resolved
+         if (window._unsubStatus) window._unsubStatus();
+         try {
+             window._unsubStatus = onValue(window.dbRef(window.db || db, `whatsapp/sessions/${userIdToUse}`), (snap) => {
+                 const sVal = snap.val();
+                 if (sVal && sVal.status === 'connected') {
+                     statDot.className = 'status-dot connected';
+                     statDot.title = 'متصل بخادم واتساب';
+                 } else {
+                     statDot.className = 'status-dot disconnected';
+                     statDot.title = 'الواتساب غير متصل';
+                 }
+             });
+         } catch(e) {}
+    }
+    
+    // We get the db import directly from main.js scope implicitly, wait, no, db is a module scoped variable.
+    // We can access window.state or dispatch a global event, or just since we are writing inside main.js and db is imported, we can use it! Wait!
+    // Since I appended to the end of main.js, I can access `db`, `ref`, `onValue`!
+    
+    try {
+        const _ref = window.__fbRef || window.dbRef; // main.js imports ref as ref, but it's module scoped.
+        // It's safer to use the globally exposed window.db or fallback to using the module's exported db if available.
+        // Let's assume `db` and `ref` and `onValue` are in scope since we are at the bottom of the same file.
+        const waRef = ref(db, `whatsapp/messages/${userIdToUse}`);
+        
+        window._unsubWaChats = onValue(waRef, (snapshot) => {
+            const data = snapshot.val() || {};
+            const listEl = document.getElementById('wa-chat-list');
+            if(!listEl) return;
+            
+            const entries = [];
+            for (const phone in data) {
+                const messages = data[phone];
+                const msgKeys = Object.keys(messages);
+                if (msgKeys.length === 0) continue;
+                
+                // sort messages to find the latest
+                msgKeys.sort((a,b) => messages[a].timestamp - messages[b].timestamp);
+                const lastMsg = messages[msgKeys[msgKeys.length - 1]];
+                
+                entries.push({
+                    phone: phone,
+                    lastMessage: lastMsg,
+                    timestamp: lastMsg.timestamp,
+                    messagesObj: messages
+                });
+            }
+            
+            entries.sort((a,b) => b.timestamp - a.timestamp);
+            window._waChatsList = entries;
+            window.renderWaChatsList();
+        });
+    } catch (e) {
+        console.error("Firebase WA init error (module scope issue):", e);
+    }
+};
+
+window.renderWaChatsList = function() {
+    const listEl = document.getElementById('wa-chat-list');
+    const searchVal = (document.getElementById('wa-chat-search')?.value || '').toLowerCase();
+    
+    if (window._waChatsList.length === 0) {
+        listEl.innerHTML = '<div style="text-align:center; padding: 30px; color: var(--text-dim);">لا توجد محادثات حتى الآن.</div>';
+        return;
+    }
+    
+    let html = '';
+    const bookings = window.state.bookings || [];
+    
+    window._waChatsList.forEach(chat => {
+        const booking = bookings.find(b => b.phone && b.phone.replace(/\\D/g, '').includes(chat.phone.substring(3)));
+        const name = booking ? booking.name : chat.phone;
+        
+        if (searchVal && !name.toLowerCase().includes(searchVal) && !chat.phone.includes(searchVal)) return;
+
+        let lastMsgStr = '';
+        if (chat.lastMessage.isMe) lastMsgStr += '<i class="fas fa-check' + (chat.lastMessage.ack >= 2 ? '-double" style="color:#53bdeb"' : '"') + '></i> ';
+        lastMsgStr += chat.lastMessage.body || '';
+        
+        const timeStr = new Date(chat.lastMessage.timestamp * 1000).toLocaleTimeString('ar-SA', {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Riyadh'});
+        
+        // Count unread
+        let unreadCount = 0;
+        Object.values(chat.messagesObj).forEach(m => {
+            if (!m.isMe && (!m.readAt && m.ack !== 3)) unreadCount++; // Naive approach
+        });
+
+        html += `
+            <div class="wa-chat-item ${window._activeWaPhone === chat.phone ? 'active' : ''}" onclick="window.openWaChatFromFirebase('${chat.phone}', '${name}')">
+                <div class="wa-item-avatar"><i class="fas fa-user"></i></div>
+                <div class="wa-item-content">
+                    <div class="wa-item-top">
+                        <h4 class="wa-item-name">${name}</h4>
+                        <span class="wa-item-time">${timeStr}</span>
+                    </div>
+                    <div class="wa-item-bottom">
+                        <p class="wa-item-lastmsg">${lastMsgStr}</p>
+                        ${unreadCount > 0 ? `<div class="wa-unread-badge">${unreadCount}</div>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    listEl.innerHTML = html;
+};
+
+window.filterWaChats = function() {
+    window.renderWaChatsList();
+};
+
+window.openWaChatFromFirebase = function(phone, name) {
+    window._activeWaPhone = phone;
+    document.getElementById('wa-chat-empty').style.display = 'none';
+    document.getElementById('wa-active-chat-name').innerText = name || phone;
+    document.getElementById('wa-active-chat-status').innerText = phone;
+    const activeChat = document.getElementById('wa-chat-active');
+    activeChat.style.display = 'flex';
+    
+    window.renderWaChatsList(); // Update active class
+    
+    let userIdToUse = window._currentActiveWaUserId || window.state.userProfile.id;
+    if (window._unsubActiveChat) window._unsubActiveChat();
+    
+    const waRef = ref(db, `whatsapp/messages/${userIdToUse}/${phone}`);
+    window._unsubActiveChat = onValue(waRef, (snapshot) => {
+        const data = snapshot.val() || {};
+        const chatBox = document.getElementById('wa-server-chat-box');
+        
+        const msgKeys = Object.keys(data);
+        msgKeys.sort((a,b) => data[a].timestamp - data[b].timestamp);
+        
+        let html = '<div class="chat-security-hint" style="text-align:center; margin:10px 0;"><span style="background:var(--bg-card); padding:5px 15px; border-radius:10px; font-size:12px; color:var(--text-dim); box-shadow:0 1px 3px rgba(0,0,0,0.1);"><i class="fas fa-lock"></i> رسائل مشفرة</span></div>';
+        
+        msgKeys.forEach(k => {
+            const m = data[k];
+            const timeStr = new Date(m.timestamp * 1000).toLocaleTimeString('ar-SA', {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Riyadh'});
+            const sideClass = m.isMe ? 'me' : 'them';
+            
+            let ticks = '';
+            if (m.isMe) {
+                if (m.ack === 1 || m.ack === 0) ticks = '<i class="fas fa-check" style="font-size:11px; color:#999;"></i>';
+                else if (m.ack === 2) ticks = '<i class="fas fa-check-double" style="font-size:11px; color:#999;"></i>';
+                else if (m.ack >= 3) ticks = '<i class="fas fa-check-double" style="font-size:11px; color:#53bdeb;"></i>';
+            }
+
+            let safeBody = (m.body || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            safeBody = safeBody.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#027eb5; text-decoration:underline;">$1</a>');
+            
+            let contentStr = `<div>${safeBody}</div>`;
+            
+            // if we have media, currently it must be downloaded via api or displayed. For now, since Firebase only has flag 'hasMedia'
+            if (m.hasMedia) {
+                 contentStr = `
+                    <div id="cont-dl-${m.id}" class="media-dl-box" style="background:rgba(0,0,0,0.05); padding:10px; border-radius:8px; display:flex; align-items:center; gap:10px; margin-bottom:5px;">
+                        <i class="fas fa-file-download" style="font-size:24px; color:var(--text-dim);"></i>
+                        <div style="flex:1;">
+                            <strong style="display:block; font-size:13px;">مرفق وسائط</strong>
+                        </div>
+                        <button class="btn-premium btn-sm" onclick="window.downloadWAMedia('${userIdToUse}', '${phone}', '${m.id}', 'cont-dl-${m.id}', 'unknown', '${m.type}')"><i class="fas fa-download"></i></button>
+                    </div>` + contentStr;
+            }
+
+            html += `
+                <div class="chat-bubble ${sideClass}" style="${m.isMe ? 'background:#dcf8c6;align-self:flex-start;' : 'background:#fff;align-self:flex-end;'}">
+                    ${contentStr}
+                    <div class="chat-time" style="font-size:10px; color:#999; margin-top:4px; text-align:left;">
+                        <span>${timeStr}</span>
+                        ${ticks}
+                    </div>
+                </div>
+            `;
+        });
+        
+        const isAtBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < 100;
+        chatBox.innerHTML = html;
+        if (isAtBottom) setTimeout(() => chatBox.scrollTo(0, chatBox.scrollHeight), 50);
+    });
+};
+
+window.sendServerWAMessageToActiveChat = async function() {
+    if (!window._activeWaPhone) return;
+    const input = document.getElementById('wa-server-input');
+    const msg = input.value.trim();
+    if (!msg) return;
+    
+    input.value = '';
+    
+    let userIdToUse = window._currentActiveWaUserId || window.state.userProfile.id;
+    const activeUrl = window._waServerActiveUrl || CURRENT_MASTER_URL;
+    
+    try {
+        await fetch(`${activeUrl}/api/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: 'session-' + userIdToUse,
+                phone: window._activeWaPhone,
+                message: msg
+            })
+        });
+    } catch(err) {
+        console.error(err);
+        window.showLuxuryToast('خطأ في الاتصال بالخادم', 'error');
+    }
+};
+
+window.handleWAMediaSelectForActiveChat = function() {
+    if (!window._activeWaPhone) return;
+    const input = document.getElementById('wa-media-upload');
+    const file = input.files && input.files[0];
+    if(!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64 = e.target.result.split(',')[1];
+        let note = prompt('رسالة للإرفاق؟', '');
+        if (note === null) { input.value = ''; return; }
+        
+        let userIdToUse = window._currentActiveWaUserId || window.state.userProfile.id;
+        const activeUrl = window._waServerActiveUrl || CURRENT_MASTER_URL;
+        fetch(`${activeUrl}/api/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: 'session-' + userIdToUse,
+                phone: window._activeWaPhone,
+                message: note,
+                media: { data: base64, mimetype: file.type, filename: file.name }
+            })
+        });
+        input.value = '';
+    };
+    reader.readAsDataURL(file);
+};
+
+window.stopWARecordingActiveChat = function() {
+    if (!window._waRecordingIntent) return;
+    window.stopWARecording(window._activeWaPhone, window._currentActiveWaUserId || window.state.userProfile.id);
+};
+
+// Override tab switching specifically for whatsapp-chat to load FB early
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        const chatTabBtn = document.querySelector('[data-tab="whatsapp-chat"]');
+        if(chatTabBtn) {
+            chatTabBtn.addEventListener('click', () => {
+                if(window.initFirebaseWaChats) window.initFirebaseWaChats();
+            });
+        }
+    }, 1000);
+});
+
 

@@ -45,8 +45,8 @@
             }
         })();
     </script>
-  <script type="module" crossorigin src="/assets/index-CGBLrdHe.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-BH1oufVp.css">
+  <script type="module" crossorigin src="/assets/index-Xy6GU7_-.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-yt5lVBXw.css">
 </head>
 
 <body>
@@ -941,6 +941,8 @@
                                     class="fas fa-chart-line"></i> تحليلات الزوار</button>
                             <button class="dash-tab admin-only hidden" data-tab="ai-assistant-mgmt"><i
                                     class="fas fa-brain"></i> المساعد الذكي</button>
+                            <button class="dash-tab" data-tab="whatsapp-chat"><i
+                                    class="fas fa-comments"></i> الدردشات (واتساب)</button>
                             <button class="dash-tab" data-tab="whatsapp-mgmt"><i
                                     class="fab fa-whatsapp"></i> ربط الواتساب</button>
                             <button class="dash-tab admin-only hidden" data-tab="whatsapp-monitor-mgmt"><i
@@ -1981,6 +1983,78 @@
                                 </div>
                             </div>
 
+                            <!-- WhatsApp Web Clone Chat UI -->
+                            <div id="whatsapp-chat" class="pane hidden" style="padding: 0; background: var(--bg-deep);">
+                                <div class="wa-web-container">
+                                    <div class="wa-sidebar">
+                                        <!-- Header sidebar -->
+                                        <div class="wa-sidebar-header">
+                                            <div class="user-avatar" style="display:flex; align-items:center; gap:10px;">
+                                                <i class="fas fa-user-circle"></i>
+                                                <select id="wa-admin-user-switcher" class="admin-only hidden" style="background:transparent; border:none; outline:none; font-family:inherit; color:var(--text-main); font-weight:bold; font-size:14px; max-width:120px;" onchange="window.initFirebaseWaChats(this.value)">
+                                                    <!-- Filled dynamically in JS for admins -->
+                                                </select>
+                                            </div>
+                                            <div class="header-actions">
+                                                <button title="رسالة جديدة"><i class="fas fa-comment-medical"></i></button>
+                                                <button title="تحديث الاتصال" onclick="window.startCurrentWASession()"><i class="fas fa-sync"></i></button>
+                                                <button id="wa-connection-status-dot" class="status-dot disconnected" title="غير متصل بالخادم"></button>
+                                            </div>
+                                        </div>
+                                        <!-- Search -->
+                                        <div class="wa-search">
+                                            <div class="wa-search-wrap">
+                                                <i class="fas fa-search"></i>
+                                                <input type="text" id="wa-chat-search" placeholder="بحث أو بدء دردشة جديدة..." oninput="window.filterWaChats()">
+                                            </div>
+                                        </div>
+                                        <!-- Chat list -->
+                                        <div class="wa-chat-list" id="wa-chat-list">
+                                            <div style="text-align:center; padding: 30px; color: var(--text-dim); opacity: 0.5;">
+                                                <i class="fas fa-circle-notch fa-spin" style="font-size:30px; margin-bottom:10px;"></i>
+                                                <p>جاري مزامنة المحادثات من فايربيس...</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="wa-chat-area">
+                                        <div id="wa-chat-empty" class="wa-chat-empty" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; text-align:center;">
+                                            <i class="fab fa-whatsapp" style="font-size:100px; color: var(--text-dim); opacity: 0.2; margin-bottom: 20px;"></i>
+                                            <h2 style="color: var(--text-color); font-weight: 300;">لايف تشات - ديار الشهمة</h2>
+                                            <p style="color: var(--text-dim); font-size: 14px; margin-top:10px;">اختر محادثة لعرض الرسائل أو ابدأ محادثة جديدة مع العملاء.<br>الرسائل مشفرة بنظام فايربيس ريل تايم.</p>
+                                        </div>
+
+                                        <div id="wa-chat-active" class="wa-chat-active" style="display:none; height:100%; flex-direction:column;">
+                                            <div class="wa-chat-header">
+                                                <div style="display:flex; align-items:center; gap:15px;">
+                                                    <div class="user-avatar" style="width: 40px; height: 40px; font-size: 40px;"><i class="fas fa-user-circle"></i></div>
+                                                    <div>
+                                                        <h4 id="wa-active-chat-name">اسم العميل</h4>
+                                                        <p id="wa-active-chat-status" style="font-size:12px; color:var(--text-dim); margin:0;">رقم الهاتف</p>
+                                                    </div>
+                                                </div>
+                                                <div class="header-actions">
+                                                    <button onclick="window.viewBookingForCurrentChat()" title="عرض طلب العميل"><i class="fas fa-file-invoice"></i></button>
+                                                </div>
+                                            </div>
+
+                                            <div class="wa-chat-messages" id="wa-server-chat-box">
+                                                <!-- Messages from Firebase -->
+                                            </div>
+
+                                            <div class="wa-chat-input-area">
+                                                <button class="icon-btn-lite" title="إرفاق ملف" onclick="document.getElementById('wa-media-upload').click()"><i class="fas fa-paperclip"></i></button>
+                                                <input type="file" id="wa-media-upload" hidden onchange="window.handleWAMediaSelectForActiveChat()">
+                                                <div style="flex:1; position:relative;">
+                                                    <textarea id="wa-server-input" placeholder="اكتب رسالة..." onkeydown="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); window.sendServerWAMessageToActiveChat(); }"></textarea>
+                                                </div>
+                                                <button class="icon-btn-lite" title="إرسال" id="wa-send-btn" onclick="window.sendServerWAMessageToActiveChat()" style="color:var(--p-teal);"><i class="fas fa-paper-plane"></i></button>
+                                                <button class="icon-btn-lite" title="رسالة صوتية" id="wa-mic-btn" onmousedown="window.startWARecording()" onmouseup="window.stopWARecordingActiveChat()" onmouseleave="window.stopWARecordingActiveChat()"><i class="fas fa-microphone"></i></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <!-- WhatsApp Connection MGMT (For Staff) -->
                             <div id="whatsapp-mgmt" class="pane hidden">
                                 <div class="pane-header-v2">
