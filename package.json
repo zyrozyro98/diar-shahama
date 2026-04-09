@@ -12,6 +12,7 @@
         "vite": "^5.0.0"
     },
     "dependencies": {
+        "emoji-picker-element": "^1.29.1",
         "firebase": "^10.14.1"
     }
 }

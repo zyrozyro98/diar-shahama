@@ -47,7 +47,7 @@
         },
         "settings": {
             ".read": true,
-            ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+            ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'supervisor')"
         },
         "plates": {
             ".read": true,
@@ -80,6 +80,10 @@
         "blogs": {
             ".read": true,
             ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+        },
+        "quickReplies": {
+            ".read": "auth != null",
+            ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'supervisor')"
         },
         "reviews": {
             ".read": true,
