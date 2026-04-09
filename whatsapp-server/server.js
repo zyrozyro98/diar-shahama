@@ -22,13 +22,22 @@ const AUTH_FOLDER = path.join(__dirname, 'auth_info_baileys');
 
 if (!fs.existsSync(AUTH_FOLDER)) fs.mkdirSync(AUTH_FOLDER, { recursive: true });
 
-async function startWASession(rawUserId) {
-    // تنظيف المعرف لإزالة أي زوائد مثل "session-" لضمان عدم التكرار
-    const userId = rawUserId.replace('session-', '');
+async function startWASession(rawUserId, force = false) {
+    const userId = rawUserId.replace('session-', '').trim();
     
-    if (sessions[userId]?.isReady || sessions[userId]?.initializing) return;
+    if (!force && (sessions[userId]?.isReady || sessions[userId]?.initializing)) {
+        if (sessions[userId]?.isReady) io.emit('ready', { userId, msg: 'متصل بالفعل' });
+        return;
+    }
 
-    console.log(`[Session] Initializing for user: ${userId}`);
+    console.log(`[Session] REQUEST: Start/Restore for user: ${userId} (Force: ${force})`);
+    
+    // إذا كان الموظف عالقاً، قم بإغلاق الجلسة القديمة أولاً
+    if (force && sessions[userId]?.sock) {
+        try { await sessions[userId].sock.logout(); } catch(e) {}
+        delete sessions[userId];
+    }
+
     sessions[userId] = { initializing: true };
 
     const userFolder = path.join(AUTH_FOLDER, userId);
@@ -43,10 +52,7 @@ async function startWASession(rawUserId) {
         auth: state,
         printQRInTerminal: false,
         browser: ['Diar-Shahama', 'Chrome', '1.0.0'],
-        // إعدادات إضافية لزيادة الاستقرار
-        connectTimeoutMs: 60000,
-        defaultQueryTimeoutMs: 0,
-        keepAliveIntervalMs: 10000
+        connectTimeoutMs: 60000
     });
 
     sessions[userId] = { sock, isReady: false, initializing: false };
@@ -55,27 +61,23 @@ async function startWASession(rawUserId) {
         const { connection, lastDisconnect, qr } = update;
 
         if (qr) {
-            console.log(`[QR] New code for user: ${userId}`);
+            console.log(`[QR] EMIT: New QR for user: ${userId}`);
             io.emit('qr', { userId, qr });
         }
 
         if (connection === 'close') {
             const statusCode = lastDisconnect?.error?.output?.statusCode;
             const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-            console.log(`[Connection] Closed for ${userId}. Reason: ${statusCode}. Reconnecting: ${shouldReconnect}`);
+            console.log(`[Conn] CLOSED: ${userId}. Reason: ${statusCode}. Retry: ${shouldReconnect}`);
             
             sessions[userId].isReady = false;
             if (shouldReconnect) {
-                // محاولة إعادة اتصال ذكية بعد 5 ثواني
-                setTimeout(() => {
-                    delete sessions[userId];
-                    startWASession(userId);
-                }, 5000);
+                setTimeout(() => startWASession(userId), 5000);
             }
         } else if (connection === 'open') {
-            console.log(`[Connection] SUCCESS! ${userId} is now ONLINE`);
+            console.log(`[Conn] ONLINE: User ${userId} connected successfully`);
             sessions[userId].isReady = true;
-            io.emit('ready', { userId, msg: 'متصل بنجاح' });
+            io.emit('ready', { userId, msg: 'متصل الآن' });
         }
     });
 
@@ -84,22 +86,42 @@ async function startWASession(rawUserId) {
 
 io.on('connection', (socket) => {
     socket.on('start_session', ({ userId }) => {
+        console.log(`[Socket] Received start_session for: ${userId}`);
         if (userId) startWASession(userId);
     });
+
+    socket.on('logout_session', async ({ userId }) => {
+        const cleanId = userId.replace('session-', '').trim();
+        console.log(`[Socket] LOGOUT request for: ${cleanId}`);
+        const userFolder = path.join(AUTH_FOLDER, cleanId);
+        if (sessions[cleanId]?.sock) {
+            try { await sessions[cleanId].sock.logout(); } catch(e) {}
+            delete sessions[cleanId];
+        }
+        if (fs.existsSync(userFolder)) {
+            fs.rmSync(userFolder, { recursive: true, force: true });
+        }
+        io.emit('disconnected', { userId: cleanId, msg: 'تم تسجيل الخروج بنجاح' });
+    });
+
     socket.on('join_room', (userId) => {
-        if (userId) socket.join(userId);
+        if (userId) socket.join(userId.replace('session-', ''));
     });
 });
 
-app.get('/ping', (req, res) => res.send('SERVER_IS_LIVE'));
+app.get('/status', (req, res) => {
+    const stats = Object.keys(sessions).map(id => ({ id, ready: sessions[id].isReady }));
+    res.json(stats);
+});
 
 app.post('/api/send', async (req, res) => {
     const { userId, phone, message } = req.body;
-    if (!sessions[userId]?.isReady) return res.status(403).json({ error: 'غير متصل' });
+    const cleanId = userId.replace('session-', '');
+    if (!sessions[cleanId]?.isReady) return res.status(403).json({ error: 'غير متصل' });
 
     try {
         const jid = phone.toString().replace(/\D/g, '') + '@s.whatsapp.net';
-        await sessions[userId].sock.sendMessage(jid, { text: message });
+        await sessions[cleanId].sock.sendMessage(jid, { text: message });
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: err.toString() }); }
 });
@@ -107,17 +129,11 @@ app.post('/api/send', async (req, res) => {
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`>>> WHATSAPP SERVER READY ON PORT ${PORT} <<<`);
-    
-    // تشغيل الجلسات الموجودة بدون تكرار
     if (fs.existsSync(AUTH_FOLDER)) {
-        const uniqueIds = new Set();
         fs.readdirSync(AUTH_FOLDER).forEach(file => {
-            const fullPath = path.join(AUTH_FOLDER, file);
-            if (fs.lstatSync(fullPath).isDirectory()) {
-                const cleanId = file.replace('session-', '');
-                uniqueIds.add(cleanId);
+            if (fs.lstatSync(path.join(AUTH_FOLDER, file)).isDirectory()) {
+                startWASession(file);
             }
         });
-        uniqueIds.forEach(id => startWASession(id));
     }
 });
