@@ -14,7 +14,10 @@ app.use(cors());
 app.use(express.json());
 
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
+const io = new Server(server, { 
+    cors: { origin: "*", methods: ["GET", "POST"] },
+    transports: ['polling', 'websocket']
+});
 
 const sessions = {};
 const log = pino({ level: 'error' });
@@ -24,13 +27,7 @@ if (!fs.existsSync(AUTH_FOLDER)) fs.mkdirSync(AUTH_FOLDER, { recursive: true });
 
 async function startWASession(rawUserId) {
     const userId = rawUserId.toString().replace('session-', '').trim();
-    
-    if (sessions[userId]?.isReady) {
-        io.emit('ready', { userId, msg: 'متصل بالفعل' });
-        return;
-    }
-
-    if (sessions[userId]?.initializing) return;
+    if (sessions[userId]?.isReady || sessions[userId]?.initializing) return;
 
     console.log(`[Action] Starting WhatsApp for: ${userId}`);
     sessions[userId] = { initializing: true };
@@ -56,67 +53,53 @@ async function startWASession(rawUserId) {
             const { connection, lastDisconnect, qr } = update;
 
             if (qr) {
-                console.log(`[QR] Sending to browser for: ${userId}`);
+                console.log(`[QR] EMIT for: ${userId}`);
                 io.emit('qr', { userId, qr });
             }
 
             if (connection === 'close') {
-                const statusCode = lastDisconnect?.error?.output?.statusCode;
-                const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+                const retry = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+                // الحماية القصوى من الانهيار
+                if (sessions[userId]) sessions[userId].isReady = false;
                 
-                // حماية لمنع الانهيار (Crash fix)
-                if (sessions[userId]) {
-                    sessions[userId].isReady = false;
-                }
-
-                if (shouldReconnect) {
+                if (retry) {
                     setTimeout(() => startWASession(userId), 5000);
                 } else {
-                    console.log(`[Logout] User ${userId} logged out or unauthorized.`);
+                    console.log(`[Auth] User ${userId} logged out.`);
                     delete sessions[userId];
                 }
             } else if (connection === 'open') {
-                console.log(`[Success] User ${userId} is READY`);
+                console.log(`[Ready] ${userId} is ONLINE`);
                 if (sessions[userId]) sessions[userId].isReady = true;
-                io.emit('ready', { userId, msg: 'تم الاتصال' });
+                io.emit('ready', { userId, msg: 'متصل' });
             }
         });
 
         sock.ev.on('creds.update', saveCreds);
     } catch (err) {
-        console.error(`[Error] ${userId}:`, err);
+        console.error(`[Fail] ${userId}:`, err);
         delete sessions[userId];
     }
 }
 
 io.on('connection', (socket) => {
-    socket.on('start_session', ({ userId }) => {
-        if (userId) startWASession(userId);
-    });
-    socket.on('join_room', (userId) => {
-        if (userId) socket.join(userId.toString().replace('session-', '').trim());
-    });
-});
-
-app.get('/api/status', (req, res) => {
-    res.json(Object.keys(sessions).map(id => ({ id, isReady: sessions[id]?.isReady })));
+    socket.on('start_session', ({ userId }) => { if (userId) startWASession(userId); });
+    socket.on('join_room', (userId) => { if (userId) socket.join(userId.replace('session-', '')); });
 });
 
 app.post('/api/send', async (req, res) => {
     const { userId, phone, message } = req.body;
     const cleanId = userId.toString().replace('session-', '').trim();
-    if (!sessions[cleanId]?.isReady) return res.status(403).json({ error: 'غير متصل' });
-
+    if (!sessions[cleanId]?.isReady) return res.status(403).json({ error: 'منقطع' });
     try {
         const jid = phone.toString().replace(/\D/g, '') + '@s.whatsapp.net';
         await sessions[cleanId].sock.sendMessage(jid, { text: message });
         res.json({ success: true });
-    } catch (err) { res.status(500).json({ error: err.toString() }); }
+    } catch (e) { res.status(500).json({ error: e.toString() }); }
 });
 
-const PORT = 3001;
-server.listen(PORT, '0.0.0.0', () => {
-    console.log(`>>> SERVER READY ON ${PORT} <<<`);
+server.listen(3001, '0.0.0.0', () => {
+    console.log(`>>> SERVER LIVE ON 3001 <<<`);
     if (fs.existsSync(AUTH_FOLDER)) {
         fs.readdirSync(AUTH_FOLDER).forEach(file => {
             const p = path.join(AUTH_FOLDER, file);
