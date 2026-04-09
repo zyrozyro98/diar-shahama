@@ -22,22 +22,23 @@ const AUTH_FOLDER = path.join(__dirname, 'auth_info_baileys');
 
 if (!fs.existsSync(AUTH_FOLDER)) fs.mkdirSync(AUTH_FOLDER, { recursive: true });
 
-async function startWASession(rawUserId, force = false) {
-    const userId = rawUserId.replace('session-', '').trim();
+async function startWASession(rawUserId) {
+    const userId = rawUserId.toString().replace('session-', '').trim();
     
-    if (!force && (sessions[userId]?.isReady || sessions[userId]?.initializing)) {
-        if (sessions[userId]?.isReady) io.emit('ready', { userId, msg: 'متصل بالفعل' });
+    // إذا كانت الجلسة تعمل بالفعل، أخبر المتصفح فوراً
+    if (sessions[userId]?.isReady) {
+        console.log(`[Status] User ${userId} is already ONLINE. Notify browser.`);
+        io.emit('ready', { userId, msg: 'متصل بنجاح' });
         return;
     }
 
-    console.log(`[Session] REQUEST: Start/Restore for user: ${userId} (Force: ${force})`);
-    
-    // إذا كان الموظف عالقاً، قم بإغلاق الجلسة القديمة أولاً
-    if (force && sessions[userId]?.sock) {
-        try { await sessions[userId].sock.logout(); } catch(e) {}
-        delete sessions[userId];
+    // إذا كانت هناك محاولة قديمة عالقة، قم بإنقاذها أو مسحها
+    if (sessions[userId]?.initializing) {
+        console.log(`[Status] User ${userId} is already initializing. Please wait.`);
+        return; 
     }
 
+    console.log(`[Action] Starting WhatsApp for: ${userId}`);
     sessions[userId] = { initializing: true };
 
     const userFolder = path.join(AUTH_FOLDER, userId);
@@ -46,53 +47,63 @@ async function startWASession(rawUserId, force = false) {
     const { state, saveCreds } = await useMultiFileAuthState(userFolder);
     const { version } = await fetchLatestWaWebVersion().catch(() => ({ version: [2, 3000, 1015901307] }));
 
-    const sock = makeWASocket({
-        version,
-        logger: log,
-        auth: state,
-        printQRInTerminal: false,
-        browser: ['Diar-Shahama', 'Chrome', '1.0.0'],
-        connectTimeoutMs: 60000
-    });
+    try {
+        const sock = makeWASocket({
+            version,
+            logger: log,
+            auth: state,
+            printQRInTerminal: false,
+            browser: ['Diar-Shahama', 'Chrome', '1.0.0'],
+            generateHighQualityLink: true
+        });
 
-    sessions[userId] = { sock, isReady: false, initializing: false };
+        sessions[userId] = { sock, isReady: false, initializing: false };
 
-    sock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect, qr } = update;
+        sock.ev.on('connection.update', (update) => {
+            const { connection, lastDisconnect, qr } = update;
 
-        if (qr) {
-            console.log(`[QR] EMIT: New QR for user: ${userId}`);
-            io.emit('qr', { userId, qr });
-        }
-
-        if (connection === 'close') {
-            const statusCode = lastDisconnect?.error?.output?.statusCode;
-            const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-            console.log(`[Conn] CLOSED: ${userId}. Reason: ${statusCode}. Retry: ${shouldReconnect}`);
-            
-            sessions[userId].isReady = false;
-            if (shouldReconnect) {
-                setTimeout(() => startWASession(userId), 5000);
+            if (qr) {
+                console.log(`[QR] Sending new QR for: ${userId}`);
+                // إرسال الكود لكل المتصلين لضمان وصوله للمسؤول والموظف معاً
+                io.emit('qr', { userId, qr });
             }
-        } else if (connection === 'open') {
-            console.log(`[Conn] ONLINE: User ${userId} connected successfully`);
-            sessions[userId].isReady = true;
-            io.emit('ready', { userId, msg: 'متصل الآن' });
-        }
-    });
 
-    sock.ev.on('creds.update', saveCreds);
+            if (connection === 'close') {
+                const statusCode = lastDisconnect?.error?.output?.statusCode;
+                const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+                console.log(`[Conn] Closed for ${userId}. Reason: ${statusCode}. Reconnect: ${shouldReconnect}`);
+                
+                sessions[userId].isReady = false;
+                if (shouldReconnect) {
+                    setTimeout(() => startWASession(userId), 5000);
+                } else {
+                    delete sessions[userId];
+                }
+            } else if (connection === 'open') {
+                console.log(`[Conn] SUCCESS: ${userId} is now READY`);
+                sessions[userId].isReady = true;
+                io.emit('ready', { userId, msg: 'تم الاتصال بنجاح' });
+            }
+        });
+
+        sock.ev.on('creds.update', saveCreds);
+    } catch (err) {
+        console.error(`[Error] Failed to start session for ${userId}:`, err);
+        delete sessions[userId];
+    }
 }
 
 io.on('connection', (socket) => {
+    socket.on('join_room', (userId) => {
+        if (userId) socket.join(userId.toString().replace('session-', '').trim());
+    });
+
     socket.on('start_session', ({ userId }) => {
-        console.log(`[Socket] Received start_session for: ${userId}`);
         if (userId) startWASession(userId);
     });
 
     socket.on('logout_session', async ({ userId }) => {
-        const cleanId = userId.replace('session-', '').trim();
-        console.log(`[Socket] LOGOUT request for: ${cleanId}`);
+        const cleanId = userId.toString().replace('session-', '').trim();
         const userFolder = path.join(AUTH_FOLDER, cleanId);
         if (sessions[cleanId]?.sock) {
             try { await sessions[cleanId].sock.logout(); } catch(e) {}
@@ -101,22 +112,17 @@ io.on('connection', (socket) => {
         if (fs.existsSync(userFolder)) {
             fs.rmSync(userFolder, { recursive: true, force: true });
         }
-        io.emit('disconnected', { userId: cleanId, msg: 'تم تسجيل الخروج بنجاح' });
-    });
-
-    socket.on('join_room', (userId) => {
-        if (userId) socket.join(userId.replace('session-', ''));
+        io.emit('disconnected', { userId: cleanId, msg: 'تم تسجيل الخروج' });
     });
 });
 
-app.get('/status', (req, res) => {
-    const stats = Object.keys(sessions).map(id => ({ id, ready: sessions[id].isReady }));
-    res.json(stats);
+app.get('/api/status', (req, res) => {
+    res.json(Object.keys(sessions).map(id => ({ id, isReady: sessions[id].isReady })));
 });
 
 app.post('/api/send', async (req, res) => {
     const { userId, phone, message } = req.body;
-    const cleanId = userId.replace('session-', '');
+    const cleanId = userId.toString().replace('session-', '').trim();
     if (!sessions[cleanId]?.isReady) return res.status(403).json({ error: 'غير متصل' });
 
     try {
@@ -128,7 +134,7 @@ app.post('/api/send', async (req, res) => {
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`>>> WHATSAPP SERVER READY ON PORT ${PORT} <<<`);
+    console.log(`>>> WHATSAPP SERVER RUNNING ON ${PORT} <<<`);
     if (fs.existsSync(AUTH_FOLDER)) {
         fs.readdirSync(AUTH_FOLDER).forEach(file => {
             if (fs.lstatSync(path.join(AUTH_FOLDER, file)).isDirectory()) {
