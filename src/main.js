@@ -3163,12 +3163,20 @@ window.initWhatsAppServer = async function() {
         const snapshot = await get(ref(db, 'settings/waServerUrl'));
         if (snapshot.exists()) {
             globalUrl = snapshot.val();
-            localStorage.setItem('wa_server_url', globalUrl);
         }
     } catch(e) { console.error("Firebase config error:", e); }
 
+    // Logic: If we are an admin and the FB url is different from CURRENT_MASTER_URL, force update it!
+    const FINAL_WA_URL = globalUrl || CURRENT_MASTER_URL;
+    
+    if (window.state.userProfile && (window.state.userProfile.role === 'admin' || window.state.userProfile.role === 'supervisor')) {
+        if (globalUrl !== CURRENT_MASTER_URL) {
+            console.log("Auto-updating Firebase WA Server URL to:", CURRENT_MASTER_URL);
+            await set(ref(db, 'settings/waServerUrl'), CURRENT_MASTER_URL).catch(e=>e);
+        }
+    }
 
-    const FINAL_WA_URL = globalUrl || localStorage.getItem('wa_server_url') || CURRENT_MASTER_URL;
+    localStorage.setItem('wa_server_url', FINAL_WA_URL);
     window._waServerActiveUrl = FINAL_WA_URL;
 
     if (urlConfig) {
@@ -3235,10 +3243,14 @@ window.initWhatsAppServer = async function() {
         });
 
         waSocketContainer.on('qr', (data) => {
+            console.log("QR received for user:", data.userId);
             const sel = document.getElementById('wa-staff-select');
             const statusEl = document.getElementById('wa-server-status');
             const qrContainer = document.getElementById('wa-qr-container');
             const qrCanvas = document.getElementById('wa-qr-canvas');
+
+            // Force clear old intervals
+            if (window._qrRetryTimer) clearInterval(window._qrRetryTimer);
             
             // تحديث واجهة المسؤول إذا كان الموظف مختاراً
             if (sel && sel.value === data.userId) {
@@ -3460,10 +3472,11 @@ window.showWAPushNotification = async function(phone, body, assignedUserId) {
     });
 };
 
-window.startCurrentWASession = function() {
+window.startCurrentWASession = async function() {
     if(!window.state.user) return;
     
     const emitStart = () => {
+        if (!waSocketContainer) return;
         waSocketContainer.emit('start_session', { userId: window.state.user.uid });
         const statusTitle = document.getElementById('wa-my-status-title');
         const statusDesc = document.getElementById('wa-my-status-desc');
@@ -3479,7 +3492,9 @@ window.startCurrentWASession = function() {
             waSocketContainer.connect();
         }
     } else {
-       window.initWhatsAppServer();
+       await window.initWhatsAppServer();
+       // wait a half sec for socket to potentially start connecting
+       setTimeout(emitStart, 500);
     }
 };
 
