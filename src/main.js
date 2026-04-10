@@ -3243,7 +3243,7 @@ window.initWhatsAppServer = async function() {
         });
 
         waSocketContainer.on('qr', (data) => {
-            console.log("QR received for user:", data.userId);
+            console.log("QR Received for:", data.userId);
             const sel = document.getElementById('wa-staff-select');
             const statusEl = document.getElementById('wa-server-status');
             const qrContainer = document.getElementById('wa-qr-container');
@@ -3252,38 +3252,35 @@ window.initWhatsAppServer = async function() {
             // Force clear old intervals
             if (window._qrRetryTimer) clearInterval(window._qrRetryTimer);
             
-            // تحديث واجهة المسؤول إذا كان الموظف مختاراً
+            // Admin Monitor UI
             if (sel && sel.value === data.userId) {
                 if(statusEl) {
-                    statusEl.innerText = 'في انتظار مسح كود الـ QR...';
-                    statusEl.style.color = 'var(--text-color)';
+                    statusEl.innerText = 'بانتظار مسح رمز الاستجابة السريع...';
+                    statusEl.style.color = 'var(--p-teal)';
                 }
                 if(qrContainer) qrContainer.style.display = 'block';
                 if(typeof QRCode !== 'undefined' && qrCanvas) {
-                    QRCode.toCanvas(qrCanvas, data.qr, function (error) {
-                        if (error) console.error(error);
+                    QRCode.toCanvas(qrCanvas, data.qr, { width: 250, margin: 2 }, function (error) {
+                        if (error) console.error("Admin QR Render Error:", error);
                     });
                 }
             }
 
-            // تحديث واجهة الموظف الحالي إذا كان هذا هو معرفه
+            // Employee Self UI
             if (window.state.user && data.userId === window.state.user.uid) {
+                console.log("Rendering my own QR code...");
                 const myStatusTitle = document.getElementById('wa-my-status-title');
                 const myStatusDesc = document.getElementById('wa-my-status-desc');
                 const myQrContainer = document.getElementById('wa-my-qr-container');
                 const myQrCanvas = document.getElementById('wa-my-qr-canvas');
-                const startBtn = document.getElementById('btn-start-my-wa');
-                const logoutBtn = document.getElementById('btn-logout-my-wa');
-
+                
                 if (myStatusTitle) myStatusTitle.innerText = 'بانتظار مسح رمز QR...';
-                if (myStatusDesc) myStatusDesc.innerText = 'افتح واتساب على هاتفك وامسح الرمز الظاهر أدناه ليتم ربط حسابك.';
+                if (myStatusDesc) myStatusDesc.innerText = 'افتح واتساب على هاتفك > الأجهزة المرتبطة > ربط جهاز';
                 if (myQrContainer) myQrContainer.style.display = 'block';
-                if (startBtn) startBtn.innerText = 'تحديث الرمز';
-                if (logoutBtn) logoutBtn.style.display = 'none';
 
                 if(typeof QRCode !== 'undefined' && myQrCanvas) {
-                    QRCode.toCanvas(myQrCanvas, data.qr, { width: 250, margin: 2 }, function (error) {
-                        if (error) console.error(error);
+                    QRCode.toCanvas(myQrCanvas, data.qr, { width: 260, margin: 2 }, function (error) {
+                        if (error) console.error("Staff QR Render Error:", error);
                     });
                 }
             }

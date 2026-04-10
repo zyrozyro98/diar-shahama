@@ -29,6 +29,26 @@ if (!fs.existsSync(AUTH_FOLDER)) fs.mkdirSync(AUTH_FOLDER, { recursive: true });
 // Custom Store to keep track of messages for the API and push to Firebase
 const FB_DB_URL = "https://diar-shahama-1088b-default-rtdb.firebaseio.com";
 
+// Firebase Realtime DB Sync using simple fetch (more stable for this session-based setup if no service account)
+// But with enhanced headers and error catching
+const SYNC_MSG = async (userId, phone, msg) => {
+    const url = `${FB_DB_URL}/whatsapp/messages/${userId}/${phone}/${msg.id}.json`;
+    await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...msg, server_secret: 'diar_wa_secret_2026' })
+    }).catch(e => console.error("FB Sync Error:", e.message));
+};
+
+const SYNC_STATUS = async (userId, data) => {
+    const url = `${FB_DB_URL}/whatsapp/sessions/${userId}.json`;
+    await fetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...data, server_secret: 'diar_wa_secret_2026', updatedAt: Date.now() })
+    }).catch(e => console.error("FB Status Error:", e.message));
+};
+
 function createStore(userId) {
     const storePath = path.join(AUTH_FOLDER, `store-${userId}.json`);
     let messages = {};
@@ -46,7 +66,6 @@ function createStore(userId) {
             fs.writeFileSync(storePath, JSON.stringify(messages));
         } catch (e) {}
     }
-
     read();
 
     return {
@@ -57,87 +76,44 @@ function createStore(userId) {
                 if (m.type === 'notify' || m.type === 'append') {
                     for (const msg of m.messages) {
                         const jid = msg.key.remoteJid;
-                        if (!jid || jid.includes('@g.us') || jid === 'status@broadcast') continue; // only individual chats
+                        if (!jid || jid.includes('@g.us') || jid === 'status@broadcast') continue; 
                         
-                        // Internal Store
                         if (!messages[jid]) messages[jid] = [];
                         let existingIdx = messages[jid].findIndex(x => x.key.id === msg.key.id);
-                        if (existingIdx !== -1) {
-                             messages[jid][existingIdx] = msg;
-                        } else {
-                             messages[jid].push(msg);
-                        }
+                        if (existingIdx !== -1) messages[jid][existingIdx] = msg;
+                        else messages[jid].push(msg);
                         if (messages[jid].length > 100) messages[jid].shift();
                         
-                        // Push to Firebase Realtime Database
-                        try {
-                            const phone = jid.split('@')[0];
-                            const msgId = msg.key.id;
-                            
-                            const isMe = !!msg.key.fromMe;
-                            const timestamp = msg.messageTimestamp;
-                            
-                            let body = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
-                            let mediaData = null;
-                            const isMedia = msg.message?.imageMessage || msg.message?.videoMessage || msg.message?.audioMessage || msg.message?.documentMessage;
-                            if (isMedia && !body) {
-                                if (msg.message?.imageMessage) body = '[صورة]';
-                                else if (msg.message?.videoMessage) body = '[فيديو]';
-                                else if (msg.message?.audioMessage) body = '[مقطع صوتي]';
-                                else body = '[ملف]';
-                            }
-                            
-                            let ack = msg.status || 1;
-                            
-                            const firebaseMsg = {
-                                id: msgId,
-                                body: body,
-                                timestamp: timestamp,
-                                isMe: isMe,
-                                type: msg.message?.extendedTextMessage ? 'chat' : msg.message?.imageMessage ? 'image' : msg.message?.videoMessage ? 'video' : msg.message?.audioMessage ? 'ptt' : 'chat',
-                                ack: ack,
-                                hasMedia: !!isMedia,
-                                server_secret: 'diar_wa_secret_2026'
-                            };
-
-                            const fbUrl = `${FB_DB_URL}/whatsapp/messages/${userId}/${phone}/${msgId}.json`;
-                            await fetch(fbUrl, {
-                                method: 'PUT',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(firebaseMsg)
-                            }).catch(err => console.error("Firebase Sync Error", err));
-                            
-                        } catch (err) {
-                            console.error("Parse/Sync error:", err);
-                        }
+                        const phone = jid.split('@')[0];
+                        const body = msg.message?.conversation || msg.message?.extendedTextMessage?.text || (msg.message?.imageMessage ? "[صورة]" : msg.message?.videoMessage ? "[فيديو]" : msg.message?.audioMessage ? "[مقطع صوتي]" : "");
+                        
+                        await SYNC_MSG(userId, phone, {
+                            id: msg.key.id,
+                            body: body,
+                            timestamp: msg.messageTimestamp,
+                            isMe: !!msg.key.fromMe,
+                            type: msg.message?.extendedTextMessage ? 'chat' : msg.message?.imageMessage ? 'image' : msg.message?.videoMessage ? 'video' : msg.message?.audioMessage ? 'ptt' : 'chat',
+                            ack: msg.status || 1,
+                            hasMedia: !!(msg.message?.imageMessage || msg.message?.videoMessage || msg.message?.audioMessage || msg.message?.documentMessage)
+                        });
                     }
                     write();
                 }
             });
             
-            // Listen for message status updates (read receipts etc)
             ev.on('messages.update', async (updates) => {
                 for (const update of updates) {
                     const jid = update.key.remoteJid;
                     if (!jid || jid.includes('@g.us')) continue;
-                    
                     if (messages[jid]) {
                         let targetMsg = messages[jid].find(x => x.key.id === update.key.id);
                         if (targetMsg && update.update.status) {
                             targetMsg.status = update.update.status;
-                            write();
-                            
-                            // Update Firebase
                             const phone = jid.split('@')[0];
-                            const fbUrl = `${FB_DB_URL}/whatsapp/messages/${userId}/${phone}/${update.key.id}.json`;
-                            let ack = update.update.status === 4 || update.update.status === 'read' ? 3 :
-                                      update.update.status === 3 || update.update.status === 'delivered' ? 2 : 1;
-                            
-                            fetch(fbUrl, {
-                                method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ ack: ack, server_secret: 'diar_wa_secret_2026' })
-                            }).catch(() => {});
+                            const ack = update.update.status === 4 || update.update.status === 'read' ? 3 : (update.update.status === 3 || update.update.status === 'delivered' ? 2 : 1);
+                            await SYNC_STATUS(userId, { ack, lastMsgId: update.key.id, phone }); // Optional specialized sync
+                            const url = `${FB_DB_URL}/whatsapp/messages/${userId}/${phone}/${update.key.id}.json`;
+                            fetch(url, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ack, server_secret: 'diar_wa_secret_2026'}) }).catch(()=>null);
                         }
                     }
                 }
@@ -193,11 +169,7 @@ async function startWASession(rawUserId) {
                 if (sessions[userId]) sessions[userId].isReady = false;
                 
                 // Update Firebase Status
-                await fetch(`${FB_DB_URL}/whatsapp/sessions/${userId}.json`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: 'disconnected', server_secret: 'diar_wa_secret_2026', updatedAt: Date.now() })
-                }).catch(()=>{});
+                await SYNC_STATUS(userId, { status: 'disconnected' });
                 
                 if (shouldReconnect) {
                     console.log(`[Reconnecting] ${userId}...`);
@@ -218,11 +190,7 @@ async function startWASession(rawUserId) {
                 io.emit('ready', { userId, msg: 'متصل' });
                 
                 // Update Firebase Status
-                await fetch(`${FB_DB_URL}/whatsapp/sessions/${userId}.json`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: 'connected', server_secret: 'diar_wa_secret_2026', updatedAt: Date.now() })
-                }).catch(()=>{});
+                await SYNC_STATUS(userId, { status: 'connected' });
             }
         });
 
@@ -365,8 +333,14 @@ app.post('/api/send', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
+server.on('error', (e) => {
+    if (e.code === 'EADDRINUSE') {
+        console.error(`!!! PORT ${PORT} IN USE. Server cannot start. Use 'sudo fuser -k ${PORT}/tcp' then restart. !!!`);
+        process.exit(1);
+    }
+});
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`>>> SERVER LIVE ON PORT ${PORT} <<<`);
+    console.log(`>>> DIAR SHAHAMA WA SERVER LIVE ON PORT ${PORT} <<<`);
     if (fs.existsSync(AUTH_FOLDER)) {
         fs.readdirSync(AUTH_FOLDER).forEach(file => {
             const folderPath = path.join(AUTH_FOLDER, file);
