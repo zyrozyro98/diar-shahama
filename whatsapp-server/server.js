@@ -2,351 +2,354 @@ const express = require('express');
 const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
-const Baileys = require('@whiskeysockets/baileys');
-const makeWASocket = Baileys.default || Baileys;
-const { useMultiFileAuthState, DisconnectReason, fetchLatestWaWebVersion, downloadMediaMessage } = Baileys;
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestWaWebVersion, downloadMediaMessage } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const path = require('path');
 const fs = require('fs');
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 
 const server = http.createServer(app);
-const io = new Server(server, { 
-    cors: { origin: "*", methods: ["GET", "POST"] },
-    allowEIO3: true 
+const io = new Server(server, {
+    cors: { origin: "*", methods: ["GET", "POST"], credentials: true },
+    allowEIO3: true
 });
 
 const sessions = {};
-const qrCache = {}; 
 const log = pino({ level: 'error' });
-const AUTH_FOLDER = path.join(__dirname, 'auth_info_baileys');
 
-if (!fs.existsSync(AUTH_FOLDER)) fs.mkdirSync(AUTH_FOLDER, { recursive: true });
+async function clearSession(userId) {
+    const authFolder = path.join(__dirname, 'auth_info_baileys', `session-${userId}`);
+    if (sessions[userId]) {
+        if (sessions[userId].intervalId) clearInterval(sessions[userId].intervalId);
+        if (sessions[userId].sock) {
+            try { sessions[userId].sock.ws.close(); } catch (err) { }
+        }
+        delete sessions[userId];
+    }
+    try { if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true }); } catch (e) { }
+}
 
-// Custom Store to keep track of messages for the API and push to Firebase
-const FB_DB_URL = "https://diar-shahama-1088b-default-rtdb.firebaseio.com";
-
-// Firebase Realtime DB Sync using simple fetch (more stable for this session-based setup if no service account)
-// But with enhanced headers and error catching
-const SYNC_MSG = async (userId, phone, msg) => {
-    const url = `${FB_DB_URL}/whatsapp/messages/${userId}/${phone}/${msg.id}.json`;
-    await fetch(url, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...msg, server_secret: 'diar_wa_secret_2026' })
-    }).catch(e => console.error("FB Sync Error:", e.message));
-};
-
-const SYNC_STATUS = async (userId, data) => {
-    const url = `${FB_DB_URL}/whatsapp/sessions/${userId}.json`;
-    await fetch(url, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...data, server_secret: 'diar_wa_secret_2026', updatedAt: Date.now() })
-    }).catch(e => console.error("FB Status Error:", e.message));
-};
-
-function createStore(userId) {
-    const storePath = path.join(AUTH_FOLDER, `store-${userId}.json`);
-    let messages = {};
-
-    function read() {
-        try {
-            if (fs.existsSync(storePath)) {
-                messages = JSON.parse(fs.readFileSync(storePath));
-            }
-        } catch (e) {}
+async function startWASession(userId) {
+    if (sessions[userId] && sessions[userId].isReady) {
+        io.emit('ready', { userId, msg: 'متصل مسبقاً' });
+        return;
     }
 
-    function write() {
-        try {
-            fs.writeFileSync(storePath, JSON.stringify(messages));
-        } catch (e) {}
-    }
-    read();
+    const authFolder = path.join(__dirname, 'auth_info_baileys', `session-${userId}`);
+    if (!fs.existsSync(authFolder)) fs.mkdirSync(authFolder, { recursive: true });
 
-    return {
-        messages,
-        save: write,
-        bind: (ev) => {
-            ev.on('messages.upsert', async (m) => {
+    const { state, saveCreds } = await useMultiFileAuthState(authFolder);
+    const { version } = await fetchLatestWaWebVersion().catch(() => ({ version: [2, 3000, 1015901307] }));
+
+    const sock = makeWASocket({
+        version,
+        logger: log,
+        auth: state,
+        syncFullHistory: true,
+        connectTimeoutMs: 60000,
+        keepAliveIntervalMs: 10000,
+        printQRInTerminal: false,
+        browser: ['Diar-Shahama', 'Chrome', '1.0.0']
+    });
+
+    const storePath = path.join(__dirname, 'auth_info_baileys', `store-${userId}.json`);
+
+    const store = {
+        messages: {},
+        writeToFile: function () {
+            try {
+                const toSave = {};
+                for (const jid in this.messages) {
+                    toSave[jid] = this.messages[jid].array;
+                }
+                fs.writeFileSync(storePath, JSON.stringify(toSave));
+            } catch (e) { }
+        },
+        readFromFile: function () {
+            try {
+                if (fs.existsSync(storePath)) {
+                    const parsed = JSON.parse(fs.readFileSync(storePath));
+                    for (const jid in parsed) {
+                        this.messages[jid] = { array: parsed[jid] || [] };
+                    }
+                }
+            } catch (e) { }
+        },
+        bind: function (ev) {
+            ev.on('messages.upsert', (m) => {
                 if (m.type === 'notify' || m.type === 'append') {
                     for (const msg of m.messages) {
                         const jid = msg.key.remoteJid;
-                        if (!jid || jid.includes('@g.us') || jid === 'status@broadcast') continue; 
-                        
-                        if (!messages[jid]) messages[jid] = [];
-                        let existingIdx = messages[jid].findIndex(x => x.key.id === msg.key.id);
-                        if (existingIdx !== -1) messages[jid][existingIdx] = msg;
-                        else messages[jid].push(msg);
-                        if (messages[jid].length > 100) messages[jid].shift();
-                        
-                        const phone = jid.split('@')[0];
-                        const body = msg.message?.conversation || msg.message?.extendedTextMessage?.text || (msg.message?.imageMessage ? "[صورة]" : msg.message?.videoMessage ? "[فيديو]" : msg.message?.audioMessage ? "[مقطع صوتي]" : "");
-                        
-                        await SYNC_MSG(userId, phone, {
-                            id: msg.key.id,
-                            body: body,
-                            timestamp: msg.messageTimestamp,
-                            isMe: !!msg.key.fromMe,
-                            type: msg.message?.extendedTextMessage ? 'chat' : msg.message?.imageMessage ? 'image' : msg.message?.videoMessage ? 'video' : msg.message?.audioMessage ? 'ptt' : 'chat',
-                            ack: msg.status || 1,
-                            hasMedia: !!(msg.message?.imageMessage || msg.message?.videoMessage || msg.message?.audioMessage || msg.message?.documentMessage)
-                        });
+                        if (!jid) continue;
+                        if (!this.messages[jid]) this.messages[jid] = { array: [] };
+
+                        const existingIdx = this.messages[jid].array.findIndex(x => x.key.id === msg.key.id);
+                        if (existingIdx !== -1) {
+                            this.messages[jid].array[existingIdx] = msg;
+                        } else {
+                            this.messages[jid].array.push(msg);
+                        }
+
+                        if (this.messages[jid].array.length > 500) this.messages[jid].array.shift();
                     }
-                    write();
                 }
             });
-            
-            ev.on('messages.update', async (updates) => {
+            ev.on('messages.update', (updates) => {
                 for (const update of updates) {
                     const jid = update.key.remoteJid;
-                    if (!jid || jid.includes('@g.us')) continue;
-                    if (messages[jid]) {
-                        let targetMsg = messages[jid].find(x => x.key.id === update.key.id);
-                        if (targetMsg && update.update.status) {
-                            targetMsg.status = update.update.status;
-                            const phone = jid.split('@')[0];
-                            const ack = update.update.status === 4 || update.update.status === 'read' ? 3 : (update.update.status === 3 || update.update.status === 'delivered' ? 2 : 1);
-                            await SYNC_STATUS(userId, { ack, lastMsgId: update.key.id, phone }); // Optional specialized sync
-                            const url = `${FB_DB_URL}/whatsapp/messages/${userId}/${phone}/${update.key.id}.json`;
-                            fetch(url, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ack, server_secret: 'diar_wa_secret_2026'}) }).catch(()=>null);
+                    if (!jid || !this.messages[jid]) continue;
+                    const msgToUpdate = this.messages[jid].array.find(m => m.key.id === update.key.id);
+                    if (msgToUpdate) {
+                        if (update.update.status !== undefined) {
+                            msgToUpdate.status = update.update.status;
                         }
+                    }
+                }
+            });
+            ev.on('messaging-history.set', ({ messages }) => {
+                const msgs = messages || [];
+                for (const msg of msgs) {
+                    const jid = msg.key.remoteJid;
+                    if (!jid) continue;
+                    if (!this.messages[jid]) this.messages[jid] = { array: [] };
+                    if (!this.messages[jid].array.some(m => m.key.id === msg.key.id)) {
+                        this.messages[jid].array.push(msg);
+                    }
+                }
+                for (const jid in this.messages) {
+                    this.messages[jid].array.sort((a, b) => (a.messageTimestamp || 0) - (b.messageTimestamp || 0));
+                    if (this.messages[jid].array.length > 500) {
+                        this.messages[jid].array = this.messages[jid].array.slice(-500);
                     }
                 }
             });
         }
     };
-}
+    store.readFromFile();
+    store.bind(sock.ev);
 
-async function startWASession(rawUserId) {
-    const userId = rawUserId.toString().replace('session-', '').trim();
-    
-    if (sessions[userId]?.isReady) {
-        io.to(userId).emit('ready', { userId, msg: 'متصل بالفعل' });
-        return;
+    if (sessions[userId] && sessions[userId].intervalId) {
+        clearInterval(sessions[userId].intervalId);
     }
-    if (sessions[userId]?.initializing) return;
 
-    console.log(`[Action] Starting WhatsApp for: ${userId}`);
-    
-    const userFolder = path.join(AUTH_FOLDER, `session-${userId}`);
-    if (!fs.existsSync(userFolder)) fs.mkdirSync(userFolder, { recursive: true });
+    const intervalId = setInterval(() => {
+        if (sessions[userId]?.store && typeof sessions[userId].store.writeToFile === 'function') {
+            try { sessions[userId].store.writeToFile(storePath); } catch (e) { }
+        }
+    }, 10000);
 
-    const { state, saveCreds } = await useMultiFileAuthState(userFolder);
-    const { version } = await fetchLatestWaWebVersion().catch(() => ({ version: [2, 3000, 1015901307] }));
+    sessions[userId] = { sock, isReady: false, store, initializing: true, intervalId, lastQr: null };
 
-    try {
-        const sock = makeWASocket({
-            version, 
-            logger: log, 
-            auth: state,
-            printQRInTerminal: false,
-            browser: ['Diar-Shahama (Private)', 'Chrome', '1.0.0'],
-            connectTimeoutMs: 60000
-        });
-
-        const store = createStore(userId);
-        store.bind(sock.ev);
-
-        sessions[userId] = { sock, store, isReady: false, initializing: true };
-
-        sock.ev.on('connection.update', async (update) => {
-            const { connection, lastDisconnect, qr } = update;
-
-            if (qr) {
-                qrCache[userId] = qr;
-                io.emit('qr', { userId, qr });
+    sock.ev.on('connection.update', async (update) => {
+        const { connection, lastDisconnect, qr } = update;
+        if (qr) {
+            sessions[userId].lastQr = { userId, qr };
+            io.emit('qr', sessions[userId].lastQr);
+        }
+        if (connection === 'close') {
+            const statusCode = (lastDisconnect?.error)?.output?.statusCode;
+            const isLogout = statusCode === DisconnectReason.loggedOut || statusCode === 405 || statusCode === 401;
+            if (!isLogout) {
+                setTimeout(() => startWASession(userId), 5000);
+            } else {
+                await clearSession(userId);
+                io.emit('disconnected', { userId, msg: 'تم تسجيل الخروج أو جلسة تالفة.' });
             }
+        } else if (connection === 'open') {
+            sessions[userId].isReady = true;
+            sessions[userId].initializing = false;
+            sessions[userId].lastQr = null;
+            io.emit('ready', { userId, msg: 'متصل بنجاح' });
+        }
+    });
 
-            if (connection === 'close') {
-                const statusCode = (lastDisconnect?.error)?.output?.statusCode;
-                const shouldReconnect = statusCode !== DisconnectReason.loggedOut && statusCode !== 401;
-                
-                if (sessions[userId]) sessions[userId].isReady = false;
-                
-                // Update Firebase Status
-                await SYNC_STATUS(userId, { status: 'disconnected' });
-                
-                if (shouldReconnect) {
-                    console.log(`[Reconnecting] ${userId}...`);
-                    setTimeout(() => startWASession(userId), 5000);
-                } else {
-                    console.log(`[LoggedOut] ${userId}`);
-                    delete sessions[userId];
-                    qrCache[userId] = null;
-                    io.emit('disconnected', { userId });
-                }
-            } else if (connection === 'open') {
-                console.log(`[Ready] ${userId} is ONLINE`);
-                qrCache[userId] = null;
-                if (sessions[userId]) {
-                    sessions[userId].isReady = true;
-                    sessions[userId].initializing = false;
-                }
-                io.emit('ready', { userId, msg: 'متصل' });
-                
-                // Update Firebase Status
-                await SYNC_STATUS(userId, { status: 'connected' });
-            }
-        });
+    sock.ev.on('creds.update', saveCreds);
 
-        sock.ev.on('creds.update', saveCreds);
-
-        sock.ev.on('messages.upsert', (m) => {
-            if (m.type === 'notify') {
-                for (const msg of m.messages) {
-                    if (!msg.key.fromMe && !msg.key.remoteJid.includes('@g.us') && msg.key.remoteJid !== 'status@broadcast') {
-                        io.emit('message', {
-                            userId,
-                            from: msg.key.remoteJid,
-                            body: msg.message?.conversation || msg.message?.extendedTextMessage?.text || '',
-                            timestamp: msg.messageTimestamp
-                        });
+    sock.ev.on('messages.upsert', (m) => {
+        if (m.type === 'notify') {
+            for (const msg of m.messages) {
+                if (msg.message) {
+                    let body = msg.message.conversation || msg.message.extendedTextMessage?.text;
+                    if (!body) {
+                        const msgType = Object.keys(msg.message)[0];
+                        if (msgType.includes('image')) body = '📷 صورة';
+                        else if (msgType.includes('video')) body = '🎥 فيديو';
+                        else if (msgType.includes('audio')) body = '🎵 مقطع صوتي';
+                        else if (msgType.includes('document')) body = '📄 ملف';
+                        else body = '📩 رسالة جديدة (وسائط/ملصق)';
                     }
+                    io.emit('message', {
+                        userId: userId,
+                        from: msg.key.remoteJid,
+                        body: body,
+                        timestamp: msg.messageTimestamp,
+                        isMe: msg.key.fromMe
+                    });
                 }
             }
-        });
-
-    } catch (err) { 
-        console.error(err);
-        delete sessions[userId]; 
-    }
+        }
+    });
 }
 
 io.on('connection', (socket) => {
-    socket.on('join_room', (userId) => {
-        const cleanId = userId.toString().replace('session-', '').trim();
-        socket.join(cleanId);
-        if (qrCache[cleanId]) {
-            socket.emit('qr', { userId: cleanId, qr: qrCache[cleanId] });
+    socket.on('start_session', async ({ userId }) => {
+        if (!userId) return;
+        if (sessions[userId]?.isReady) {
+            socket.emit('ready', { userId, msg: 'متصل بنجاح' });
+            return;
         }
-        if (sessions[cleanId]?.isReady) {
-            socket.emit('ready', { userId: cleanId, msg: 'متصل' });
+        if (sessions[userId]?.initializing) {
+            if (sessions[userId].lastQr) socket.emit('qr', sessions[userId].lastQr);
+            return;
         }
-    });
-
-    socket.on('start_session', ({ userId }) => {
-        if (userId) startWASession(userId);
+        await startWASession(userId);
     });
 
     socket.on('logout_session', async ({ userId }) => {
-        const cleanId = userId.toString().replace('session-', '').trim();
-        if (sessions[cleanId]?.sock) {
-            try {
-                await sessions[cleanId].sock.logout();
-            } catch (e) {}
+        if (sessions[userId]?.sock) {
+            try { await sessions[userId].sock.logout(); } catch (e) { }
+            await clearSession(userId);
         }
     });
 });
 
-app.get('/api/status/:userId', (req, res) => {
-    let { userId } = req.params;
-    userId = userId.replace('session-', '').trim();
-    const session = sessions[userId];
-    res.json({
-        exists: !!session,
-        ready: !!session?.isReady,
-        initializing: !!session?.initializing,
-        userId: userId
-    });
-});
-
-app.get('/api/media/:userId/:phone/:messageId', async (req, res) => {
-    console.log(`[Media Request] User: ${req.params.userId}, Msg: ${req.params.messageId}`);
-    let { userId, phone, messageId } = req.params;
-    userId = userId.replace('session-', '').trim();
-    if (!sessions[userId]?.isReady) return res.status(403).json({ error: 'Disconnected' });
-    
-    let formattedPhone = phone.replace(/\D/g, '');
-    if (formattedPhone.startsWith('0')) formattedPhone = '966' + formattedPhone.substring(1);
-    const jid = formattedPhone + '@s.whatsapp.net';
-    
-    const msg = sessions[userId].store.messages[jid]?.find(m => m.key.id === messageId);
-    if (!msg) return res.status(404).json({ error: 'Message not found' });
-    
-    try {
-        const buffer = await downloadMediaMessage(msg, 'buffer', {}, { logger: log, reuploadRequest: sessions[userId].sock.updateMediaMessage });
-        res.json({ data: buffer.toString('base64') });
-    } catch (err) {
-        res.status(500).json({ error: err.toString() });
-    }
-});
-
-app.get('/api/chat/:userId/:phone', (req, res) => {
-    console.log(`[Chat Request] User: ${req.params.userId}, Phone: ${req.params.phone}`);
-    let { userId, phone } = req.params;
-    userId = userId.replace('session-', '').trim();
-    
-    if (!sessions[userId]) return res.status(404).json({ error: 'Session not found' });
-    if (!sessions[userId].isReady) return res.status(403).json({ error: 'Session not ready' });
-
-    let formattedPhone = phone.replace(/\D/g, '');
-    if (formattedPhone.startsWith('0')) formattedPhone = '966' + formattedPhone.substring(1);
-    const jid = formattedPhone + '@s.whatsapp.net';
-
-    const msgs = sessions[userId].store.messages[jid] || [];
-    res.json({
-        messages: msgs.map(m => ({
-            id: m.key.id,
-            body: m.message?.conversation || m.message?.extendedTextMessage?.text || (m.message?.imageMessage ? "[صورة]" : m.message?.videoMessage ? "[فيديو]" : m.message?.audioMessage ? "[مقطع صوتي]" : ""),
-            timestamp: m.messageTimestamp,
-            isMe: m.key.fromMe,
-            media: m.message?.imageMessage || m.message?.videoMessage || m.message?.audioMessage || m.message?.documentMessage ? { mimetype: 'unknown' } : null,
-            type: m.message?.extendedTextMessage ? 'chat' : m.message?.imageMessage ? 'image' : m.message?.videoMessage ? 'video' : m.message?.audioMessage ? 'ptt' : 'chat',
-            ack: m.status || 1
-        }))
-    });
-});
+app.get('/ping', (req, res) => res.send('Codespace is ALIVE'));
 
 app.post('/api/send', async (req, res) => {
-    let { userId, phone, message, media } = req.body;
-    userId = userId.replace('session-', '').trim();
+    const { userId, phone, message, media } = req.body;
+    if (!userId || !sessions[userId]?.isReady) return res.status(403).json({ error: 'غير متصل' });
 
-    if (!sessions[userId]?.isReady) return res.status(403).json({ error: 'منقطع' });
-    
     try {
-        let formattedPhone = phone.replace(/\D/g, '');
+        let formattedPhone = phone.replace(/\\D/g, '');
         if (formattedPhone.startsWith('0')) formattedPhone = '966' + formattedPhone.substring(1);
         const jid = formattedPhone + '@s.whatsapp.net';
 
-        if (media) {
+        let sendContent;
+        if (media && media.data) {
             const buffer = Buffer.from(media.data, 'base64');
-            let content = {};
-            if (media.mimetype.startsWith('image/')) content = { image: buffer, caption: message };
-            else if (media.mimetype.startsWith('video/')) content = { video: buffer, caption: message };
-            else if (media.mimetype.startsWith('audio/')) content = { audio: buffer, ptt: !!media.ptt };
-            else content = { document: buffer, mimetype: media.mimetype, fileName: media.filename, caption: message };
-            
-            await sessions[userId].sock.sendMessage(jid, content);
+            if (media.mimetype.startsWith('image/')) {
+                sendContent = { image: buffer, caption: message || '' };
+            } else if (media.mimetype.startsWith('video/')) {
+                sendContent = { video: buffer, caption: message || '' };
+            } else if (media.mimetype.startsWith('audio/')) {
+                sendContent = { audio: buffer, mimetype: media.mimetype, ptt: true };
+            } else {
+                sendContent = { document: buffer, mimetype: media.mimetype, fileName: media.filename || 'وثيقة', caption: message || '' };
+            }
         } else {
-            await sessions[userId].sock.sendMessage(jid, { text: message });
+            sendContent = { text: message };
         }
-        
+
+        const sentMsg = await sessions[userId].sock.sendMessage(jid, sendContent);
+
+        // Manually push to store immediately so next fetch sees it instantly
+        if (sentMsg && sessions[userId]?.store?.messages) {
+            if (!sessions[userId].store.messages[jid]) {
+                sessions[userId].store.messages[jid] = { array: [] };
+            }
+            if (!sessions[userId].store.messages[jid].array.some(m => m.key.id === sentMsg.key.id)) {
+                sessions[userId].store.messages[jid].array.push(sentMsg);
+            }
+            // Cache local media instantly
+            if (media && media.data) {
+                sentMsg.localMediaData = media.data;
+            }
+        }
+
         res.json({ success: true });
-    } catch (e) { 
-        res.status(500).json({ error: e.toString() }); 
+    } catch (err) { res.status(500).json({ error: err.toString() }); }
+});
+
+app.get('/api/chat/:userId/:phone', async (req, res) => {
+    const { userId, phone: rawPhone } = req.params;
+    if (!userId || !sessions[userId]?.isReady) return res.json({ messages: [] });
+
+    let formattedPhone = rawPhone.replace(/\\D/g, '');
+    if (formattedPhone.startsWith('0')) formattedPhone = '966' + formattedPhone.substring(1);
+    const jid = formattedPhone + '@s.whatsapp.net';
+
+    let dbMsgs = [];
+    try {
+        dbMsgs = sessions[userId]?.store?.messages[jid]?.array || [];
+    } catch (err) { }
+
+    const extractMessageContent = (msgObj) => {
+        if (!msgObj) return null;
+        if (msgObj.ephemeralMessage) return extractMessageContent(msgObj.ephemeralMessage.message);
+        if (msgObj.viewOnceMessage) return extractMessageContent(msgObj.viewOnceMessage.message);
+        if (msgObj.viewOnceMessageV2) return extractMessageContent(msgObj.viewOnceMessageV2.message);
+        if (msgObj.viewOnceMessageV2Extension) return extractMessageContent(msgObj.viewOnceMessageV2Extension.message);
+        if (msgObj.documentWithCaptionMessage) return extractMessageContent(msgObj.documentWithCaptionMessage.message);
+        return msgObj;
+    };
+
+    const parsedMessages = await Promise.all(dbMsgs.map(async m => {
+        const actualMsg = extractMessageContent(m.message);
+        let body = actualMsg?.conversation || actualMsg?.extendedTextMessage?.text || '';
+        let media = null;
+
+        if (actualMsg) {
+            const msgType = Object.keys(actualMsg).find(k => k.endsWith('Message')) || Object.keys(actualMsg)[0];
+            if (msgType === 'imageMessage' || msgType === 'videoMessage' || msgType === 'audioMessage' || msgType === 'documentMessage') {
+                body = actualMsg[msgType].caption || body;
+                // Do NOT download media here to avoid performance issues and blue ticks
+                media = {
+                    data: null, // Indicates it needs to be downloaded later
+                    mimetype: actualMsg[msgType].mimetype || 'application/octet-stream',
+                    filename: actualMsg[msgType].fileName || 'Media',
+                    messageId: m.key.id
+                };
+            }
+        }
+
+        return {
+            id: m.key.id,
+            body: body,
+            timestamp: m.messageTimestamp,
+            isMe: m.key.fromMe,
+            status: m.status !== undefined ? m.status : undefined,
+            ack: m.status !== undefined ? m.status : undefined,
+            media: media,
+            type: actualMsg?.audioMessage?.ptt ? 'ptt' : undefined
+        };
+    }));
+
+    res.json({ messages: parsedMessages });
+});
+
+app.get('/api/media/:userId/:phone/:messageId', async (req, res) => {
+    const { userId, phone: rawPhone, messageId } = req.params;
+    if (!userId || !sessions[userId]?.isReady) return res.status(403).json({ error: 'Session not ready' });
+
+    let formattedPhone = rawPhone.replace(/\D/g, '');
+    if (formattedPhone.startsWith('0')) formattedPhone = '966' + formattedPhone.substring(1);
+    const jid = formattedPhone + '@s.whatsapp.net';
+
+    let dbMsgs = sessions[userId]?.store?.messages[jid]?.array || [];
+    const msgToDownload = dbMsgs.find(m => m.key.id === messageId);
+
+    if (!msgToDownload || !msgToDownload.message) return res.status(404).json({ error: 'Message not found' });
+
+    try {
+        let buffer;
+        if (msgToDownload.localMediaData) {
+            buffer = Buffer.from(msgToDownload.localMediaData, 'base64');
+        } else {
+            buffer = await downloadMediaMessage(msgToDownload, 'buffer', {}, {
+                logger: log,
+                reuploadRequest: sessions[userId].sock.updateMediaMessage
+            });
+        }
+        res.json({ data: buffer.toString('base64') });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to download' });
     }
 });
 
 const PORT = process.env.PORT || 3001;
-server.on('error', (e) => {
-    if (e.code === 'EADDRINUSE') {
-        console.error(`!!! PORT ${PORT} IN USE. Server cannot start. Use 'sudo fuser -k ${PORT}/tcp' then restart. !!!`);
-        process.exit(1);
-    }
-});
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`>>> DIAR SHAHAMA WA SERVER LIVE ON PORT ${PORT} <<<`);
-    if (fs.existsSync(AUTH_FOLDER)) {
-        fs.readdirSync(AUTH_FOLDER).forEach(file => {
-            const folderPath = path.join(AUTH_FOLDER, file);
-            if (fs.lstatSync(folderPath).isDirectory() && file.startsWith('session-')) {
-                startWASession(file.replace('session-', ''));
-            }
-        });
-    }
+    console.log(`ULTRA_ENGINE_${PORT}_LIVE`);
 });
