@@ -1,9 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
-const { Server } = require('socket.io');
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestWaWebVersion, downloadMediaMessage } = require('@whiskeysockets/baileys');
-const pino = require('pino');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestWaWebVersion, downloadMediaMessage, jidNormalizedUser } = require('@whiskeysockets/baileys');
 const path = require('path');
 const fs = require('fs');
 
@@ -215,22 +213,9 @@ async function startWASession(userId) {
             if (m.type === 'notify') {
                 for (const msg of m.messages) {
                     if (msg.message) {
-                        let fromJid = msg.key.remoteJid;
-                        
-                        // Function to convert LID to JID
-                        const resolveLidToJid = (lid) => {
-                            if (!lid || !lid.endsWith('@lid')) return lid;
-                            const contacts = sessions[userId]?.store?.contacts || {};
-                            for (const [jid, contact] of Object.entries(contacts)) {
-                                if (contact.lid === lid || jid === lid) {
-                                    return (contact.id && contact.id.endsWith('@s.whatsapp.net')) ? contact.id : jid;
-                                }
-                            }
-                            return lid; // fallback if not found
-                        };
-
-                        fromJid = resolveLidToJid(fromJid);
-                        console.log(`[Session: ${userId}] Incoming message from JID: ${fromJid}`);
+                        const rawJid = msg.key.remoteJid || '';
+                        const fromJid = jidNormalizedUser(rawJid);
+                        console.log(`[Session: ${userId}] Incoming message from JID: ${fromJid} (Raw: ${rawJid})`);
                         
                         let body = msg.message.conversation || msg.message.extendedTextMessage?.text;
                         if (!body) {
@@ -289,7 +274,7 @@ app.post('/api/send', async (req, res) => {
     try {
         let jid;
         if (phone.includes('@')) {
-            jid = phone;
+            jid = jidNormalizedUser(phone);
         } else {
             let formattedPhone = phone.replace(/\D/g, '');
             // Handle cases like 96605... or 96707...
@@ -308,7 +293,7 @@ app.post('/api/send', async (req, res) => {
                 if (formattedPhone.startsWith('7')) formattedPhone = '967' + formattedPhone;
                 else if (formattedPhone.startsWith('5')) formattedPhone = '966' + formattedPhone;
             }
-            jid = formattedPhone + '@s.whatsapp.net';
+            jid = jidNormalizedUser(formattedPhone + '@s.whatsapp.net');
         }
         console.log(`[Session: ${userId}] Targeting JID: ${jid}`);
 
@@ -352,9 +337,9 @@ app.get('/api/chat/:userId/:phone', async (req, res) => {
     const { userId, phone: rawPhone } = req.params;
     if (!userId || !sessions[userId]?.isReady) return res.json({ messages: [] });
 
-    let jid;
+    let rawJid;
     if (rawPhone.includes('@')) {
-        jid = rawPhone;
+        rawJid = rawPhone;
     } else {
         let formattedPhone = rawPhone.replace(/\D/g, '');
         if (formattedPhone.startsWith('9660')) formattedPhone = '966' + formattedPhone.substring(4);
@@ -364,8 +349,10 @@ app.get('/api/chat/:userId/:phone', async (req, res) => {
         else if (formattedPhone.startsWith('05')) formattedPhone = '966' + formattedPhone.substring(1);
         else if (formattedPhone.startsWith('07')) formattedPhone = '967' + formattedPhone.substring(1);
         else if (formattedPhone.startsWith('0')) formattedPhone = '966' + formattedPhone.substring(1);
-        jid = formattedPhone + '@s.whatsapp.net';
+        rawJid = formattedPhone + '@s.whatsapp.net';
     }
+    
+    const jid = jidNormalizedUser(rawJid);
 
     let dbMsgs = [];
     try {
@@ -420,9 +407,9 @@ app.get('/api/media/:userId/:phone/:messageId', async (req, res) => {
     const { userId, phone: rawPhone, messageId } = req.params;
     if (!userId || !sessions[userId]?.isReady) return res.status(403).json({ error: 'Session not ready' });
 
-    let jid;
+    let rawJid;
     if (rawPhone.includes('@')) {
-        jid = rawPhone;
+        rawJid = rawPhone;
     } else {
         let formattedPhone = rawPhone.replace(/\D/g, '');
         if (formattedPhone.startsWith('9660')) formattedPhone = '966' + formattedPhone.substring(4);
@@ -432,8 +419,10 @@ app.get('/api/media/:userId/:phone/:messageId', async (req, res) => {
         else if (formattedPhone.startsWith('05')) formattedPhone = '966' + formattedPhone.substring(1);
         else if (formattedPhone.startsWith('07')) formattedPhone = '967' + formattedPhone.substring(1);
         else if (formattedPhone.startsWith('0')) formattedPhone = '966' + formattedPhone.substring(1);
-        jid = formattedPhone + '@s.whatsapp.net';
+        rawJid = formattedPhone + '@s.whatsapp.net';
     }
+    
+    const jid = jidNormalizedUser(rawJid);
 
     let dbMsgs = sessions[userId]?.store?.messages[jid]?.array || [];
     const msgToDownload = dbMsgs.find(m => m.key.id === messageId);
