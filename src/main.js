@@ -2887,8 +2887,20 @@ window.submitBooking = async function (e) {
     let pNum = document.getElementById("b-phone")?.value || "";
     pCode = pCode.replace(/\D/g, '');
     pNum = pNum.replace(/\D/g, '');
-    if (pCode && pNum.startsWith(pCode)) pNum = pNum.substring(pCode.length);
-    if (pCode && pNum.startsWith('00' + pCode)) pNum = pNum.substring(pCode.length + 2);
+    
+    // Auto-detect country code from the phone number to prevent user errors
+    if (pNum.startsWith('05') || (pNum.startsWith('5') && pNum.length === 9) || pNum.startsWith('9665')) {
+        pCode = '966';
+        if (pNum.startsWith('05')) pNum = pNum.substring(1);
+        if (pNum.startsWith('966')) pNum = pNum.substring(3);
+    } else if (pNum.startsWith('07') || (pNum.startsWith('7') && pNum.length === 9) || pNum.startsWith('9677')) {
+        pCode = '967';
+        if (pNum.startsWith('07')) pNum = pNum.substring(1);
+        if (pNum.startsWith('967')) pNum = pNum.substring(3);
+    } else {
+        if (pCode && pNum.startsWith(pCode)) pNum = pNum.substring(pCode.length);
+        if (pCode && pNum.startsWith('00' + pCode)) pNum = pNum.substring(pCode.length + 2);
+    }
     
     const finalPhone = window.normalizePhone(pCode + pNum);
 
