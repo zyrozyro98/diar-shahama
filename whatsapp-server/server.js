@@ -295,8 +295,8 @@ app.post('/api/send', async (req, res) => {
                 else if (formattedPhone.startsWith('5')) formattedPhone = '966' + formattedPhone;
             }
             jid = formattedPhone + '@s.whatsapp.net';
-            console.log(`[Session: ${userId}] Final JID generated: ${jid}`);
         }
+        console.log(`[Session: ${userId}] Targeting JID: ${jid}`);
 
         let sendContent;
         if (media && media.data) {
@@ -338,15 +338,20 @@ app.get('/api/chat/:userId/:phone', async (req, res) => {
     const { userId, phone: rawPhone } = req.params;
     if (!userId || !sessions[userId]?.isReady) return res.json({ messages: [] });
 
-    let formattedPhone = rawPhone.replace(/\D/g, '');
-    if (formattedPhone.startsWith('9660')) formattedPhone = '966' + formattedPhone.substring(4);
-    else if (formattedPhone.startsWith('9670')) formattedPhone = '967' + formattedPhone.substring(4);
+    let jid;
+    if (rawPhone.includes('@')) {
+        jid = rawPhone;
+    } else {
+        let formattedPhone = rawPhone.replace(/\D/g, '');
+        if (formattedPhone.startsWith('9660')) formattedPhone = '966' + formattedPhone.substring(4);
+        else if (formattedPhone.startsWith('9670')) formattedPhone = '967' + formattedPhone.substring(4);
 
-    if (formattedPhone.startsWith('966') || formattedPhone.startsWith('967')) { /* ok */ }
-    else if (formattedPhone.startsWith('05')) formattedPhone = '966' + formattedPhone.substring(1);
-    else if (formattedPhone.startsWith('07')) formattedPhone = '967' + formattedPhone.substring(1);
-    else if (formattedPhone.startsWith('0')) formattedPhone = '966' + formattedPhone.substring(1);
-    const jid = formattedPhone + '@s.whatsapp.net';
+        if (formattedPhone.startsWith('966') || formattedPhone.startsWith('967')) { /* ok */ }
+        else if (formattedPhone.startsWith('05')) formattedPhone = '966' + formattedPhone.substring(1);
+        else if (formattedPhone.startsWith('07')) formattedPhone = '967' + formattedPhone.substring(1);
+        else if (formattedPhone.startsWith('0')) formattedPhone = '966' + formattedPhone.substring(1);
+        jid = formattedPhone + '@s.whatsapp.net';
+    }
 
     let dbMsgs = [];
     try {
@@ -401,15 +406,20 @@ app.get('/api/media/:userId/:phone/:messageId', async (req, res) => {
     const { userId, phone: rawPhone, messageId } = req.params;
     if (!userId || !sessions[userId]?.isReady) return res.status(403).json({ error: 'Session not ready' });
 
-    let formattedPhone = rawPhone.replace(/\D/g, '');
-    if (formattedPhone.startsWith('9660')) formattedPhone = '966' + formattedPhone.substring(4);
-    else if (formattedPhone.startsWith('9670')) formattedPhone = '967' + formattedPhone.substring(4);
+    let jid;
+    if (rawPhone.includes('@')) {
+        jid = rawPhone;
+    } else {
+        let formattedPhone = rawPhone.replace(/\D/g, '');
+        if (formattedPhone.startsWith('9660')) formattedPhone = '966' + formattedPhone.substring(4);
+        else if (formattedPhone.startsWith('9670')) formattedPhone = '967' + formattedPhone.substring(4);
 
-    if (formattedPhone.startsWith('966') || formattedPhone.startsWith('967')) { /* ok */ }
-    else if (formattedPhone.startsWith('05')) formattedPhone = '966' + formattedPhone.substring(1);
-    else if (formattedPhone.startsWith('07')) formattedPhone = '967' + formattedPhone.substring(1);
-    else if (formattedPhone.startsWith('0')) formattedPhone = '966' + formattedPhone.substring(1);
-    const jid = formattedPhone + '@s.whatsapp.net';
+        if (formattedPhone.startsWith('966') || formattedPhone.startsWith('967')) { /* ok */ }
+        else if (formattedPhone.startsWith('05')) formattedPhone = '966' + formattedPhone.substring(1);
+        else if (formattedPhone.startsWith('07')) formattedPhone = '967' + formattedPhone.substring(1);
+        else if (formattedPhone.startsWith('0')) formattedPhone = '966' + formattedPhone.substring(1);
+        jid = formattedPhone + '@s.whatsapp.net';
+    }
 
     let dbMsgs = sessions[userId]?.store?.messages[jid]?.array || [];
     const msgToDownload = dbMsgs.find(m => m.key.id === messageId);
