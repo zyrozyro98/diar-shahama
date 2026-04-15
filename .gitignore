@@ -67,3 +67,12 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# Sensitive WhatsApp Server Data
+whatsapp-server/auth_info_baileys/
+whatsapp-server/*.json
+!whatsapp-server/package.json
+!whatsapp-server/package-lock.json
+
+# Text backup files
+whatsapp-server/*.txt

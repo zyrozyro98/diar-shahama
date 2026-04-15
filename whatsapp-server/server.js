@@ -20,6 +20,15 @@ const io = new Server(server, {
 const sessions = {};
 const log = pino({ level: 'error' });
 
+// Global Error Handlers
+process.on('uncaughtException', (err) => {
+    console.error('CRITICAL: Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('CRITICAL: Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 async function clearSession(userId) {
     const authFolder = path.join(__dirname, 'auth_info_baileys', `session-${userId}`);
     if (sessions[userId]) {
@@ -29,7 +38,14 @@ async function clearSession(userId) {
         }
         delete sessions[userId];
     }
-    try { if (fs.existsSync(authFolder)) fs.rmSync(authFolder, { recursive: true, force: true }); } catch (e) { }
+    try { 
+        if (fs.existsSync(authFolder)) {
+            console.log(`[Session: ${userId}] Removing session folder: ${authFolder}`);
+            fs.rmSync(authFolder, { recursive: true, force: true }); 
+        }
+    } catch (e) { 
+        console.error(`[Session: ${userId}] Error removing session folder:`, e);
+    }
 }
 
 async function startWASession(userId) {
@@ -80,21 +96,25 @@ async function startWASession(userId) {
         },
         bind: function (ev) {
             ev.on('messages.upsert', (m) => {
-                if (m.type === 'notify' || m.type === 'append') {
-                    for (const msg of m.messages) {
-                        const jid = msg.key.remoteJid;
-                        if (!jid) continue;
-                        if (!this.messages[jid]) this.messages[jid] = { array: [] };
+                try {
+                    if (m.type === 'notify' || m.type === 'append') {
+                        for (const msg of m.messages) {
+                            const jid = msg.key.remoteJid;
+                            if (!jid) continue;
+                            if (!this.messages[jid]) this.messages[jid] = { array: [] };
 
-                        const existingIdx = this.messages[jid].array.findIndex(x => x.key.id === msg.key.id);
-                        if (existingIdx !== -1) {
-                            this.messages[jid].array[existingIdx] = msg;
-                        } else {
-                            this.messages[jid].array.push(msg);
+                            const existingIdx = this.messages[jid].array.findIndex(x => x.key.id === msg.key.id);
+                            if (existingIdx !== -1) {
+                                this.messages[jid].array[existingIdx] = msg;
+                            } else {
+                                this.messages[jid].array.push(msg);
+                            }
+
+                            if (this.messages[jid].array.length > 500) this.messages[jid].array.shift();
                         }
-
-                        if (this.messages[jid].array.length > 500) this.messages[jid].array.shift();
                     }
+                } catch (err) {
+                    console.error('[Store Upsert Error]', err);
                 }
             });
             ev.on('messages.update', (updates) => {
@@ -143,22 +163,38 @@ async function startWASession(userId) {
 
     sessions[userId] = { sock, isReady: false, store, initializing: true, intervalId, lastQr: null };
 
+    // Enhanced Connection Logging
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
+        
         if (qr) {
+            console.log(`[Session: ${userId}] New QR Code generated`);
             sessions[userId].lastQr = { userId, qr };
             io.emit('qr', sessions[userId].lastQr);
         }
+
         if (connection === 'close') {
             const statusCode = (lastDisconnect?.error)?.output?.statusCode;
+            const errorMsg = lastDisconnect?.error?.message || 'Unknown error';
+            console.error(`[Session: ${userId}] Connection closed. Status: ${statusCode}, Reason: ${errorMsg}`);
+            
             const isLogout = statusCode === DisconnectReason.loggedOut || statusCode === 405 || statusCode === 401;
+            
             if (!isLogout) {
-                setTimeout(() => startWASession(userId), 5000);
+                console.log(`[Session: ${userId}] Attempting to reconnect in 5s...`);
+                setTimeout(() => {
+                    // Only start if not already managed or if session died
+                    if (!sessions[userId] || !sessions[userId].isReady) {
+                        startWASession(userId);
+                    }
+                }, 5000);
             } else {
+                console.warn(`[Session: ${userId}] Permanent disconnect (Logout). Clearing session.`);
                 await clearSession(userId);
                 io.emit('disconnected', { userId, msg: 'تم تسجيل الخروج أو جلسة تالفة.' });
             }
         } else if (connection === 'open') {
+            console.log(`[Session: ${userId}] WhatsApp session is OPEN and READY`);
             sessions[userId].isReady = true;
             sessions[userId].initializing = false;
             sessions[userId].lastQr = null;
@@ -166,30 +202,44 @@ async function startWASession(userId) {
         }
     });
 
-    sock.ev.on('creds.update', saveCreds);
+    sock.ev.on('creds.update', async () => {
+        try {
+            await saveCreds();
+        } catch (err) {
+            console.error(`[Session: ${userId}] Failed to save credentials:`, err);
+        }
+    });
 
     sock.ev.on('messages.upsert', (m) => {
-        if (m.type === 'notify') {
-            for (const msg of m.messages) {
-                if (msg.message) {
-                    let body = msg.message.conversation || msg.message.extendedTextMessage?.text;
-                    if (!body) {
-                        const msgType = Object.keys(msg.message)[0];
-                        if (msgType.includes('image')) body = '📷 صورة';
-                        else if (msgType.includes('video')) body = '🎥 فيديو';
-                        else if (msgType.includes('audio')) body = '🎵 مقطع صوتي';
-                        else if (msgType.includes('document')) body = '📄 ملف';
-                        else body = '📩 رسالة جديدة (وسائط/ملصق)';
+        try {
+            if (m.type === 'notify') {
+                for (const msg of m.messages) {
+                    if (msg.message) {
+                        const fromJid = msg.key.remoteJid;
+                        console.log(`[Session: ${userId}] Incoming message from JID: ${fromJid}`);
+                        
+                        let body = msg.message.conversation || msg.message.extendedTextMessage?.text;
+                        if (!body) {
+                            const msgType = Object.keys(msg.message)[0];
+                            if (msgType?.includes('image')) body = '📷 صورة';
+                            else if (msgType?.includes('video')) body = '🎥 فيديو';
+                            else if (msgType?.includes('audio')) body = '🎵 مقطع صوتي';
+                            else if (msgType?.includes('document')) body = '📄 ملف';
+                            else body = '📩 رسالة جديدة (وسائط/ملصق)';
+                        }
+                        
+                        io.emit('message', {
+                            userId: userId,
+                            from: fromJid,
+                            body: body,
+                            timestamp: msg.messageTimestamp,
+                            isMe: msg.key.fromMe
+                        });
                     }
-                    io.emit('message', {
-                        userId: userId,
-                        from: msg.key.remoteJid,
-                        body: body,
-                        timestamp: msg.messageTimestamp,
-                        isMe: msg.key.fromMe
-                    });
                 }
             }
+        } catch (err) {
+            console.error(`[Session: ${userId}] Error in messages.upsert:`, err);
         }
     });
 }
@@ -223,9 +273,30 @@ app.post('/api/send', async (req, res) => {
     if (!userId || !sessions[userId]?.isReady) return res.status(403).json({ error: 'غير متصل' });
 
     try {
-        let formattedPhone = phone.replace(/\\D/g, '');
-        if (formattedPhone.startsWith('0')) formattedPhone = '966' + formattedPhone.substring(1);
-        const jid = formattedPhone + '@s.whatsapp.net';
+        let jid;
+        if (phone.includes('@')) {
+            jid = phone;
+        } else {
+            let formattedPhone = phone.replace(/\D/g, '');
+            // Handle cases like 96605... or 96707...
+            if (formattedPhone.startsWith('9660')) formattedPhone = '966' + formattedPhone.substring(4);
+            else if (formattedPhone.startsWith('9670')) formattedPhone = '967' + formattedPhone.substring(4);
+
+            if (formattedPhone.startsWith('966') || formattedPhone.startsWith('967')) {
+                // Keep as is
+            } else if (formattedPhone.startsWith('05')) {
+                formattedPhone = '966' + formattedPhone.substring(1);
+            } else if (formattedPhone.startsWith('07')) {
+                formattedPhone = '967' + formattedPhone.substring(1);
+            } else if (formattedPhone.startsWith('0')) {
+                formattedPhone = '966' + formattedPhone.substring(1);
+            } else if (formattedPhone.length === 9) {
+                if (formattedPhone.startsWith('7')) formattedPhone = '967' + formattedPhone;
+                else if (formattedPhone.startsWith('5')) formattedPhone = '966' + formattedPhone;
+            }
+            jid = formattedPhone + '@s.whatsapp.net';
+            console.log(`[Session: ${userId}] Final JID generated: ${jid}`);
+        }
 
         let sendContent;
         if (media && media.data) {
@@ -267,8 +338,14 @@ app.get('/api/chat/:userId/:phone', async (req, res) => {
     const { userId, phone: rawPhone } = req.params;
     if (!userId || !sessions[userId]?.isReady) return res.json({ messages: [] });
 
-    let formattedPhone = rawPhone.replace(/\\D/g, '');
-    if (formattedPhone.startsWith('0')) formattedPhone = '966' + formattedPhone.substring(1);
+    let formattedPhone = rawPhone.replace(/\D/g, '');
+    if (formattedPhone.startsWith('9660')) formattedPhone = '966' + formattedPhone.substring(4);
+    else if (formattedPhone.startsWith('9670')) formattedPhone = '967' + formattedPhone.substring(4);
+
+    if (formattedPhone.startsWith('966') || formattedPhone.startsWith('967')) { /* ok */ }
+    else if (formattedPhone.startsWith('05')) formattedPhone = '966' + formattedPhone.substring(1);
+    else if (formattedPhone.startsWith('07')) formattedPhone = '967' + formattedPhone.substring(1);
+    else if (formattedPhone.startsWith('0')) formattedPhone = '966' + formattedPhone.substring(1);
     const jid = formattedPhone + '@s.whatsapp.net';
 
     let dbMsgs = [];
@@ -325,7 +402,13 @@ app.get('/api/media/:userId/:phone/:messageId', async (req, res) => {
     if (!userId || !sessions[userId]?.isReady) return res.status(403).json({ error: 'Session not ready' });
 
     let formattedPhone = rawPhone.replace(/\D/g, '');
-    if (formattedPhone.startsWith('0')) formattedPhone = '966' + formattedPhone.substring(1);
+    if (formattedPhone.startsWith('9660')) formattedPhone = '966' + formattedPhone.substring(4);
+    else if (formattedPhone.startsWith('9670')) formattedPhone = '967' + formattedPhone.substring(4);
+
+    if (formattedPhone.startsWith('966') || formattedPhone.startsWith('967')) { /* ok */ }
+    else if (formattedPhone.startsWith('05')) formattedPhone = '966' + formattedPhone.substring(1);
+    else if (formattedPhone.startsWith('07')) formattedPhone = '967' + formattedPhone.substring(1);
+    else if (formattedPhone.startsWith('0')) formattedPhone = '966' + formattedPhone.substring(1);
     const jid = formattedPhone + '@s.whatsapp.net';
 
     let dbMsgs = sessions[userId]?.store?.messages[jid]?.array || [];

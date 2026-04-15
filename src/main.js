@@ -214,10 +214,19 @@ window.normalizePhone = function (phone) {
   if (!phone) return "";
   let clean = phone.toString().replace(/\D/g, "");
   
-  if (clean.length === 10 && clean.startsWith("0")) {
-    return "966" + clean.substring(1);
-  } else if (clean.length === 9 && clean.startsWith("5")) {
-    return "966" + clean;
+  // Handle cases like 96605... or 96707...
+  if (clean.startsWith("9660")) clean = "966" + clean.substring(4);
+  else if (clean.startsWith("9670")) clean = "967" + clean.substring(4);
+
+  if (clean.startsWith("966") || clean.startsWith("967")) return clean;
+
+  if (clean.startsWith("05")) return "966" + clean.substring(1);
+  if (clean.startsWith("07")) return "967" + clean.substring(1);
+  if (clean.startsWith("0")) return "966" + clean.substring(1);
+
+  if (clean.length === 9) {
+      if (clean.startsWith("7")) return "967" + clean;
+      if (clean.startsWith("5")) return "966" + clean;
   }
   
   return clean;
@@ -1048,163 +1057,121 @@ window.viewBookingDetails = function (id) {
   const staffName = window.state.users.find(u => u.id === item.assignedTo)?.name || "غير مسند";
   const statusLabel = item.status === "sold" ? "مكتمل" : item.status === "available" ? "متاح" : item.status === "rejected" ? "مرفوض" : item.status === "waiting" ? "بالانتظار" : "جديد";
   const stClass = item.status === "sold" ? "sold" : item.status === "new" ? "available" : "reserved";
+  const statusMap = {
+    new: "جديد",
+    waiting: "بالانتظار",
+    inquiry: "استفسار",
+    sold: "مكتمل",
+    rejected: "مرفوض",
+    available: "متاح"
+  };
 
   const detailsContent = `
-    <div class="details-luxury-container booking-modal-layout animate-fade-in-v2" style="background: var(--bg-main); border-radius: 20px; overflow: hidden; outline: 1px solid rgba(255,255,255,0.05);">
+    <div class="booking-modal-layout details-luxury-container" style="direction: rtl;">
       
-      <!-- الجهة اليمنى: الهيدر + التفاصيل (قابلة للتمرير) -->
-      <div class="booking-right-side custom-scrollbar" style="flex: 1; min-width: 350px; display: flex; flex-direction: column; overflow-y: auto; background: var(--bg-alt);">
-        
-        <div class="details-top-v4" style="flex-shrink: 0; padding: 30px; position: relative; border-bottom: 1px solid var(--glass-border); background: rgba(0,0,0,0.02);">
-          <div style="position: absolute; top:0; right:0; width:150px; height:150px; background:radial-gradient(circle, var(--p-copper) 0%, transparent 70%); opacity:0.05; pointer-events:none;"></div>
-          
-          <div class="details-header-v3">
-            <div class="d-badge-row" style="margin-bottom: 15px; gap:10px;">
-              <span class="badge-v3 status ${stClass}" style="padding: 6px 18px; font-size: 13px; border-radius: 30px; font-weight: 800; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">${statusLabel}</span>
-              <span class="badge-v3 year" style="padding: 6px 18px; font-size: 13px; border-radius: 30px; background: rgba(184, 134, 11, 0.1); color: var(--p-copper); border:1px solid rgba(184, 134, 11, 0.2);">${item.customerType === 'company' ? 'شركة' : 'فرد'}</span>
-              <span class="badge-v3" style="padding: 6px 18px; font-size: 13px; border-radius: 30px; background: rgba(184, 134, 11, 0.1); color: var(--p-copper); border: 1px solid rgba(184, 134, 11, 0.3);">رقم الطلب: #${item.id.slice(-6).toUpperCase()}</span>
-            </div>
-            <h1 class="luxury-font" style="font-size: 28px; font-weight: 800; margin-bottom: 8px; color: var(--text-main); display:flex; align-items:center; gap:12px;"><i class="fas fa-user-circle" style="color:var(--p-copper); font-size:32px;"></i> ${item.name || "بدون اسم"}</h1>
-            <p class="car-subtitle-v5" style="font-size: 16px; color: var(--text-dim); display:flex; align-items:center; gap:8px;"><i class="fas fa-phone-alt"></i> <a href="tel:${item.phone}" style="color: var(--text-main); text-decoration:none; font-weight:600; letter-spacing:1px; transition:0.3s;" onmouseover="this.style.color='var(--p-copper)'" onmouseout="this.style.color='var(--text-main)'">${item.phone}</a></p>
-          </div>
+      <!-- القسم الأيمن: تفاصيل الحجز -->
+      <div class="details-info-v4 custom-scrollbar">
+        <div class="p-header" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:25px;">
+           <div>
+              <h2 style="margin:0; font-size:28px; color:var(--text-main); font-weight:800;">${item.name || 'عميل مجهول'}</h2>
+              <p style="margin:5px 0 0; color:var(--text-dim); display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-phone-alt" style="font-size:12px; color:var(--p-copper);"></i> ${item.phone}
+              </p>
+           </div>
+           <div class="status-badge-v3" style="background:var(--bg-card); padding:8px 16px; border-radius:12px; border:1px solid var(--glass-border); text-align:center;">
+              <span style="display:block; font-size:10px; color:var(--text-dim); text-transform:uppercase;">حالة الطلب الحالية</span>
+              <strong style="color:var(--p-copper); font-size:14px;">${statusMap[item.status] || item.status}</strong>
+           </div>
         </div>
 
-        <div class="details-info-v4" style="padding: 30px;">
-          <div class="specs-grid-v4-compact" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:15px;">
-            <div class="spec-card-v5" style="background:var(--bg-card); padding:16px; border-radius:14px; border:1px solid var(--glass-border); transition:0.3s;">
-               <i class="fas fa-car" style="color:var(--p-teal); font-size:20px; margin-bottom:10px; display:block;"></i>
-               <div class="s-info"><span style="font-size:11px; opacity:0.6; display:block; margin-bottom:4px; color:var(--text-dim);">السيارة المطلوبة</span><strong style="font-size:14px; color:var(--text-main);">${item.carRequested || "غير محدد"}</strong></div>
+        <div class="details-grid-lite" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:20px; margin-bottom:30px;">
+            <div class="d-item" style="background:rgba(255,255,255,0.02); padding:15px; border-radius:15px; border:1px solid var(--glass-border);">
+                <span style="display:block; font-size:11px; color:var(--text-dim); margin-bottom:5px;">السيارة المطلوبة</span>
+                <strong style="font-size:15px; color:var(--p-copper);"><i class="fas fa-car" style="margin-left:8px;"></i>${item.carRequested || 'غير محدد'}</strong>
             </div>
-            <div class="spec-card-v5" style="background:var(--bg-card); padding:16px; border-radius:14px; border:1px solid var(--glass-border); transition:0.3s;">
-               <i class="fas fa-globe" style="color:var(--p-teal); font-size:20px; margin-bottom:10px; display:block;"></i>
-               <div class="s-info"><span style="font-size:11px; opacity:0.6; display:block; margin-bottom:4px; color:var(--text-dim);">الجنسية / المدينة</span><strong style="font-size:14px; color:var(--text-main);">${item.nationality || "-"} / ${item.city || "-"}</strong></div>
+            <div class="d-item" style="background:rgba(255,255,255,0.02); padding:15px; border-radius:15px; border:1px solid var(--glass-border);">
+                <span style="display:block; font-size:11px; color:var(--text-dim); margin-bottom:5px;">تاريخ الطلب</span>
+                <strong style="font-size:14px;"><i class="far fa-calendar-alt" style="margin-left:8px;"></i>${new Date(item.createdAt).toLocaleDateString('ar-SA')}</strong>
             </div>
-            <div class="spec-card-v5" style="background:var(--bg-card); padding:16px; border-radius:14px; border:1px solid var(--glass-border); transition:0.3s;">
-               <i class="fas fa-money-bill-wave" style="color:var(--p-copper); font-size:20px; margin-bottom:10px; display:block;"></i>
-               <div class="s-info"><span style="font-size:11px; opacity:0.6; display:block; margin-bottom:4px; color:var(--text-dim);">طريقة الشراء</span><strong style="font-size:14px; color:var(--text-main);">${item.paymentMethod || "-"} <span style="opacity:0.7;font-size:12px;">${item.paymentMethod === 'بنك' ? `(${item.bankName || "-"})` : ""}</span></strong></div>
-            </div>
-            ${item.paymentMethod === 'بنك' ? `
-            <div class="spec-card-v5" style="background:var(--bg-card); padding:16px; border-radius:14px; border:1px solid var(--glass-border); transition:0.3s;">
-               <i class="fas fa-calendar-alt" style="color:var(--p-copper); font-size:20px; margin-bottom:10px; display:block;"></i>
-               <div class="s-info"><span style="font-size:11px; opacity:0.6; display:block; margin-bottom:4px; color:var(--text-dim);">مدة الأقساط</span><strong style="font-size:14px; color:var(--text-main);">${item.installmentPeriod || "-"}</strong></div>
-            </div>` : ""}
-            <div class="spec-card-v5" style="background:var(--bg-card); padding:16px; border-radius:14px; border:1px solid var(--glass-border); transition:0.3s;">
-               <i class="fas fa-wallet" style="color:var(--p-teal); font-size:20px; margin-bottom:10px; display:block;"></i>
-               <div class="s-info"><span style="font-size:11px; opacity:0.6; display:block; margin-bottom:4px; color:var(--text-dim);">الراتب</span><strong style="font-size:14px; color:var(--text-main);">${item.salary || "-"} <small>ريال</small></strong></div>
-            </div>
-            <div class="spec-card-v5" style="background:var(--bg-card); padding:16px; border-radius:14px; border:1px solid var(--glass-border); transition:0.3s;">
-               <i class="fas fa-file-invoice-dollar" style="color:var(--p-red); font-size:20px; margin-bottom:10px; display:block;"></i>
-               <div class="s-info"><span style="font-size:11px; opacity:0.6; display:block; margin-bottom:4px; color:var(--text-dim);">الالتزامات</span><strong style="font-size:14px; color:var(--text-main);">${item.commitments || "-"} <small>ريال</small></strong></div>
-            </div>
-            <div class="spec-card-v5" style="background:var(--bg-card); padding:16px; border-radius:14px; border:1px solid var(--glass-border); transition:0.3s;">
-               <i class="fas fa-building" style="color:var(--p-teal); font-size:20px; margin-bottom:10px; display:block;"></i>
-               <div class="s-info"><span style="font-size:11px; opacity:0.6; display:block; margin-bottom:4px; color:var(--text-dim);">جهة العمل</span><strong style="font-size:14px; color:var(--text-main);">${item.workEntity || "-"} <span style="opacity:0.7;font-size:12px;">(${item.workStatus || "-"})</span></strong></div>
-            </div>
-            <div class="spec-card-v5" style="background:var(--bg-card); padding:16px; border-radius:14px; border:1px solid var(--glass-border); transition:0.3s;">
-               <i class="fas fa-clock" style="color:var(--text-dim); font-size:20px; margin-bottom:10px; display:block;"></i>
-               <div class="s-info"><span style="font-size:11px; opacity:0.6; display:block; margin-bottom:4px; color:var(--text-dim);">وقت التواصل</span><strong style="font-size:14px; color:var(--text-main);">${item.preferredTime || "-"}</strong></div>
-            </div>
-            <div class="spec-card-v5" style="background:var(--bg-card); padding:16px; border-radius:14px; border:1px solid var(--glass-border); transition:0.3s;">
-               <i class="fas fa-user-tie" style="color:var(--p-copper); font-size:20px; margin-bottom:10px; display:block;"></i>
-               <div class="s-info"><span style="font-size:11px; opacity:0.6; display:block; margin-bottom:4px; color:var(--text-dim);">الموظف</span><strong style="font-size:14px; color:var(--text-main);">${staffName}</strong></div>
-            </div>
-            <div class="spec-card-v5" style="background:var(--bg-card); padding:16px; border-radius:14px; border:1px solid var(--glass-border); transition:0.3s;">
-               <i class="fas fa-user" style="color:var(--text-dim); font-size:20px; margin-bottom:10px; display:block;"></i>
-               <div class="s-info"><span style="font-size:11px; opacity:0.6; display:block; margin-bottom:4px; color:var(--text-dim);">العمر</span><strong style="font-size:14px; color:var(--text-main);">${item.age || "-"} <small>سنة</small></strong></div>
-            </div>
-            ${item.email ? `
-            <div class="spec-card-v5" style="background:var(--bg-card); padding:16px; border-radius:14px; border:1px solid var(--glass-border); transition:0.3s;">
-               <i class="fas fa-envelope" style="color:var(--text-dim); font-size:20px; margin-bottom:10px; display:block;"></i>
-               <div class="s-info"><span style="font-size:11px; opacity:0.6; display:block; margin-bottom:4px; color:var(--text-dim);">البريد</span><strong style="font-size:14px; color:var(--text-main);">${item.email}</strong></div>
-            </div>` : ""}
-          </div>
-          
-          <div class="desc-card-v5" style="margin-top: 25px; background:rgba(255,255,255,0.015); padding:20px; border-radius:16px; border:1px dashed var(--glass-border);">
-            <h3 style="font-size:15px; color:var(--p-copper); margin-bottom:12px; display:flex; align-items:center; gap:8px;"><i class="fas fa-comment-dots"></i> ملاحظات العميل</h3>
-            <div class="desc-text-v5" style="font-size:14px; line-height:1.8; color:var(--text-main);">
-              ${(item.notes || "لا يوجد ملاحظات").replace(/\n/g, '<br>')}
-            </div>
-          </div>
+        </div>
 
-          <div class="booking-action-card" style="margin-top:25px; padding:25px; background:var(--bg-card); border-radius:16px; border:1px solid var(--glass-border); box-shadow:0 10px 30px rgba(0,0,0,0.1);">
-              <h3 style="margin-bottom:18px; color:var(--text-main); font-size:16px; display:flex; align-items:center; gap:10px;"><i class="fas fa-sliders-h" style="color:var(--p-copper);"></i> تحديث حالة الطلب</h3>
-              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:15px; margin-bottom:20px;">
-                  <div class="f-group" style="margin:0;">
-                      <label style="font-size:12px; color:var(--text-dim); margin-bottom:6px;">الحالة الرئيسية</label>
-                      <select id="update-booking-status" class="filter-select" style="width:100%; border-radius:10px; padding:12px 14px; background:var(--bg-alt); color:var(--text-main); border: 1px solid var(--glass-border);" onchange="window.updateSubStatusOptions(this.value)">
-                          <option value="new" ${item.status === 'new' ? 'selected' : ''}>جديد</option>
-                          <option value="waiting" ${item.status === 'waiting' ? 'selected' : ''}>بالانتظار</option>
-                          <option value="inquiry" ${item.status === 'inquiry' ? 'selected' : ''}>استفسار</option>
-                          <option value="sold" ${item.status === 'sold' ? 'selected' : ''}>مكتمل</option>
-                          <option value="rejected" ${item.status === 'rejected' ? 'selected' : ''}>مرفوض</option>
-                      </select>
-                  </div>
-                  <div class="f-group" style="margin:0;">
-                      <label style="font-size:12px; color:var(--text-dim); margin-bottom:6px;">الحالة التفصيلية</label>
-                      <select id="update-booking-substatus" class="filter-select" style="width:100%; border-radius:10px; padding:12px 14px; background:var(--bg-alt); color:var(--text-main); border: 1px solid var(--glass-border);">
-                          <!-- يتم التعبئة عبر JavaScript -->
-                      </select>
-                  </div>
-              </div>
-              <div class="f-group" style="margin-bottom:20px;">
-                  <label style="font-size:12px; color:var(--text-dim); margin-bottom:6px;">تفاصيل إضافية (ملاحظات الموظف)</label>
-                  <textarea id="update-booking-details" placeholder="اكتب أو انسخ أي توضيح خاص بطلب العميل أو حالته هنا..." style="width:100%; border-radius:10px; padding:12px 14px; background:var(--bg-alt); border:1px solid var(--glass-border); color:var(--text-main); min-height:80px; resize:vertical; font-family:inherit;">${item.additionalDetails || ""}</textarea>
-              </div>
-              <button onclick="window.updateBookingQuickStatus('${item.id}')" class="btn-premium" style="width:100%; padding:14px; border:none; border-radius:12px; font-weight:800; font-size:15px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">حفظ التحديثات <i class="fas fa-check-circle" style="margin-right:8px;"></i></button>
-          </div>
-          
-          <div class="details-footer-actions-v3" style="margin-top:25px; display:flex; gap:15px; padding-bottom:15px;">
-             <button onclick="document.getElementById('wa-iframe').src='https://web.whatsapp.com/send?phone=${window.normalizePhone ? window.normalizePhone(item.phone) : item.phone}'" class="btn-luxury-v2 wa-btn" style="flex:1; border:none; cursor:pointer; background:#00a884; color:white; padding:14px; border-radius:14px; display:flex; justify-content:center; align-items:center; gap:12px; font-family:inherit; transition:0.3s; box-shadow:0 4px 15px rgba(0,168,132,0.3);">
-               <i class="fab fa-whatsapp" style="font-size:24px;"></i>
-               <div class="btn-txt" style="text-align:right;">
-                 <strong style="display:block; font-size:14px;">إعادة تحميل واتساب</strong>
-               </div>
-             </button>
-             <a href="tel:${item.phone}" class="btn-luxury-v2 call-btn" style="flex:1; border:none; text-decoration:none; cursor:pointer; background:var(--bg-card); color:var(--text-main); padding:14px; border-radius:14px; border:1px solid var(--glass-border); display:flex; justify-content:center; align-items:center; gap:12px; font-family:inherit; transition:0.3s;">
-               <i class="fas fa-phone-alt" style="font-size:20px; color:var(--p-copper);"></i>
-               <div class="btn-txt" style="text-align:right;">
-                 <strong style="display:block; font-size:14px;">مكالمة هاتفية</strong>
-               </div>
-             </a>
-          </div>
+        <div class="update-section" style="background:rgba(255,255,255,0.03); padding:20px; border-radius:20px; border:1px solid var(--glass-border);">
+            <h4 style="margin:0 0 15px; font-size:16px; font-weight:700;"><i class="fas fa-edit" style="margin-left:10px; color:var(--p-copper);"></i>تحديث حالة المتابعة</h4>
+            
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+                <div class="f-group">
+                    <label style="font-size:12px; color:var(--text-dim); margin-bottom:6px; display:block;">الحالة العامة</label>
+                    <select id="update-booking-status" onchange="window.updateSubStatusOptions(this.value)" style="width:100%; border-radius:10px; padding:10px; background:var(--bg-alt); border:1px solid var(--glass-border); color:var(--text-main); font-family:inherit;">
+                        ${Object.entries(statusMap).map(([k, v]) => `<option value="${k}" ${k === (item.status || "new") ? 'selected' : ''}>${v}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="f-group">
+                    <label style="font-size:12px; color:var(--text-dim); margin-bottom:6px; display:block;">المحافظة / الوضع</label>
+                    <select id="update-booking-substatus" style="width:100%; border-radius:10px; padding:10px; background:var(--bg-alt); border:1px solid var(--glass-border); color:var(--text-main); font-family:inherit;">
+                        <!-- dynamic -->
+                    </select>
+                </div>
+            </div>
+
+            <div class="f-group" style="margin-bottom:15px;">
+                <label style="font-size:12px; color:var(--text-dim); margin-bottom:6px; display:block;">ملاحظات الموظف الخاصة</label>
+                <textarea id="update-booking-details" style="width:100%; min-height:80px; border-radius:12px; padding:12px; background:var(--bg-alt); border:1px solid var(--glass-border); color:var(--text-main); font-family:inherit; resize:vertical;">${item.additionalDetails || ""}</textarea>
+            </div>
+
+            <button onclick="window.updateBookingQuickStatus('${item.id}')" class="btn-premium" style="width:100%; padding:14px; border:none; border-radius:12px; font-weight:700; cursor:pointer;">
+                حفظ التعديلات
+            </button>
+        </div>
+
+        <div style="margin-top:20px; display:flex; gap:10px;">
+            <a href="tel:${item.phone}" class="icon-btn-lite" style="flex:1; height:45px; border-radius:12px; background:#1c7c8c; color:white; border:none; gap:10px; display:flex; align-items:center; justify-content:center; text-decoration:none;">
+                <i class="fas fa-phone-alt" style="color:white;"></i> مكالمة
+            </a>
+            <button onclick="window.fetchServerWAChat('${item.phone}', '${item.assignedTo || ''}')" class="icon-btn-lite" style="flex:1; height:45px; border-radius:12px; gap:10px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                <i class="fas fa-sync-alt"></i> تحديث الدردشة
+            </button>
         </div>
       </div>
 
-      <!-- العمود الأيسر: واجهة الدردشة المبرمجة مع السيرفر الاحترافي -->
-      <div class="details-wa-v4" style="flex: 0 0 500px; display: flex; flex-direction: column; background: #efeae2; border-left: 1px solid var(--glass-border); height: 100%; position: relative;">
-          <div style="background: #00a884; color: white; padding: 16px 20px; display: flex; align-items: center; gap: 15px; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.1); flex-shrink: 0;">
-             <div style="background: rgba(255,255,255,0.2); width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                 <i class="fab fa-whatsapp" style="font-size: 24px;"></i>
-             </div>
-             <div style="flex: 1; overflow: hidden; min-width: 0;">
-                 <h3 style="margin: 0; font-size: 16px; font-weight: 700; font-family: inherit; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${item.name || 'محادثة العميل'}</h3>
-                 <p style="margin: 0; font-size: 12px; opacity: 0.9; display:flex; align-items:center; gap:5px;"><i class="fas fa-lock" style="font-size:10px;"></i> مشفرة تماماً</p>
-             </div>
-             <button class="btn-premium btn-sm" style="margin-right: auto; padding: 8px 16px; font-size: 12px; background: rgba(0,0,0,0.15); color:white; border:1px solid rgba(255,255,255,0.2); border-radius: 20px; flex-shrink:0; transition:0.3s;" onclick="window.fetchServerWAChat('${item.phone}', '${item.assignedTo || ''}')" onmouseover="this.style.background='rgba(0,0,0,0.25)'" onmouseout="this.style.background='rgba(0,0,0,0.15)'"><i class="fas fa-sync-alt" style="margin-left: 6px;"></i> تحديث</button>
+      <!-- القسم الأيسر: دردشة واتساب سيرفر -->
+      <div class="details-wa-v4">
+          <div class="wa-chat-header">
+              <div class="avatar">
+                  <i class="fab fa-whatsapp" style="font-size:24px; color:white;"></i>
+              </div>
+              <div style="flex:1; line-height:1.2;">
+                  <h3 style="margin:0; font-weight:700;">${item.name || 'محادثة واتساب'}</h3>
+                  <small style="opacity:0.8;">الرقم: ${item.phone}</small>
+              </div>
+              <div id="wa-connection-dot" style="width:10px; height:10px; background:#4de265; border-radius:50%; box-shadow:0 0 5px #4de265;" title="متصل بالسيرفر"></div>
           </div>
-          
-          <div id="wa-server-chat-box" style="flex-grow: 1; background: #efeae2 url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png') repeat; background-size: 400px; position: relative; overflow-y:auto; overflow-x:hidden; padding: 20px; display:flex; flex-direction:column; gap:12px; scroll-behavior: smooth;">
-             <div style="text-align:center; margin-top: auto; margin-bottom: auto;">
-                 <i class="fas fa-circle-notch fa-spin" style="font-size: 36px; color: #00a884; margin-bottom: 15px;"></i><br>
-                 <div style="background: rgba(255,255,255,0.95); display: inline-block; padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight:600; color: #444; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">جاري الاتصال بالخادم الداخلي لجلب المحادثة...</div>
-             </div>
+
+          <div id="wa-server-chat-box" class="custom-scrollbar">
+              <div style="text-align:center; margin: auto;">
+                  <i class="fas fa-circle-notch fa-spin" style="font-size:32px; color:#00a884; margin-bottom:15px;"></i>
+                  <p style="font-size:13px; color:#666;">جاري تحميل محادثات السيرفر...</p>
+              </div>
           </div>
-          
-          <div id="wa-emoji-picker" style="display:none; position:absolute; bottom: 90px; right: 20px; background:white; border-radius:16px; box-shadow:0 8px 30px rgba(0,0,0,0.2); width:320px; z-index:100; border:1px solid rgba(0,0,0,0.1); overflow:hidden;">
-               <emoji-picker style="width: 100%; --num-columns: 8; --category-font-size: 14px; --emoji-size: 24px; --background: white; border: none;"></emoji-picker>
-          </div>
-          
-          <div id="wa-quick-replies-bar" style="display:flex; gap:10px; padding:10px 20px; background:#f5f1eb; overflow-x:auto; border-top:1px solid rgba(0,0,0,0.05); align-items:center; z-index: 10; flex-shrink: 0;">
+
+          <div id="wa-quick-replies-bar">
                <!-- rendered via js -->
           </div>
-          
-          <div style="padding: 15px 20px; display:flex; gap:15px; background: #f0f2f5; align-items:center; z-index: 10; flex-shrink: 0;">
-             <i class="far fa-smile" style="font-size: 26px; color: #54656f; cursor: pointer; transition: color 0.2s;" onclick="const p = document.getElementById('wa-emoji-picker'); p.style.display = p.style.display === 'none' ? 'flex' : 'none';" onmouseover="this.style.color='#00a884'" onmouseout="this.style.color='#54656f'"></i>
-             <input type="file" id="wa-media-upload" style="display:none" onchange="window.handleWAMediaSelect('${item.phone}', '${item.assignedTo || ''}')">
-             <i class="fas fa-paperclip" style="font-size: 24px; color: #54656f; cursor: pointer; transition: color 0.2s;" onclick="document.getElementById('wa-media-upload').click()" onmouseover="this.style.color='#00a884'" onmouseout="this.style.color='#54656f'"></i>
-             <i id="wa-mic-btn" class="fas fa-microphone" style="font-size: 24px; color: #54656f; cursor: pointer; transition: color 0.2s;" onpointerdown="window.startWARecording()" onpointerup="window.stopWARecording('${item.phone}', '${item.assignedTo || ''}')" onpointerleave="window.stopWARecording('${item.phone}', '${item.assignedTo || ''}')" onmouseover="if(this.style.color!=='red') this.style.color='#00a884'" onmouseout="if(this.style.color!=='red') this.style.color='#54656f'" title="اضغط باستمرار للتسجيل الصوتي"></i>
-             <input type="text" id="wa-server-input" placeholder="اكتب رسالة للرد..." style="flex:1; min-width:0; padding: 14px 22px; border-radius: 30px; border: 1px solid rgba(0,0,0,0.05); background: #ffffff; color: #111b21; outline: none; font-size: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); transition:0.3s;" onfocus="this.style.border='1px solid #00a884'" onblur="this.style.border='1px solid rgba(0,0,0,0.05)'" onkeydown="if(event.key==='Enter') { window.sendServerWAMessage('${item.phone}', '${item.assignedTo || ''}'); document.getElementById('wa-emoji-picker').style.display='none'; }">
-             <button onclick="window.sendServerWAMessage('${item.phone}', '${item.assignedTo || ''}'); document.getElementById('wa-emoji-picker').style.display='none';" style="border:none; border-radius:50%; width:48px; height:48px; flex-shrink:0; cursor:pointer; background:#00a884; display:flex; justify-content:center; align-items:center; box-shadow: 0 4px 10px rgba(0,168,132,0.4); transition:0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"><i class="fas fa-paper-plane" style="margin-right:4px; color: white; font-size: 20px;"></i></button>
+
+          <div id="wa-emoji-picker" style="display:none; position:absolute; bottom:80px; right:15px; z-index:1000; background:white; border-radius:15px; box-shadow:0 10px 40px rgba(0,0,0,0.2); overflow:hidden; border:1px solid #ddd;">
+               <emoji-picker style="width:300px; height:400px; -webkit-filter: grayscale(0);"></emoji-picker>
+          </div>
+
+          <div class="wa-input-bar">
+              <i class="far fa-smile" style="font-size:22px; color:#54656f; cursor:pointer;" onclick="const p=document.getElementById('wa-emoji-picker'); p.style.display=p.style.display==='none'?'block':'none'"></i>
+              <input type="file" id="wa-media-upload" style="display:none" onchange="window.handleWAMediaSelect('${item.phone}', '${item.assignedTo || ''}')">
+              <i class="fas fa-paperclip" style="font-size:20px; color:#54656f; cursor:pointer;" onclick="document.getElementById('wa-media-upload').click()"></i>
+              <i id="wa-mic-btn" class="fas fa-microphone" style="font-size:20px; color:#54656f; cursor:pointer;" onpointerdown="window.startWARecording()" onpointerup="window.stopWARecording('${item.phone}', '${item.assignedTo || ''}')"></i>
+              
+              <input type="text" id="wa-server-input" placeholder="اكتب رسالة للرد..." onkeydown="if(event.key==='Enter') window.sendServerWAMessage('${item.phone}', '${item.assignedTo || ''}')">
+              
+              <button class="wa-send-btn" onclick="window.sendServerWAMessage('${item.phone}', '${item.assignedTo || ''}')">
+                  <i class="fas fa-paper-plane"></i>
+              </button>
           </div>
       </div>
     </div>
@@ -1859,7 +1826,7 @@ window.syncAdminTables = function (type) {
           let whatsappBtn = '';
           if (phone) {
              let cleanPhone = phone.replace(/\D/g, '');
-             if (cleanPhone.startsWith('0')) cleanPhone = '966' + cleanPhone.substring(1);
+             cleanPhone = window.normalizePhone(cleanPhone);
              whatsappBtn = `<a href="https://wa.me/${cleanPhone}" target="_blank" class="icon-btn-lite success" title="مراسلة واتساب"><i class="fab fa-whatsapp"></i></a>`;
           }
           
@@ -2915,7 +2882,7 @@ window.submitBooking = async function (e) {
     customerType: form.querySelector('[name="customer-type"]:checked')?.value || "individual",
     carRequested: document.getElementById("b-car")?.value || "",
     name: document.getElementById("b-name")?.value || "",
-    phone: (((document.getElementById("b-phone-code")?.value === "other" ? document.getElementById("b-phone-code-other")?.value : document.getElementById("b-phone-code")?.value) || "966").replace(/\\+/, '').replace(/\\D/g, '') + (document.getElementById("b-phone")?.value || "").replace(/^0+/, '')),
+    phone: window.normalizePhone(((document.getElementById("b-phone-code")?.value === "other" ? document.getElementById("b-phone-code-other")?.value : document.getElementById("b-phone-code")?.value) || "966") + (document.getElementById("b-phone")?.value || "")),
     age: document.getElementById("b-age")?.value || "",
     email: document.getElementById("b-email")?.value || "",
     nationality: document.getElementById("b-nationality")?.value === "مقيم" ? (document.getElementById("b-nationality-other")?.value || "مقيم") : (document.getElementById("b-nationality")?.value || "سعودي"),
@@ -3200,6 +3167,13 @@ window.initWhatsAppServer = async function() {
         waSocketContainer.on('connect', () => {
             console.log('Connected to WhatsApp Server!');
             
+            const dot = document.getElementById('wa-connection-dot');
+            if (dot) {
+                dot.style.background = '#4de265';
+                dot.style.boxShadow = '0 0 5px #4de265';
+                dot.title = 'متصل بالسيرفر';
+            }
+
             // الانضمام لغرفة المعرف الخاص للموظف أو المسؤول لمتابعة التحديثات
             if (window.state.user) {
                 waSocketContainer.emit('join_room', window.state.user.uid);
@@ -3256,6 +3230,14 @@ window.initWhatsAppServer = async function() {
         
         waSocketContainer.on('ready', (data) => {
             const sel = document.getElementById('wa-staff-select');
+            
+            const dot = document.getElementById('wa-connection-dot');
+            if (dot) {
+                dot.style.background = '#4de265';
+                dot.style.boxShadow = '0 0 8px #4de265';
+                dot.title = 'واتساب جاهز للعمل';
+            }
+
             if (sel && sel.value === data.userId) {
                 const statusEl = document.getElementById('wa-server-status');
                 const qrContainer = document.getElementById('wa-qr-container');
@@ -3286,6 +3268,14 @@ window.initWhatsAppServer = async function() {
 
         waSocketContainer.on('disconnected', (data) => {
             console.log('Disconnected Event:', data);
+            
+            const dot = document.getElementById('wa-connection-dot');
+            if (dot) {
+                dot.style.background = '#ff4b4b';
+                dot.style.boxShadow = '0 0 5px #ff4b4b';
+                dot.title = 'تم قطع الاتصال بالسيرفر';
+            }
+
             const msgToDisplay = data.msg || 'تم قطع الاتصال بالسيرفر. يرجى إعادة الربط لتفعيل خدمات الدردشة.';
 
             const sel = document.getElementById('wa-staff-select');
@@ -3317,20 +3307,30 @@ window.initWhatsAppServer = async function() {
         });
 
         waSocketContainer.on('message', (data) => {
-            const normalizePhone = (p) => {
-                if (!p) return '';
-                let f = p.replace(/\D/g, '');
-                if (f.startsWith('0')) f = '966' + f.substring(1);
-                return f;
-            };
+            console.log('Real-time WA message received:', data);
+            
+            const normalizePhone = window.normalizePhone;
             
             const incomingPhoneStr = normalizePhone(data.from);
             const currentWaStr = normalizePhone(window._currentWaPhone);
+            console.log(`Real-time WA - Incoming: ${data.from} -> ${incomingPhoneStr}, Current Open: ${window._currentWaPhone} -> ${currentWaStr}`);
+            
             const modalEl = document.getElementById('details-modal');
             const isModalOpen = modalEl && !modalEl.classList.contains('hidden');
             
+            // Visual feedback: animate connection dot on message
+            const dot = document.getElementById('wa-connection-dot');
+            if (dot) {
+                dot.style.transform = 'scale(1.5)';
+                setTimeout(() => dot.style.transform = 'scale(1)', 500);
+            }
+
             if(isModalOpen && currentWaStr && incomingPhoneStr === currentWaStr) {
-                 window.fetchServerWAChat(window._currentWaPhone, data.userId); 
+                 console.log('Matching chat open, refreshing...');
+                 // Small delay to ensure server has indexed the message
+                 setTimeout(() => {
+                    window.fetchServerWAChat(window._currentWaPhone, data.userId); 
+                 }, 500);
             } else {
                  if (data.isMe) return; // Do not show push notifications for outgoing messages
                  
@@ -3338,7 +3338,7 @@ window.initWhatsAppServer = async function() {
                  const bookingFound = bookings.find(b => {
                      if (!b.phone) return false;
                      let formatted = b.phone.replace(/\D/g, '');
-                     if (formatted.startsWith('0')) formatted = '966' + formatted.substring(1);
+                     formatted = window.normalizePhone(formatted);
                      return formatted === incomingPhoneStr;
                  });
                  
@@ -3365,7 +3365,7 @@ window.showWAPushNotification = async function(phone, body, assignedUserId) {
     }
     
     const bookings = window.state.bookings || [];
-    const booking = bookings.find(b => b.phone && b.phone.replace(/\D/g, '').includes(phone));
+    const booking = bookings.find(b => b.phone && window.normalizePhone(b.phone) === window.normalizePhone(phone));
     const senderName = booking && booking.name ? booking.name : phone;
     
     let displayBody = body || 'رسالة جديدة';
@@ -3484,13 +3484,30 @@ window.fetchServerWAChat = async function(phone, staffId) {
     const chatBox = document.getElementById('wa-server-chat-box');
     if(!chatBox) return;
     
-    let userIdToUse = window.state.userProfile.id;
-    if (window.state.userProfile.role === 'admin') {
+    // Determine which staff member's session to use
+    let userIdToUse = window.state.userProfile?.id;
+    
+    if (window.state.userProfile?.role === 'admin' || window.state.userProfile?.role === 'supervisor') {
        if (staffId) {
            userIdToUse = staffId;
        } else {
-           chatBox.innerHTML = '<div style="text-align:center; margin-top:auto; margin-bottom:auto;"><div style="background:rgba(255,255,255,0.95); display:inline-block; padding:15px 25px; border-radius:15px; font-size:13px; color:#555; box-shadow:0 3px 10px rgba(0,0,0,0.08); max-width:80%;"><i class="fas fa-info-circle" style="color:#00a884; font-size:24px; margin-bottom:10px; display:block;"></i>هذا الحجز غير مسند لأي موظف.<br>يرجى إسناد الحجز أولاً لموظف محدد ليتم عرض سجل المحادثات الخاص به.</div></div>';
-           return;
+           // If no staffId passed, try to find the assignedTo from the current booking in state
+           const bookings = window.state.bookings || [];
+           const b = bookings.find(x => x.phone && window.normalizePhone(x.phone) === window.normalizePhone(phone));
+           if (b && b.assignedTo) {
+               userIdToUse = b.assignedTo;
+           } else {
+               // Showing info message instead of loading spinner if no assignment
+               chatBox.innerHTML = `
+                <div style="text-align:center; margin-top:auto; margin-bottom:auto;">
+                    <div style="background:rgba(255,255,255,0.95); display:inline-block; padding:20px; border-radius:15px; font-size:13px; color:#555; box-shadow:0 10px 30px rgba(0,0,0,0.1); max-width:85%;">
+                        <i class="fas fa-user-slash" style="color:#00a884; font-size:32px; margin-bottom:15px; display:block;"></i>
+                        هذا الحجز غير مسند لموظف.<br>
+                        سجل المحادثات متاح فقط للحجوزات المسندة.
+                    </div>
+                </div>`;
+               return;
+           }
        }
     }
 
