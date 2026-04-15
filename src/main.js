@@ -212,7 +212,12 @@ function pushHistoryState(type) {
 
 window.normalizePhone = function (phone) {
   if (!phone) return "";
-  let clean = phone.toString().replace(/\D/g, "");
+  const phoneStr = phone.toString();
+  
+  // Smart Logic: If it's already a WhatsApp JID (@s.whatsapp.net), keep it as is
+  if (phoneStr.includes("@")) return phoneStr.split("@")[0];
+
+  let clean = phoneStr.replace(/\D/g, "");
   
   // Handle cases like 96605... or 96707...
   if (clean.startsWith("9660")) clean = "966" + clean.substring(4);
@@ -1127,7 +1132,7 @@ window.viewBookingDetails = function (id) {
             <a href="tel:${item.phone}" class="icon-btn-lite" style="flex:1; height:45px; border-radius:12px; background:#1c7c8c; color:white; border:none; gap:10px; display:flex; align-items:center; justify-content:center; text-decoration:none;">
                 <i class="fas fa-phone-alt" style="color:white;"></i> مكالمة
             </a>
-            <button onclick="window.fetchServerWAChat('${item.phone}', '${item.assignedTo || ''}')" class="icon-btn-lite" style="flex:1; height:45px; border-radius:12px; gap:10px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+            <button onclick="window.fetchServerWAChat('${item.waJid || item.phone}', '${item.assignedTo || ''}')" class="icon-btn-lite" style="flex:1; height:45px; border-radius:12px; gap:10px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
                 <i class="fas fa-sync-alt"></i> تحديث الدردشة
             </button>
         </div>
@@ -1163,13 +1168,13 @@ window.viewBookingDetails = function (id) {
 
           <div class="wa-input-bar">
               <i class="far fa-smile" style="font-size:22px; color:#54656f; cursor:pointer;" onclick="const p=document.getElementById('wa-emoji-picker'); p.style.display=p.style.display==='none'?'block':'none'"></i>
-              <input type="file" id="wa-media-upload" style="display:none" onchange="window.handleWAMediaSelect('${item.phone}', '${item.assignedTo || ''}')">
+              <input type="file" id="wa-media-upload" style="display:none" onchange="window.handleWAMediaSelect('${item.waJid || item.phone}', '${item.assignedTo || ''}')">
               <i class="fas fa-paperclip" style="font-size:20px; color:#54656f; cursor:pointer;" onclick="document.getElementById('wa-media-upload').click()"></i>
-              <i id="wa-mic-btn" class="fas fa-microphone" style="font-size:20px; color:#54656f; cursor:pointer;" onpointerdown="window.startWARecording()" onpointerup="window.stopWARecording('${item.phone}', '${item.assignedTo || ''}')"></i>
+              <i id="wa-mic-btn" class="fas fa-microphone" style="font-size:20px; color:#54656f; cursor:pointer;" onpointerdown="window.startWARecording()" onpointerup="window.stopWARecording('${item.waJid || item.phone}', '${item.assignedTo || ''}')"></i>
               
-              <input type="text" id="wa-server-input" placeholder="اكتب رسالة للرد..." onkeydown="if(event.key==='Enter') window.sendServerWAMessage('${item.phone}', '${item.assignedTo || ''}')">
+              <input type="text" id="wa-server-input" placeholder="اكتب رسالة للرد..." onkeydown="if(event.key==='Enter') window.sendServerWAMessage('${item.waJid || item.phone}', '${item.assignedTo || ''}')">
               
-              <button class="wa-send-btn" onclick="window.sendServerWAMessage('${item.phone}', '${item.assignedTo || ''}')">
+              <button class="wa-send-btn" onclick="window.sendServerWAMessage('${item.waJid || item.phone}', '${item.assignedTo || ''}')">
                   <i class="fas fa-paper-plane"></i>
               </button>
           </div>
@@ -1187,7 +1192,7 @@ window.viewBookingDetails = function (id) {
     
     // Auto-fetch WhatsApp server chat && Register modern emoji picker
     setTimeout(() => {
-       if (window.fetchServerWAChat) window.fetchServerWAChat(item.phone, item.assignedTo || '');
+       if (window.fetchServerWAChat) window.fetchServerWAChat(item.waJid || item.phone, item.assignedTo || '');
        if (window.updateSubStatusOptions) window.updateSubStatusOptions(item.status || 'new', item.subStatus || 'not_contacted');
        if (window.renderQuickRepliesBar) window.renderQuickRepliesBar();
        
@@ -2878,11 +2883,20 @@ window.submitBooking = async function (e) {
   const form = e.target;
   const btn = form.querySelector('button[type="submit"]');
 
+    let pCode = (document.getElementById("b-phone-code")?.value === "other" ? document.getElementById("b-phone-code-other")?.value : document.getElementById("b-phone-code")?.value) || "966";
+    let pNum = document.getElementById("b-phone")?.value || "";
+    pCode = pCode.replace(/\D/g, '');
+    pNum = pNum.replace(/\D/g, '');
+    if (pCode && pNum.startsWith(pCode)) pNum = pNum.substring(pCode.length);
+    if (pCode && pNum.startsWith('00' + pCode)) pNum = pNum.substring(pCode.length + 2);
+    
+    const finalPhone = window.normalizePhone(pCode + pNum);
+
   const data = {
     customerType: form.querySelector('[name="customer-type"]:checked')?.value || "individual",
     carRequested: document.getElementById("b-car")?.value || "",
     name: document.getElementById("b-name")?.value || "",
-    phone: window.normalizePhone(((document.getElementById("b-phone-code")?.value === "other" ? document.getElementById("b-phone-code-other")?.value : document.getElementById("b-phone-code")?.value) || "966") + (document.getElementById("b-phone")?.value || "")),
+    phone: finalPhone,
     age: document.getElementById("b-age")?.value || "",
     email: document.getElementById("b-email")?.value || "",
     nationality: document.getElementById("b-nationality")?.value === "مقيم" ? (document.getElementById("b-nationality-other")?.value || "مقيم") : (document.getElementById("b-nationality")?.value || "سعودي"),
@@ -3306,14 +3320,12 @@ window.initWhatsAppServer = async function() {
             }
         });
 
-        waSocketContainer.on('message', (data) => {
+        waSocketContainer.on('message', async (data) => {
             console.log('Real-time WA message received:', data);
             
             const normalizePhone = window.normalizePhone;
-            
             const incomingPhoneStr = normalizePhone(data.from);
             const currentWaStr = normalizePhone(window._currentWaPhone);
-            console.log(`Real-time WA - Incoming: ${data.from} -> ${incomingPhoneStr}, Current Open: ${window._currentWaPhone} -> ${currentWaStr}`);
             
             const modalEl = document.getElementById('details-modal');
             const isModalOpen = modalEl && !modalEl.classList.contains('hidden');
@@ -3321,30 +3333,57 @@ window.initWhatsAppServer = async function() {
             // Visual feedback: animate connection dot on message
             const dot = document.getElementById('wa-connection-dot');
             if (dot) {
-                dot.style.transform = 'scale(1.5)';
-                setTimeout(() => dot.style.transform = 'scale(1)', 500);
+                dot.style.transform = 'scale(1.2)';
+                setTimeout(() => dot.style.transform = 'scale(1)', 300);
+            }
+
+            const bookings = window.state.bookings || [];
+            
+            // SMART MATCHING: Try JID first, then normalized phone
+            let bookingFound = bookings.find(b => b.waJid === data.from);
+            if (!bookingFound) {
+                bookingFound = bookings.find(b => {
+                    if (!b.phone) return false;
+                    return normalizePhone(b.phone) === incomingPhoneStr;
+                });
+                
+                // If found via phone but no JID yet, PIN IT!
+                if (bookingFound && !bookingFound.waJid) {
+                    console.log(`Smart Pinning JID ${data.from} to booking ${bookingFound.id}`);
+                    update(ref(db, `bookings/${bookingFound.id}`), { waJid: data.from }).catch(e => {});
+                }
+            }
+
+            // If still no booking found and it's an inbound message, CREATE LEAD
+            if (!bookingFound && !data.isMe) {
+                console.log('New customer detected via WhatsApp, creating lead...');
+                try {
+                    const newBooking = {
+                        name: "عميل جديد (واتساب)",
+                        phone: incomingPhoneStr,
+                        waJid: data.from, // Store the JID immediately
+                        carRequested: "استفسار واتساب",
+                        status: "new",
+                        subStatus: "not_contacted",
+                        source: "whatsapp_inbound",
+                        assignedTo: data.userId || "", 
+                        createdAt: new Date().toISOString(),
+                        notes: "تم استقبال رسالة من رقم جديد عبر الواتساب: " + data.body
+                    };
+                    const pushRef = await push(ref(db, "bookings"), newBooking);
+                    bookingFound = { ...newBooking, id: pushRef.key };
+                    window.showLuxuryToast('تم استقبال طلب حجز جديد تلقائياً من عميل واتساب', 'success');
+                } catch (err) {
+                    console.error('Failed to create automatic booking:', err);
+                }
             }
 
             if(isModalOpen && currentWaStr && incomingPhoneStr === currentWaStr) {
-                 console.log('Matching chat open, refreshing...');
-                 // Small delay to ensure server has indexed the message
                  setTimeout(() => {
                     window.fetchServerWAChat(window._currentWaPhone, data.userId); 
                  }, 500);
             } else {
-                 if (data.isMe) return; // Do not show push notifications for outgoing messages
-                 
-                 const bookings = window.state.bookings || [];
-                 const bookingFound = bookings.find(b => {
-                     if (!b.phone) return false;
-                     let formatted = b.phone.replace(/\D/g, '');
-                     formatted = window.normalizePhone(formatted);
-                     return formatted === incomingPhoneStr;
-                 });
-                 
-                 if (!bookingFound) return; // Ignore messages from numbers not in the system
-
-                 // Push notification showing if it's assigned to me, or if I'm an admin
+                 if (data.isMe) return; 
                  const isForMe = data.userId === (window.state.userProfile?.id);
                  const isAdmin = window.state.userProfile?.role === 'admin' || window.state.userProfile?.role === 'supervisor';
                  if (isForMe || isAdmin) {
