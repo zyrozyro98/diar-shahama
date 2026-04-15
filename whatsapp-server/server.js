@@ -215,7 +215,21 @@ async function startWASession(userId) {
             if (m.type === 'notify') {
                 for (const msg of m.messages) {
                     if (msg.message) {
-                        const fromJid = msg.key.remoteJid;
+                        let fromJid = msg.key.remoteJid;
+                        
+                        // Function to convert LID to JID
+                        const resolveLidToJid = (lid) => {
+                            if (!lid || !lid.endsWith('@lid')) return lid;
+                            const contacts = sessions[userId]?.store?.contacts || {};
+                            for (const [jid, contact] of Object.entries(contacts)) {
+                                if (contact.lid === lid || jid === lid) {
+                                    return (contact.id && contact.id.endsWith('@s.whatsapp.net')) ? contact.id : jid;
+                                }
+                            }
+                            return lid; // fallback if not found
+                        };
+
+                        fromJid = resolveLidToJid(fromJid);
                         console.log(`[Session: ${userId}] Incoming message from JID: ${fromJid}`);
                         
                         let body = msg.message.conversation || msg.message.extendedTextMessage?.text;
