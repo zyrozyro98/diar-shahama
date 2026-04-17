@@ -282,10 +282,8 @@ async function startWASession(userId) {
         }
     });
 
-    });
-
-
     sock.ev.on('creds.update', async () => {
+
         try {
             await saveCreds();
         } catch (err) {
