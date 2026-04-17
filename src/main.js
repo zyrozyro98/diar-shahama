@@ -735,7 +735,7 @@ window.applyInventoryFilters = function () {
   let results = window.state.cars?.filter(car => {
     const matchesSearch = !searchQuery || (car.make + " " + car.model).toLowerCase().includes(searchQuery);
     const matchesMake = filterMake === "all" || car.make === filterMake;
-    const matchesType = filterType === "all" || car.status === filterType;
+    const matchesType = filterType === "all" || car.bodyType === filterType;
     const matchesYear = filterYear === "all" || car.year === filterYear;
     return matchesSearch && matchesMake && matchesType && matchesYear;
   }) || [];
@@ -859,6 +859,7 @@ window.renderPublicReviews = function () {
 };
 
 window.renderCarGrid = function (cars) {
+  console.log("Rendering Car Grid with images:", cars.map(c => c.image));
   const grid = document.getElementById("cars-container");
   if (!grid) return;
 
