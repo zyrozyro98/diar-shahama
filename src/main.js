@@ -3398,6 +3398,27 @@ window.initWhatsAppServer = async function() {
                 if (logoutBtn) logoutBtn.style.display = 'none';
             }
         });
+        
+        waSocketContainer.on('jid_resolved', ({ oldJid, newJid }) => {
+            console.log(`JID Resolution detected: ${oldJid} -> ${newJid}`);
+            const bookings = window.state.bookings || [];
+            const bookingToUpdate = bookings.find(b => b.waJid === oldJid);
+            if (bookingToUpdate) {
+                console.log(`Updating booking ${bookingToUpdate.id} JID due to resolution`);
+                update(ref(db, `bookings/${bookingToUpdate.id}`), { 
+                    waJid: newJid,
+                    phone: window.normalizePhone(newJid) 
+                }).catch(e => {});
+                
+                // If the user was viewing the old chat, switch them to the new one
+                if (window._currentWaPhone === oldJid) {
+                    window._currentWaPhone = newJid;
+                    if (typeof window.openStaffChat === 'function') {
+                        window.openStaffChat(newJid);
+                    }
+                }
+            }
+        });
 
         waSocketContainer.on('message', async (data) => {
             console.log('Real-time WA message received:', data);

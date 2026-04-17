@@ -97,6 +97,23 @@ async function startWASession(userId) {
 
     const storePath = path.join(__dirname, 'auth_info_baileys', `store-${userId}.json`);
 
+    const migrateMessages = (lid, jid) => {
+        if (!lid || !jid || lid === jid) return;
+        const store = sessions[userId]?.store;
+        if (store && store.messages[lid]) {
+            console.log(`[Store: ${userId}] Migrating messages from ${lid} to ${jid}`);
+            if (!store.messages[jid]) store.messages[jid] = { array: [] };
+            const combined = [...store.messages[lid].array, ...store.messages[jid].array];
+            const unique = Array.from(new Map(combined.map(m => [m.key.id, m])).values());
+            unique.sort((a, b) => (a.messageTimestamp || 0) - (b.messageTimestamp || 0));
+            store.messages[jid].array = unique.slice(-500);
+            delete store.messages[lid];
+            
+            // Notify frontend to merge/update
+            io.emit('jid_resolved', { userId, oldJid: lid, newJid: jid });
+        }
+    };
+
     const store = {
         messages: {},
         contacts: {},
@@ -121,23 +138,9 @@ async function startWASession(userId) {
             } catch (e) { }
         },
         bind: function (ev) {
-            const migrateMessages = (lid, jid) => {
-                if (lid && jid && lid !== jid && this.messages[lid]) {
-                    console.log(`[Store] Migrating messages from ${lid} to ${jid}`);
-                    if (!this.messages[jid]) this.messages[jid] = { array: [] };
-                    const combined = [...this.messages[lid].array, ...this.messages[jid].array];
-                    // Unique by message ID
-                    const unique = Array.from(new Map(combined.map(m => [m.key.id, m])).values());
-                    unique.sort((a, b) => (a.messageTimestamp || 0) - (b.messageTimestamp || 0));
-                    this.messages[jid].array = unique.slice(-500);
-                    delete this.messages[lid];
-                }
-            };
-
             ev.on('contacts.upsert', (contacts) => {
                 for (const contact of contacts) {
                     this.contacts[contact.id] = contact;
-                    // Check for LID mapping to migrate
                     if (contact.lid && contact.id.includes('@s.whatsapp.net')) {
                         migrateMessages(jidNormalizedUser(contact.lid), jidNormalizedUser(contact.id));
                     } else if (contact.pn && contact.id.includes('@lid')) {
@@ -145,6 +148,8 @@ async function startWASession(userId) {
                     }
                 }
             });
+
+
             ev.on('messages.upsert', (m) => {
                 try {
                     if (m.type === 'notify' || m.type === 'append') {
@@ -268,8 +273,17 @@ async function startWASession(userId) {
             sessions[userId].initializing = false;
             sessions[userId].lastQr = null;
             io.emit('ready', { userId, msg: 'متصل بنجاح' });
+
+            // Fetch contacts to help LID resolution
+            try {
+                const contacts = await sock.fetchStatus(sock.user.id); 
+                // This is just to trigger some activity, baileys usually syncs automatically.
+            } catch (e) {}
         }
     });
+
+    });
+
 
     sock.ev.on('creds.update', async () => {
         try {
