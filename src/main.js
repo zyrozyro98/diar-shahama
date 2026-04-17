@@ -212,10 +212,21 @@ function pushHistoryState(type) {
 
 window.normalizePhone = function (phone) {
   if (!phone) return "";
-  const phoneStr = phone.toString();
+  const phoneStr = phone.toString().trim();
   
-  // Smart Logic: If it's already a WhatsApp JID (@s.whatsapp.net), keep it as is
-  if (phoneStr.includes("@")) return phoneStr.split("@")[0];
+  // If it's a full JID or LID, we extract the user part but ONLY if it's @s.whatsapp.net
+  // For @lid, we might want to keep it or handle it carefully. 
+  // However, according to the user request to "Stop LID", we should prioritize numbers.
+  if (phoneStr.includes("@s.whatsapp.net")) {
+      return phoneStr.split("@")[0].replace(/\D/g, "");
+  }
+  
+  if (phoneStr.includes("@lid")) {
+      // If we have an LID, we keep it as is for now so the backend can resolve it,
+      // but the user wants to stop LID. So if we see @lid, we just pass it through 
+      // and let resolveLidToJid handle it.
+      return phoneStr; 
+  }
 
   let clean = phoneStr.replace(/\D/g, "");
   
@@ -3127,6 +3138,14 @@ window.initWhatsAppServer = async function() {
     // تعبئة البيانات الحالية للسيرفر
     const urlConfig = document.getElementById('wa-server-url-config');
     
+    // الذكاء التلقائي: اكتشاف بيئة GitHub Codespaces
+    let codespaceUrl = null;
+    if (window.location.hostname.includes('app.github.dev')) {
+        // إذا كان المتصفح يعمل في Codespace، نقوم بتخمين رابط السيرفر على المنفذ 3001
+        codespaceUrl = `https://${window.location.hostname.replace('-5173', '-3001')}`;
+        console.log("تم اكتشاف GitHub Codespaces، استخدام الرابط التلقائي:", codespaceUrl);
+    }
+
     // جلب الرابط الموحد من قاعدة البيانات لضمان تعميم النفق النشط لجميع الموظفين
     let globalUrl = null;
     try {
@@ -3138,7 +3157,7 @@ window.initWhatsAppServer = async function() {
     } catch(e) { console.error("Firebase config error:", e); }
 
 
-    const FINAL_WA_URL = globalUrl || localStorage.getItem('wa_server_url') || CURRENT_MASTER_URL;
+    const FINAL_WA_URL = codespaceUrl || globalUrl || localStorage.getItem('wa_server_url') || CURRENT_MASTER_URL;
     window._waServerActiveUrl = FINAL_WA_URL;
 
     if (urlConfig) {
@@ -3353,16 +3372,22 @@ window.initWhatsAppServer = async function() {
             
             // SMART MATCHING: Try JID first, then normalized phone
             let bookingFound = bookings.find(b => b.waJid === data.from);
+            
             if (!bookingFound) {
+                // Try matching by normalized phone number
                 bookingFound = bookings.find(b => {
                     if (!b.phone) return false;
-                    return normalizePhone(b.phone) === incomingPhoneStr;
+                    const normalizedB = window.normalizePhone(b.phone);
+                    // If incoming is a number (starts with 966/967), match directly
+                    if (!incomingPhoneStr.includes("@") && normalizedB === incomingPhoneStr) return true;
+                    return false;
                 });
                 
-                // If found via phone but no JID yet, PIN IT!
+                // If found via phone but no JID/LID yet, PIN IT!
                 if (bookingFound && !bookingFound.waJid) {
                     console.log(`Smart Pinning JID ${data.from} to booking ${bookingFound.id}`);
                     update(ref(db, `bookings/${bookingFound.id}`), { waJid: data.from }).catch(e => {});
+                    bookingFound.waJid = data.from;
                 }
             }
 

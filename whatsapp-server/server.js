@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
+const { Server } = require('socket.io');
+const pino = require('pino');
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestWaWebVersion, downloadMediaMessage, jidNormalizedUser } = require('@whiskeysockets/baileys');
 const path = require('path');
 const fs = require('fs');
@@ -27,6 +29,30 @@ process.on('unhandledRejection', (reason, promise) => {
     console.error('CRITICAL: Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
+// Function to convert LID to real phone JID to avoid duplicate chats for the same customer
+function resolveLidToJid(store, jidOrLid) {
+    if (!jidOrLid || !jidOrLid.includes('@lid')) return jidOrLid;
+    if (store && store.contacts) {
+        // Direct match if the contact ID is the LID but contains PN
+        const c = store.contacts[jidOrLid];
+        if (c && c.pn) return jidNormalizedUser(`${c.pn}@s.whatsapp.net`);
+
+        // Scan all contacts for LID mapping
+        for (const jid in store.contacts) {
+            const contact = store.contacts[jid];
+            if (contact.lid === jidOrLid || jid === jidOrLid) {
+                if (jid.includes('@s.whatsapp.net')) {
+                    return jidNormalizedUser(jid);
+                }
+                if (contact.pn) {
+                    return jidNormalizedUser(`${contact.pn}@s.whatsapp.net`);
+                }
+            }
+        }
+    }
+    return jidOrLid; // fallback
+}
+
 async function clearSession(userId) {
     const authFolder = path.join(__dirname, 'auth_info_baileys', `session-${userId}`);
     if (sessions[userId]) {
@@ -36,12 +62,12 @@ async function clearSession(userId) {
         }
         delete sessions[userId];
     }
-    try { 
+    try {
         if (fs.existsSync(authFolder)) {
             console.log(`[Session: ${userId}] Removing session folder: ${authFolder}`);
-            fs.rmSync(authFolder, { recursive: true, force: true }); 
+            fs.rmSync(authFolder, { recursive: true, force: true });
         }
-    } catch (e) { 
+    } catch (e) {
         console.error(`[Session: ${userId}] Error removing session folder:`, e);
     }
 }
@@ -73,11 +99,12 @@ async function startWASession(userId) {
 
     const store = {
         messages: {},
+        contacts: {},
         writeToFile: function () {
             try {
-                const toSave = {};
+                const toSave = { messages: {}, contacts: this.contacts };
                 for (const jid in this.messages) {
-                    toSave[jid] = this.messages[jid].array;
+                    toSave.messages[jid] = this.messages[jid].array;
                 }
                 fs.writeFileSync(storePath, JSON.stringify(toSave));
             } catch (e) { }
@@ -86,19 +113,51 @@ async function startWASession(userId) {
             try {
                 if (fs.existsSync(storePath)) {
                     const parsed = JSON.parse(fs.readFileSync(storePath));
-                    for (const jid in parsed) {
-                        this.messages[jid] = { array: parsed[jid] || [] };
+                    this.contacts = parsed.contacts || {};
+                    for (const jid in parsed.messages) {
+                        this.messages[jid] = { array: parsed.messages[jid] || [] };
                     }
                 }
             } catch (e) { }
         },
         bind: function (ev) {
+            const migrateMessages = (lid, jid) => {
+                if (lid && jid && lid !== jid && this.messages[lid]) {
+                    console.log(`[Store] Migrating messages from ${lid} to ${jid}`);
+                    if (!this.messages[jid]) this.messages[jid] = { array: [] };
+                    const combined = [...this.messages[lid].array, ...this.messages[jid].array];
+                    // Unique by message ID
+                    const unique = Array.from(new Map(combined.map(m => [m.key.id, m])).values());
+                    unique.sort((a, b) => (a.messageTimestamp || 0) - (b.messageTimestamp || 0));
+                    this.messages[jid].array = unique.slice(-500);
+                    delete this.messages[lid];
+                }
+            };
+
+            ev.on('contacts.upsert', (contacts) => {
+                for (const contact of contacts) {
+                    this.contacts[contact.id] = contact;
+                    // Check for LID mapping to migrate
+                    if (contact.lid && contact.id.includes('@s.whatsapp.net')) {
+                        migrateMessages(jidNormalizedUser(contact.lid), jidNormalizedUser(contact.id));
+                    } else if (contact.pn && contact.id.includes('@lid')) {
+                        migrateMessages(jidNormalizedUser(contact.id), jidNormalizedUser(`${contact.pn}@s.whatsapp.net`));
+                    }
+                }
+            });
             ev.on('messages.upsert', (m) => {
                 try {
                     if (m.type === 'notify' || m.type === 'append') {
                         for (const msg of m.messages) {
-                            const jid = msg.key.remoteJid;
-                            if (!jid) continue;
+                            const rawJid = msg.key.remoteJid;
+                            if (!rawJid) continue;
+
+                            // FORCE RESOLUTION BEFORE STORING
+                            let jid = jidNormalizedUser(rawJid);
+                            if (jid.includes('@lid')) {
+                                jid = resolveLidToJid(this, jid);
+                            }
+
                             if (!this.messages[jid]) this.messages[jid] = { array: [] };
 
                             const existingIdx = this.messages[jid].array.findIndex(x => x.key.id === msg.key.id);
@@ -117,8 +176,10 @@ async function startWASession(userId) {
             });
             ev.on('messages.update', (updates) => {
                 for (const update of updates) {
-                    const jid = update.key.remoteJid;
-                    if (!jid || !this.messages[jid]) continue;
+                    const rawJid = update.key.remoteJid;
+                    if (!rawJid) continue;
+                    const jid = resolveLidToJid(this, jidNormalizedUser(rawJid));
+                    if (!this.messages[jid]) continue;
                     const msgToUpdate = this.messages[jid].array.find(m => m.key.id === update.key.id);
                     if (msgToUpdate) {
                         if (update.update.status !== undefined) {
@@ -127,11 +188,22 @@ async function startWASession(userId) {
                     }
                 }
             });
-            ev.on('messaging-history.set', ({ messages }) => {
+            ev.on('messaging-history.set', ({ messages, contacts }) => {
+                if (contacts) {
+                    for (const contact of contacts) {
+                        this.contacts[contact.id] = contact;
+                        if (contact.lid && contact.id.includes('@s.whatsapp.net')) {
+                            migrateMessages(jidNormalizedUser(contact.lid), jidNormalizedUser(contact.id));
+                        } else if (contact.pn && contact.id.includes('@lid')) {
+                            migrateMessages(jidNormalizedUser(contact.id), jidNormalizedUser(`${contact.pn}@s.whatsapp.net`));
+                        }
+                    }
+                }
                 const msgs = messages || [];
                 for (const msg of msgs) {
-                    const jid = msg.key.remoteJid;
-                    if (!jid) continue;
+                    const rawJid = msg.key.remoteJid;
+                    if (!rawJid) continue;
+                    const jid = resolveLidToJid(this, jidNormalizedUser(rawJid));
                     if (!this.messages[jid]) this.messages[jid] = { array: [] };
                     if (!this.messages[jid].array.some(m => m.key.id === msg.key.id)) {
                         this.messages[jid].array.push(msg);
@@ -164,7 +236,7 @@ async function startWASession(userId) {
     // Enhanced Connection Logging
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
-        
+
         if (qr) {
             console.log(`[Session: ${userId}] New QR Code generated`);
             sessions[userId].lastQr = { userId, qr };
@@ -175,13 +247,12 @@ async function startWASession(userId) {
             const statusCode = (lastDisconnect?.error)?.output?.statusCode;
             const errorMsg = lastDisconnect?.error?.message || 'Unknown error';
             console.error(`[Session: ${userId}] Connection closed. Status: ${statusCode}, Reason: ${errorMsg}`);
-            
+
             const isLogout = statusCode === DisconnectReason.loggedOut || statusCode === 405 || statusCode === 401;
-            
+
             if (!isLogout) {
                 console.log(`[Session: ${userId}] Attempting to reconnect in 5s...`);
                 setTimeout(() => {
-                    // Only start if not already managed or if session died
                     if (!sessions[userId] || !sessions[userId].isReady) {
                         startWASession(userId);
                     }
@@ -213,10 +284,16 @@ async function startWASession(userId) {
             if (m.type === 'notify') {
                 for (const msg of m.messages) {
                     if (msg.message) {
-                        const rawJid = msg.key.remoteJid || '';
-                        const fromJid = jidNormalizedUser(rawJid);
-                        console.log(`[Session: ${userId}] Incoming message from JID: ${fromJid} (Raw: ${rawJid})`);
-                        
+                        let rawJid = msg.key.remoteJid || '';
+                        let fromJid = jidNormalizedUser(rawJid);
+
+                        // Convert LID to JID if present, to merge chats correctly
+                        if (fromJid.includes('@lid')) {
+                            fromJid = resolveLidToJid(sessions[userId]?.store, fromJid);
+                        }
+
+                        console.log(`[Session: ${userId}] Incoming message detected - Final JID: ${fromJid} (Raw: ${rawJid})`);
+
                         let body = msg.message.conversation || msg.message.extendedTextMessage?.text;
                         if (!body) {
                             const msgType = Object.keys(msg.message)[0];
@@ -226,7 +303,7 @@ async function startWASession(userId) {
                             else if (msgType?.includes('document')) body = '📄 ملف';
                             else body = '📩 رسالة جديدة (وسائط/ملصق)';
                         }
-                        
+
                         io.emit('message', {
                             userId: userId,
                             from: fromJid,
@@ -274,7 +351,7 @@ app.post('/api/send', async (req, res) => {
     try {
         let jid;
         if (phone.includes('@')) {
-            jid = jidNormalizedUser(phone);
+            jid = resolveLidToJid(sessions[userId]?.store, jidNormalizedUser(phone));
         } else {
             let formattedPhone = phone.replace(/\D/g, '');
             // Handle cases like 96605... or 96707...
@@ -293,7 +370,7 @@ app.post('/api/send', async (req, res) => {
                 if (formattedPhone.startsWith('7')) formattedPhone = '967' + formattedPhone;
                 else if (formattedPhone.startsWith('5')) formattedPhone = '966' + formattedPhone;
             }
-            jid = jidNormalizedUser(formattedPhone + '@s.whatsapp.net');
+            jid = resolveLidToJid(sessions[userId]?.store, jidNormalizedUser(formattedPhone + '@s.whatsapp.net'));
         }
         console.log(`[Session: ${userId}] Targeting JID: ${jid}`);
 
@@ -351,8 +428,10 @@ app.get('/api/chat/:userId/:phone', async (req, res) => {
         else if (formattedPhone.startsWith('0')) formattedPhone = '966' + formattedPhone.substring(1);
         rawJid = formattedPhone + '@s.whatsapp.net';
     }
-    
-    const jid = jidNormalizedUser(rawJid);
+    let jid = jidNormalizedUser(rawJid);
+    if (jid.includes('@lid')) {
+        jid = resolveLidToJid(sessions[userId]?.store, jid);
+    }
 
     let dbMsgs = [];
     try {
@@ -421,8 +500,10 @@ app.get('/api/media/:userId/:phone/:messageId', async (req, res) => {
         else if (formattedPhone.startsWith('0')) formattedPhone = '966' + formattedPhone.substring(1);
         rawJid = formattedPhone + '@s.whatsapp.net';
     }
-    
-    const jid = jidNormalizedUser(rawJid);
+    let jid = jidNormalizedUser(rawJid);
+    if (jid.includes('@lid')) {
+        jid = resolveLidToJid(sessions[userId]?.store, jid);
+    }
 
     let dbMsgs = sessions[userId]?.store?.messages[jid]?.array || [];
     const msgToDownload = dbMsgs.find(m => m.key.id === messageId);

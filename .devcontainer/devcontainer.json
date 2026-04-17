@@ -1,0 +1,29 @@
+{
+	"name": "Diar-Shahama Codespace",
+	"image": "mcr.microsoft.com/devcontainers/javascript-node:20",
+	"features": {
+		"ghcr.io/devcontainers/features/node:1": {}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"esbenp.prettier-vscode",
+				"dbaeumer.vscode-eslint",
+				"christian-kohler.path-intellisense"
+			]
+		}
+	},
+	"forwardPorts": [5173, 3001],
+	"portsAttributes": {
+		"5173": {
+			"label": "Frontend (Vite)",
+			"onAutoForward": "openBrowser"
+		},
+		"3001": {
+			"label": "WhatsApp Server (API)",
+			"onAutoForward": "silent"
+		}
+	},
+	"postCreateCommand": "npm install && cd whatsapp-server && npm install",
+	"remoteUser": "node"
+}
