@@ -2361,7 +2361,7 @@ function renderDynamicForm(type, data = {}) {
     fields = [
       { name: "title", label: "العنوان", type: "text" },
       { name: "subtitle", label: "العنوان الفرعي", type: "text" },
-      { name: "image", label: "رابط الصورة", type: "text" },
+      { name: "ad_file", label: "اختيار صورة الإعلان", type: "file" },
       { name: "link", label: "الرابط (اختياري)", type: "text" }
     ];
   } else if (type === "sales") {
@@ -2382,18 +2382,18 @@ function renderDynamicForm(type, data = {}) {
   } else if (type === "partners") {
     fields = [
       { name: "name", label: "اسم الشريك", type: "text" },
-      { name: "logo", label: "رابط الشعار", type: "text" },
+      { name: "partner_file", label: "اختيار شعار الشريك", type: "file" },
       { name: "link", label: "رابط خارجي (اختياري)", type: "text" }
     ];
   } else if (type === "brands") {
     fields = [
       { name: "name", label: "اسم العلامة التجارية", type: "text" },
-      { name: "logo", label: "رابط الشعار", type: "text" }
+      { name: "brand_file", label: "اختيار شعار العلامة", type: "file" }
     ];
   } else if (type === "blogs") {
     fields = [
       { name: "title", label: "عنوان المقال", type: "text" },
-      { name: "image", label: "رابط الصورة", type: "text" },
+      { name: "blog_file", label: "اختيار صورة المقال", type: "file" },
       { name: "content", label: "محتوى المقال", type: "textarea" }
     ];
   } else if (type === "locations") {
@@ -2590,6 +2590,41 @@ window.setCarMainImage = function (index) {
   window.renderCarImageManager();
 };
 
+// Image Compression Utility
+window.compressLuxuryImage = function (file, maxWidth = 1200, quality = 0.7) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        canvas.toBlob((blob) => {
+          const compressedFile = new File([blob], file.name, {
+            type: 'image/jpeg',
+            lastModified: Date.now(),
+          });
+          resolve(compressedFile);
+        }, 'image/jpeg', quality);
+      };
+    };
+  });
+};
+
 window.saveLuxuryItem = async function (e) {
   if (e) e.preventDefault();
   
@@ -2617,13 +2652,47 @@ window.saveLuxuryItem = async function (e) {
   const formData = new FormData(form);
   const data = {};
   formData.forEach((val, key) => {
-    if (key !== "main_img_file" && key !== "gallery_files") {
+    if (!key.endsWith("_file") && key !== "gallery_files" && key !== "main_img_file") {
       data[key] = val;
     }
   });
 
   try {
-    // 1. Unified Image Manager Upload (Only for Cars)
+    // 1. Generic Image Upload for any type with a *_file field
+    const fileFields = ["ad_file", "partner_file", "brand_file", "blog_file"];
+    for (const fKey of fileFields) {
+        const file = formData.get(fKey);
+        if (file && file.size > 0) {
+            btn.innerText = "جاري ضغط ورفع صورة الإعلان...";
+            let processedFile = file;
+            if (file.size > 150 * 1024) processedFile = await window.compressLuxuryImage(file, 1600, 0.6);
+            
+            let uploadedUrl = "";
+            try {
+                const path = `${type}/${Date.now()}_${file.name.replace(/\s/g,'_')}`;
+                const sRef = storageRef(storage, path);
+                const snapshot = await Promise.race([
+                    uploadBytes(sRef, processedFile, { contentType: processedFile.type }),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 8000))
+                ]);
+                uploadedUrl = (await getDownloadURL(snapshot.ref)).replace('.firebasestorage.app', '.appspot.com');
+            } catch (err) {
+                console.warn("[Marketing] Storage blocked, using Base64 fallback.", err);
+                const reader = new FileReader();
+                const base64Promise = new Promise(res => {
+                    reader.onload = e => res(e.target.result);
+                    reader.readAsDataURL(processedFile);
+                });
+                uploadedUrl = await base64Promise;
+            }
+            
+            // Map the field back to the data property
+            if (fKey === "ad_file" || fKey === "blog_file") data["image"] = uploadedUrl;
+            if (fKey === "partner_file" || fKey === "brand_file") data["logo"] = uploadedUrl;
+        }
+    }
+
+    // 2. Unified Image Manager Upload (Only for Cars)
     if (type === "cars") {
       const finalImageUrls = [];
       let mainImageUrl = "";
@@ -2631,7 +2700,8 @@ window.saveLuxuryItem = async function (e) {
       const carImages = window.state.carImages || [];
       const btn = document.querySelector("#admin-modal .btn-premium");
       const originalText = btn ? btn.innerText : "حفظ";
-      console.log(`[Storage] Starting upload for ${carImages.length} images...`);
+      
+      console.log(`[Compression] Compressing and preparing ${carImages.length} images...`);
 
       for (let i = 0; i < carImages.length; i++) {
         const img = carImages[i];
@@ -2640,8 +2710,13 @@ window.saveLuxuryItem = async function (e) {
         if (img.type === 'url') {
           url = img.value;
         } else if (img.type === 'file') {
-          if (btn) btn.innerText = `جاري رفع الصورة (${i+1}/${carImages.length})...`;
-          const file = img.value;
+          if (btn) btn.innerText = `جاري ضغط ومعالجة الصورة (${i+1}/${carImages.length})...`;
+          
+          let file = img.value;
+          // Apply Compression if file is larger than 200KB
+          if (file.size > 200 * 1024) {
+              file = await window.compressLuxuryImage(file);
+          }
           
           try {
               // Try standard upload first with a shorter timeout (10s)
