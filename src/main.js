@@ -130,6 +130,48 @@ window.showLuxuryToast = function (message, type = "success") {
   }, 4000);
 };
 
+window.compressImage = function (file, maxWidth = 1000, maxHeight = 1000, quality = 0.6) {
+  return new Promise((resolve, reject) => {
+    if (!file || !(file instanceof File || file instanceof Blob)) {
+      resolve(file); // Return as is if not a file
+      return;
+    }
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height *= maxWidth / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width *= maxHeight / height;
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        // Using image/jpeg for better compression
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+    };
+    reader.onerror = reject;
+  });
+};
+
+
 window.openModal = function (id) {
   const el = document.getElementById(id);
   if (el) {
@@ -472,41 +514,11 @@ async function initFirebase() {
   const publicPaths = ["users", "plates", "locations", "brands", "agents", "specs", "packages", "blogs", "reviews", "cars", "ads", "sales", "settings", "partners"];
   const privatePaths = ["bookings", "notifications", "logs", "quickReplies"];
   const listeners = {};
-  
-  // Debug connection state
-  onValue(ref(db, ".info/connected"), (snapshot) => {
-    if (snapshot.val() === true) {
-      console.log("[Firebase] Connected to Realtime Database");
-    } else {
-      console.warn("[Firebase] Disconnected from Realtime Database");
-    }
-  });
 
   function attachListener(p) {
     if (listeners[p]) return; // Avoid duplicate listeners
     listeners[p] = onValue(ref(db, p), (s) => {
-      let data = s.val();
-      
-      // Data Normalization for Cars & Images
-      if (data) {
-          const normalized = {};
-          Object.entries(data).forEach(([id, v]) => {
-              // Fix failing domains to stable ones
-              const fixUrl = (u) => (typeof u === 'string') ? u.replace('.firebasestorage.app', '.appspot.com') : u;
-              
-              if (!v.image) v.image = v.mainImage || v.img || "logo.jpg";
-              v.image = fixUrl(v.image);
-
-              if (Array.isArray(v.images)) {
-                  v.images = v.images.map(img => fixUrl(img));
-              }
-
-              if (!v.bodyType) v.bodyType = v.type || "other";
-              normalized[id] = v;
-          });
-          data = normalized;
-      }
-
+      const data = s.val();
       if (p === "settings") {
         window.state.settings = data || {};
         window.applySettings(data);
@@ -560,11 +572,10 @@ async function initFirebase() {
 }
 function handleFirstLoad() {
   if (window.state.firstLoadDone) return;
-  const s = window.state.settings || {};
-  const isMaint = s.maintenanceMode;
+  const s = window.state.settings;
+  const isMaint = s?.maintenanceMode;
   const isAdmin = window.state.userProfile?.role === "admin" || window.state.userProfile?.role === "supervisor";
 
-  // If maintenance is on and user is not admin, show maintenance screen
   if (isMaint && !isAdmin) {
     const splash = document.getElementById("luxury-splash");
     if (splash) {
@@ -579,29 +590,24 @@ function handleFirstLoad() {
             </div>
           `;
       splash.style.opacity = "1";
+      splash.classList.remove("hidden");
     }
     return;
   }
 
-  // Remove splash screen
-  const hideSplash = () => {
-    const splash = document.getElementById("luxury-splash");
-    if (splash) {
-      splash.style.opacity = "0";
-      setTimeout(() => {
-        splash.classList.add("hidden");
-        splash.remove();
-      }, 800);
-    }
-    window.state.firstLoadDone = true;
-  };
-
-  // If settings loaded or after 3 seconds max
-  if (Object.keys(s).length > 0) {
-    setTimeout(hideSplash, 800);
-  } else {
-    // Fallback timer if settings node is totally missing in Firebase
-    setTimeout(hideSplash, 3000);
+  // Hide splash screen when settings are loaded, regardless of cars count
+  if (s && Object.keys(s).length > 0) {
+    setTimeout(() => {
+      const splash = document.getElementById("luxury-splash");
+      if (splash) {
+        splash.style.opacity = "0";
+        setTimeout(() => {
+          splash.classList.add("hidden");
+          splash.remove();
+        }, 800);
+      }
+      window.state.firstLoadDone = true;
+    }, 1200);
   }
 }
 
@@ -768,18 +774,13 @@ window.applyInventoryFilters = function () {
   const filterYear = document.getElementById("filter-year")?.value || "all";
   const sort = document.getElementById("filter-sort")?.value || "newest";
 
-  let results = (window.state.cars || []).filter(car => {
-    const carMake = (car.make || '').toLowerCase();
-    const carModel = (car.model || '').toLowerCase();
-    const carType = (car.bodyType || car.type || '').toLowerCase();
-    const carYear = String(car.year || '');
-
-    const matchesSearch = !searchQuery || (carMake + " " + carModel).includes(searchQuery);
-    const matchesMake = filterMake === "all" || carMake === filterMake.toLowerCase();
-    const matchesType = filterType === "all" || carType === filterType.toLowerCase();
-    const matchesYear = filterYear === "all" || carYear === filterYear;
+  let results = window.state.cars?.filter(car => {
+    const matchesSearch = !searchQuery || (car.make + " " + car.model).toLowerCase().includes(searchQuery);
+    const matchesMake = filterMake === "all" || car.make === filterMake;
+    const matchesType = filterType === "all" || car.status === filterType;
+    const matchesYear = filterYear === "all" || car.year === filterYear;
     return matchesSearch && matchesMake && matchesType && matchesYear;
-  });
+  }) || [];
 
   if (sort === "price-asc") results.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
   else if (sort === "price-desc") results.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
@@ -813,7 +814,7 @@ function renderFeaturedOffers(cars) {
         <div class="offer-card-v2" onclick="window.viewLuxuryCar('${car.id}')">
             <div class="offer-badge">عرض حصري</div>
             <div class="offer-img-box">
-                <img src="${car.image || 'logo.jpg'}" alt="${car.make}" onerror="this.src='logo.jpg'">
+                <img src="${car.image || 'logo.jpg'}" alt="${car.make}" loading="lazy" onerror="this.src='logo.jpg'">
             </div>
             <div class="offer-info">
                 <h4>${car.make} ${car.model}</h4>
@@ -887,7 +888,7 @@ window.renderPublicReviews = function () {
         <p class="review-text">"${r.text || "لا يوجد تعليق"}"</p>
         <div class="review-author">
            <div class="review-author-avatar">
-                ${avatar ? `<img src="${avatar}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" referrerpolicy="no-referrer">` : name.charAt(0)}
+                ${avatar ? `<img src="${avatar}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">` : name.charAt(0)}
            </div>
            <div class="review-author-info" style="line-height:1.4;">
               <strong style="display:block; font-size:16px;">${name}</strong>
@@ -900,15 +901,8 @@ window.renderPublicReviews = function () {
 };
 
 window.renderCarGrid = function (cars) {
-  console.log("[DEBUG] Cars to be rendered:", cars);
-  if (cars.length > 0) {
-      console.log("[DEBUG] Sample Car Image URL:", cars[0].image);
-  }
   const grid = document.getElementById("cars-container");
-  if (!grid) {
-    console.error("[ERROR] #cars-container not found in DOM!");
-    return;
-  }
+  if (!grid) return;
 
   if (cars.length === 0) {
     grid.innerHTML = '<div class="no-results-v2"><i class="fas fa-search"></i> <p>لم يتم العثور على سيارات تطابق بحثك</p></div>';
@@ -918,7 +912,7 @@ window.renderCarGrid = function (cars) {
   grid.innerHTML = cars.map(car => `
     <div class="car-card-premium" onclick="window.viewLuxuryCar('${car.id}')" data-aos="fade-up">
       <div class="car-img-wrap">
-        <img src="${car.image || "logo.jpg"}" alt="${car.make}" onerror="this.src='logo.jpg'" referrerpolicy="no-referrer">
+        <img src="${car.image || "logo.jpg"}" alt="${car.make}" loading="lazy" onerror="this.src='logo.jpg'">
         <div class="car-price-v3">${(Number(car.price) || 0).toLocaleString()} <small>ريال</small></div>
         <div class="car-badge-v3 ${car.status === "available" ? "available" : car.status === "reserved" ? "reserved" : "sold"}">${car.status === "available" ? "متاح" : car.status === "reserved" ? "محجوز" : "مباع"}</div>
       </div>
@@ -990,7 +984,7 @@ window.viewLuxuryCar = function (id) {
       <div class="details-main-split">
         <div class="details-media">
           <div class="main-viewer" onclick="window.openFullscreenGallery('${car.id}', document.getElementById('active-luxury-img').src)">
-            <img src="${images[0]}" id="active-luxury-img" alt="${car.make} ${car.model}" onerror="this.src='logo.jpg'" referrerpolicy="no-referrer">
+            <img src="${images[0]}" id="active-luxury-img" alt="${car.make} ${car.model}" onerror="this.src='logo.jpg'">
             <div class="viewer-actions">
               <button class="viewer-btn" onclick="event.stopPropagation(); window.switchLuxuryDetailImg('${car.id}', -1)"><i class="fas fa-chevron-right"></i></button>
               <button class="viewer-btn" onclick="event.stopPropagation(); window.switchLuxuryDetailImg('${car.id}', 1)"><i class="fas fa-chevron-left"></i></button>
@@ -1001,7 +995,7 @@ window.viewLuxuryCar = function (id) {
           <div class="thumbs-view custom-scrollbar">
             ${images.map((img, i) => `
               <div class="thumb-wrapper ${i === 0 ? 'active' : ''}" onclick="window.setLuxuryDetailImg(this, '${img}')">
-                <img src="${img}" class="thumb-frame" onerror="this.src='logo.jpg'" referrerpolicy="no-referrer">
+                <img src="${img}" class="thumb-frame" onerror="this.src='logo.jpg'">
               </div>
             `).join('')}
           </div>
@@ -1375,7 +1369,7 @@ window.openFullscreenGallery = function (id, activeSrc) {
             </div>
         </div>
         <div class="lb-thumbs">
-            ${images.map(img => `<img src="${img}" class="lb-thumb ${img === activeSrc ? 'active' : ''}" onclick="document.getElementById('lb-main-img').src='${img}'; this.parentElement.querySelectorAll('.lb-thumb').forEach(t=>t.classList.remove('active')); this.classList.add('active');" referrerpolicy="no-referrer">`).join('')}
+            ${images.map(img => `<img src="${img}" class="lb-thumb ${img === activeSrc ? 'active' : ''}" onclick="document.getElementById('lb-main-img').src='${img}'; this.parentElement.querySelectorAll('.lb-thumb').forEach(t=>t.classList.remove('active')); this.classList.add('active');">`).join('')}
         </div>
     `;
   document.body.appendChild(viewer);
@@ -1507,10 +1501,8 @@ window.applySettings = function (s) {
   if (s.accentColor) root.style.setProperty("--p-copper", s.accentColor);
 
   const logo = s.logo || "logo.jpg";
-  console.log("[DEBUG] Final Logo Source:", logo);
   document.querySelectorAll(".logo-wrap img, .sidebar-brand img, .splash-logo img, #footer-logo-img, #nav-logo-img, #splash-logo-img").forEach(img => {
     img.src = logo;
-    img.setAttribute("referrerpolicy", "no-referrer");
   });
 
   const nameAr = s.nameAr || "ون كار";
@@ -1642,17 +1634,18 @@ window.switchSettingsTab = function (tabId, btn) {
   if (btn) btn.classList.add("active");
 };
 
-window.previewLogo = function (input) {
+window.previewLogo = async function (input) {
   if (input.files && input.files[0]) {
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      const b64 = e.target.result;
+    try {
+      const b64 = await window.compressImage(input.files[0], 400, 400, 0.8);
       document.getElementById("logo-preview-img").src = b64;
       document.getElementById("set-logo-b64").value = b64;
-    };
-    reader.readAsDataURL(input.files[0]);
+    } catch (e) {
+      console.error("Logo compression failed", e);
+    }
   }
 };
+
 
 window.saveAppSettings = async function () {
   const btn = document.querySelector('button[onclick="window.saveAppSettings()"]');
@@ -1900,7 +1893,7 @@ window.syncAdminTables = function (type) {
               <td style="padding:15px;">
                   <div style="display:flex; align-items:center; gap:12px;">
                       <div style="width:40px; height:40px; border-radius:50%; overflow:hidden; background:#222; flex-shrink:0;">
-                          <img src="${avatar}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='logo.jpg'" referrerpolicy="no-referrer">
+                          <img src="${avatar}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='logo.jpg'">
                       </div>
                       <div>
                           <strong style="display:block; font-size:15px;">${item.name || item.email}</strong>
@@ -1972,7 +1965,7 @@ function renderAdminItemRow(type, item) {
     return `
             <div class="admin-item-row car-admin-row" style="background:rgba(255,255,255,0.02); padding:12px; border-radius:16px; border:1px solid var(--glass-border); margin-bottom:12px; display:flex; align-items:center; gap:20px; transition:all 0.3s ease;">
                 <div class="admin-item-thumb" style="width:80px; height:60px; border-radius:10px; overflow:hidden; flex-shrink:0; background:#000;">
-                    <img src="${item.image || 'logo.jpg'}" style="width:100%; height:100%; object-fit:cover; opacity:0.8;" onerror="this.src='logo.jpg'" referrerpolicy="no-referrer">
+                    <img src="${item.image || 'logo.jpg'}" style="width:100%; height:100%; object-fit:cover; opacity:0.8;" onerror="this.src='logo.jpg'">
                 </div>
                 <div class="admin-item-info" style="flex-grow:1;">
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
@@ -2086,7 +2079,7 @@ function renderAdminItemRow(type, item) {
     return `
             <div class="admin-item-row" style="background:rgba(255,255,255,0.02); padding:12px; border-radius:16px; border:1px solid var(--glass-border); margin-bottom:12px; display:flex; align-items:center; gap:20px;">
                 <div class="admin-item-thumb" style="width:80px; height:50px; border-radius:10px; overflow:hidden; flex-shrink:0; background:#000;">
-                    <img src="${thumb}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='logo.jpg'" referrerpolicy="no-referrer">
+                    <img src="${thumb}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='logo.jpg'">
                 </div>
                 <div class="admin-item-info" style="flex-grow:1;">
                     <strong style="display:block; font-size:16px;">${item.title || item.name || "لحظة تسليم"}</strong>
@@ -2113,7 +2106,7 @@ function renderAdminItemRow(type, item) {
     return `
         <div class="admin-item-row" style="background:rgba(255,255,255,0.02); padding:15px; border-radius:16px; border:1px solid var(--glass-border); margin-bottom:12px; display:flex; align-items:center; gap:20px;">
             <div class="admin-item-avatar" style="width:50px; height:50px; border-radius:50%; overflow:hidden; flex-shrink:0; background:var(--bg-alt); border:2px solid var(--p-copper); display:flex; align-items:center; justify-content:center; color:var(--p-copper); font-weight:900;">
-                ${avatar ? `<img src="${avatar}" style="width:100%; height:100%; object-fit:cover;" referrerpolicy="no-referrer">` : (item.name || "U").charAt(0)}
+                ${avatar ? `<img src="${avatar}" style="width:100%; height:100%; object-fit:cover;">` : (item.name || "U").charAt(0)}
             </div>
             <div class="admin-item-info" style="flex-grow:1;">
                 <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
@@ -2143,7 +2136,7 @@ function renderAdminItemRow(type, item) {
             <div style="display:flex; align-items:center; gap:15px;">
                 ${thumb ? `
                     <div style="width:50px; height:40px; border-radius:8px; overflow:hidden; flex-shrink:0;">
-                        <img src="${thumb}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='logo.jpg'" referrerpolicy="no-referrer">
+                        <img src="${thumb}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='logo.jpg'">
                     </div>
                 ` : ""}
                 <div class="admin-item-info">
@@ -2361,7 +2354,7 @@ function renderDynamicForm(type, data = {}) {
     fields = [
       { name: "title", label: "العنوان", type: "text" },
       { name: "subtitle", label: "العنوان الفرعي", type: "text" },
-      { name: "ad_file", label: "اختيار صورة الإعلان", type: "file" },
+      { name: "image", label: "صورة الإعلان (من الجهاز)", type: "file" },
       { name: "link", label: "الرابط (اختياري)", type: "text" }
     ];
   } else if (type === "sales") {
@@ -2382,18 +2375,18 @@ function renderDynamicForm(type, data = {}) {
   } else if (type === "partners") {
     fields = [
       { name: "name", label: "اسم الشريك", type: "text" },
-      { name: "partner_file", label: "اختيار شعار الشريك", type: "file" },
+      { name: "logo", label: "شعار الشريك (من الجهاز)", type: "file" },
       { name: "link", label: "رابط خارجي (اختياري)", type: "text" }
     ];
   } else if (type === "brands") {
     fields = [
       { name: "name", label: "اسم العلامة التجارية", type: "text" },
-      { name: "brand_file", label: "اختيار شعار العلامة", type: "file" }
+      { name: "logo", label: "شعار البراند (من الجهاز)", type: "file" }
     ];
   } else if (type === "blogs") {
     fields = [
       { name: "title", label: "عنوان المقال", type: "text" },
-      { name: "blog_file", label: "اختيار صورة المقال", type: "file" },
+      { name: "image", label: "صورة المقال (من الجهاز)", type: "file" },
       { name: "content", label: "محتوى المقال", type: "textarea" }
     ];
   } else if (type === "locations") {
@@ -2537,7 +2530,7 @@ window.renderCarImageManager = function () {
         return `
           <div class="img-item-v2 ${img.isMain ? 'is-main' : ''}">
             ${img.isMain ? '<span class="main-badge">الرئيسية</span>' : ''}
-            <img src="${src}" alt="Car image" referrerpolicy="no-referrer">
+            <img src="${src}" alt="Car image">
             <div class="img-actions-lite">
               <button type="button" class="img-action-btn-lite" onclick="window.reorderCarImage(${idx}, -1)" title="نقل لليمين">
                 <i class="fas fa-arrow-right"></i>
@@ -2590,50 +2583,8 @@ window.setCarMainImage = function (index) {
   window.renderCarImageManager();
 };
 
-// Image Compression Utility
-window.compressLuxuryImage = function (file, maxWidth = 1200, quality = 0.7) {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target.result;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        
-        canvas.toBlob((blob) => {
-          const compressedFile = new File([blob], file.name, {
-            type: 'image/jpeg',
-            lastModified: Date.now(),
-          });
-          resolve(compressedFile);
-        }, 'image/jpeg', quality);
-      };
-    };
-  });
-};
-
 window.saveLuxuryItem = async function (e) {
   if (e) e.preventDefault();
-  
-  // 0. Auth Guard for Codespaces / Security
-  if (!auth.currentUser) {
-      alert("⚠️ تنبيه: لم يتم اكتشاف تسجيل دخول صالح.\n\nيرجى محاولة تسجيل الدخول مرة أخرى. إذا كنت تستخدم Codespace، تأكد من إضافة الرابط الحالي في قائمة Authorized Domains في Firebase Console.");
-      return;
-  }
-
   const edit = window.state.currentEdit;
   if (!edit) return;
 
@@ -2652,107 +2603,51 @@ window.saveLuxuryItem = async function (e) {
   const formData = new FormData(form);
   const data = {};
   formData.forEach((val, key) => {
-    if (!key.endsWith("_file") && key !== "gallery_files" && key !== "main_img_file") {
+    if (key !== "main_img_file" && key !== "gallery_files") {
       data[key] = val;
     }
   });
 
   try {
-    // 1. Generic Image Upload for any type with a *_file field
-    const fileFields = ["ad_file", "partner_file", "brand_file", "blog_file"];
-    for (const fKey of fileFields) {
-        const file = formData.get(fKey);
-        if (file && file.size > 0) {
-            btn.innerText = "جاري ضغط ورفع صورة الإعلان...";
-            let processedFile = file;
-            if (file.size > 150 * 1024) processedFile = await window.compressLuxuryImage(file, 1600, 0.6);
-            
-            let uploadedUrl = "";
-            try {
-                const path = `${type}/${Date.now()}_${file.name.replace(/\s/g,'_')}`;
-                const sRef = storageRef(storage, path);
-                const snapshot = await Promise.race([
-                    uploadBytes(sRef, processedFile, { contentType: processedFile.type }),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 8000))
-                ]);
-                uploadedUrl = (await getDownloadURL(snapshot.ref)).replace('.firebasestorage.app', '.appspot.com');
-            } catch (err) {
-                console.warn("[Marketing] Storage blocked, using Base64 fallback.", err);
-                const reader = new FileReader();
-                const base64Promise = new Promise(res => {
-                    reader.onload = e => res(e.target.result);
-                    reader.readAsDataURL(processedFile);
-                });
-                uploadedUrl = await base64Promise;
-            }
-            
-            // Map the field back to the data property
-            if (fKey === "ad_file" || fKey === "blog_file") data["image"] = uploadedUrl;
-            if (fKey === "partner_file" || fKey === "brand_file") data["logo"] = uploadedUrl;
-        }
-    }
-
-    // 2. Unified Image Manager Upload (Only for Cars)
+    // 1. Unified Image Manager Upload (Only for Cars)
     if (type === "cars") {
       const finalImageUrls = [];
       let mainImageUrl = "";
 
       const carImages = window.state.carImages || [];
-      const btn = document.querySelector("#admin-modal .btn-premium");
-      const originalText = btn ? btn.innerText : "حفظ";
-      
-      console.log(`[Compression] Compressing and preparing ${carImages.length} images...`);
-
       for (let i = 0; i < carImages.length; i++) {
         const img = carImages[i];
         let url = "";
 
-        if (img.type === 'url') {
+        if (img.type === "url") {
           url = img.value;
-        } else if (img.type === 'file') {
-          if (btn) btn.innerText = `جاري ضغط ومعالجة الصورة (${i+1}/${carImages.length})...`;
-          
-          let file = img.value;
-          // Apply Compression if file is larger than 200KB
-          if (file.size > 200 * 1024) {
-              file = await window.compressLuxuryImage(file);
-          }
-          
-          try {
-              // Try standard upload first with a shorter timeout (10s)
-              const path = `cars/${Date.now()}_${i}_${file.name.replace(/\s/g, '_')}`;
-              const sRef = storageRef(storage, path);
-              const uploadTask = uploadBytes(sRef, file, { contentType: file.type });
-              const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Storage Blocked")), 10000));
-              
-              const snapshot = await Promise.race([uploadTask, timeoutPromise]);
-              url = await getDownloadURL(snapshot.ref);
-              url = url.replace('.firebasestorage.app', '.appspot.com');
-              console.log(`[Storage] Upload Success: ${url}`);
-          } catch (uploadErr) {
-              console.warn(`[Failsafe] Storage upload failed or timed out. Falling back to Base64 storage...`, uploadErr);
-              // FALLBACK: Convert to Base64 and store in RTDB directly
-              const reader = new FileReader();
-              const base64Promise = new Promise((resolve) => {
-                  reader.onload = (e) => resolve(e.target.result);
-                  reader.readAsDataURL(file);
-              });
-              url = await base64Promise;
-              console.log(`[Failsafe] Image converted to Base64 successfully.`);
-          }
+        } else if (img.type === "file") {
+          // Compress and convert to Base64
+          url = await window.compressImage(img.value, 1000, 1000, 0.6);
         }
 
         if (url) {
-            finalImageUrls.push(url);
-            if (img.isMain) mainImageUrl = url;
+          finalImageUrls.push(url);
+          if (img.isMain) mainImageUrl = url;
         }
       }
-      if (btn) btn.innerText = "جاري حفظ البيانات النهائية...";
 
       if (!mainImageUrl && finalImageUrls.length > 0) mainImageUrl = finalImageUrls[0];
       data.image = mainImageUrl;
       data.images = finalImageUrls;
     }
+
+    // 2. Handle single image files for other types (ads, partners, brands, etc.)
+    const imageFields = ["image", "logo", "avatar", "poster"];
+    for (const field of imageFields) {
+      if (data[field] instanceof File && data[field].size > 0) {
+        data[field] = await window.compressImage(data[field], 1000, 1000, 0.7);
+      } else if (data[field] instanceof File && data[field].size === 0) {
+        // If it's an empty file input and we are editing, keep the old value
+        delete data[field];
+      }
+    }
+
 
     // Convert numeric fields
     const numFields = ["price", "year", "mileage", "rating", "installmentPeriod"];
@@ -2775,10 +2670,10 @@ window.saveLuxuryItem = async function (e) {
 
     window.showLuxuryToast(id ? "تم تحديث البيانات بنجاح" : "تم إضافة العنصر بنجاح");
     window.closeModal("item-modal");
+    window.createLog(id ? "تعديل" : "إضافة", `${id ? 'تعديل' : 'إضافة'} في ${type} - ${data.make || data.title || id}`, "data");
   } catch (err) {
-    console.error("[ERROR] saveLuxuryItem failed:", err);
-    alert("حدث خطأ أثناء الحفظ:\n" + err.message + "\n\nتلميح: تأكد من إضافة نطاق Codespace الحالي في Firebase Console.");
-    window.showLuxuryToast("فشل الحفظ: " + err.message, "error");
+    console.error("Save Error:", err);
+    window.showLuxuryToast("حدث خطأ أثناء الحفظ: " + (err.message || "خطأ غير معروف"), "error");
   } finally {
     if (btn) {
       btn.disabled = false;
@@ -2843,7 +2738,7 @@ window.renderAdsSlider = function () {
 
   container.innerHTML = ads.map(ad => `
         <div class="ad-slide">
-            <img src="${ad.image || "logo.jpg"}" class="ad-bg-img" alt="${ad.title || "عرض خاص"}" referrerpolicy="no-referrer">
+            <img src="${ad.image || "logo.jpg"}" class="ad-bg-img" alt="${ad.title || "عرض خاص"}">
             <div class="ad-content">
                 <h2 class="luxury-font">${ad.title || ""}</h2>
                 <p>${ad.subtitle || ""}</p>
