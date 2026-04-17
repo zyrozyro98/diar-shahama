@@ -343,6 +343,14 @@ io.on('connection', (socket) => {
 });
 
 app.get('/ping', (req, res) => res.send('Codespace is ALIVE'));
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'UP',
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString(),
+        sessions: Object.keys(sessions).length
+    });
+});
 
 app.post('/api/send', async (req, res) => {
     const { userId, phone, message, media } = req.body;
