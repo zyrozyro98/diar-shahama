@@ -7,22 +7,28 @@
             },
             ".indexOn": [
                 "role",
-                "email"
+                "email",
+                "phone"
             ]
         },
         "cars": {
             ".read": true,
             ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'supervisor')",
             ".indexOn": [
-                "type",
+                "bodyType",
                 "make",
+                "model",
                 "year",
-                "price"
+                "price",
+                "status",
+                "isFeatured",
+                "createdAt"
             ]
         },
         "ads": {
             ".read": true,
-            ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+            ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+            ".indexOn": ["active", "position"]
         },
         "sales": {
             ".read": true,
@@ -33,7 +39,8 @@
             "$booking_id": {
                 ".write": "!data.exists() || (auth != null && root.child('users').child(auth.uid).exists())",
                 ".validate": "!data.exists() ? newData.hasChildren(['name', 'phone']) : true"
-            }
+            },
+            ".indexOn": ["status", "assignedTo", "createdAt", "phone"]
         },
         "config": {
             ".read": true,
@@ -51,7 +58,8 @@
         },
         "plates": {
             ".read": true,
-            ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+            ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+            ".indexOn": ["code", "price", "createdAt"]
         },
         "partners": {
             ".read": true,
@@ -79,7 +87,8 @@
         },
         "blogs": {
             ".read": true,
-            ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+            ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+            ".indexOn": ["createdAt", "category"]
         },
         "quickReplies": {
             ".read": "auth != null",
@@ -87,17 +96,20 @@
         },
         "reviews": {
             ".read": true,
-            ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+            ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+            ".indexOn": ["rating", "createdAt"]
         },
         "logs": {
             ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'supervisor')",
-            ".write": "auth != null"
+            ".write": "auth != null",
+            ".indexOn": ["type", "userId", "timestamp"]
         },
         "notifications": {
             ".read": "auth != null",
             "$uid": {
                 ".write": "auth != null || (newData.child('type').val() === 'new_booking')"
-            }
+            },
+            ".indexOn": ["userId", "read", "createdAt"]
         },
         "analytics": {
             ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'supervisor')",
