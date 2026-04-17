@@ -13,7 +13,7 @@ app.use(express.json({ limit: '50mb' }));
 
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: { origin: "*", methods: ["GET", "POST"], credentials: true },
+    cors: { origin: "*", methods: ["GET", "POST"] },
     allowEIO3: true
 });
 
