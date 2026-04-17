@@ -487,11 +487,20 @@ async function initFirebase() {
     listeners[p] = onValue(ref(db, p), (s) => {
       let data = s.val();
       
-      // Data Normalization for Cars
-      if (p === "cars" && data) {
+      // Data Normalization for Cars & Images
+      if (data) {
           const normalized = {};
           Object.entries(data).forEach(([id, v]) => {
+              // Fix failing domains to stable ones
+              const fixUrl = (u) => (typeof u === 'string') ? u.replace('.firebasestorage.app', '.appspot.com') : u;
+              
               if (!v.image) v.image = v.mainImage || v.img || "logo.jpg";
+              v.image = fixUrl(v.image);
+
+              if (Array.isArray(v.images)) {
+                  v.images = v.images.map(img => fixUrl(img));
+              }
+
               if (!v.bodyType) v.bodyType = v.type || "other";
               normalized[id] = v;
           });
@@ -759,13 +768,18 @@ window.applyInventoryFilters = function () {
   const filterYear = document.getElementById("filter-year")?.value || "all";
   const sort = document.getElementById("filter-sort")?.value || "newest";
 
-  let results = window.state.cars?.filter(car => {
-    const matchesSearch = !searchQuery || (car.make + " " + car.model).toLowerCase().includes(searchQuery);
-    const matchesMake = filterMake === "all" || car.make === filterMake;
-    const matchesType = filterType === "all" || car.bodyType === filterType;
-    const matchesYear = filterYear === "all" || car.year === filterYear;
+  let results = (window.state.cars || []).filter(car => {
+    const carMake = (car.make || '').toLowerCase();
+    const carModel = (car.model || '').toLowerCase();
+    const carType = (car.bodyType || car.type || '').toLowerCase();
+    const carYear = String(car.year || '');
+
+    const matchesSearch = !searchQuery || (carMake + " " + carModel).includes(searchQuery);
+    const matchesMake = filterMake === "all" || carMake === filterMake.toLowerCase();
+    const matchesType = filterType === "all" || carType === filterType.toLowerCase();
+    const matchesYear = filterYear === "all" || carYear === filterYear;
     return matchesSearch && matchesMake && matchesType && matchesYear;
-  }) || [];
+  });
 
   if (sort === "price-asc") results.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
   else if (sort === "price-desc") results.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
@@ -873,7 +887,7 @@ window.renderPublicReviews = function () {
         <p class="review-text">"${r.text || "لا يوجد تعليق"}"</p>
         <div class="review-author">
            <div class="review-author-avatar">
-                ${avatar ? `<img src="${avatar}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">` : name.charAt(0)}
+                ${avatar ? `<img src="${avatar}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" referrerpolicy="no-referrer">` : name.charAt(0)}
            </div>
            <div class="review-author-info" style="line-height:1.4;">
               <strong style="display:block; font-size:16px;">${name}</strong>
@@ -887,6 +901,9 @@ window.renderPublicReviews = function () {
 
 window.renderCarGrid = function (cars) {
   console.log("[DEBUG] Cars to be rendered:", cars);
+  if (cars.length > 0) {
+      console.log("[DEBUG] Sample Car Image URL:", cars[0].image);
+  }
   const grid = document.getElementById("cars-container");
   if (!grid) {
     console.error("[ERROR] #cars-container not found in DOM!");
@@ -901,7 +918,7 @@ window.renderCarGrid = function (cars) {
   grid.innerHTML = cars.map(car => `
     <div class="car-card-premium" onclick="window.viewLuxuryCar('${car.id}')" data-aos="fade-up">
       <div class="car-img-wrap">
-        <img src="${car.image || "logo.jpg"}" alt="${car.make}" onerror="this.src='logo.jpg'">
+        <img src="${car.image || "logo.jpg"}" alt="${car.make}" onerror="this.src='logo.jpg'" referrerpolicy="no-referrer">
         <div class="car-price-v3">${(Number(car.price) || 0).toLocaleString()} <small>ريال</small></div>
         <div class="car-badge-v3 ${car.status === "available" ? "available" : car.status === "reserved" ? "reserved" : "sold"}">${car.status === "available" ? "متاح" : car.status === "reserved" ? "محجوز" : "مباع"}</div>
       </div>
@@ -973,7 +990,7 @@ window.viewLuxuryCar = function (id) {
       <div class="details-main-split">
         <div class="details-media">
           <div class="main-viewer" onclick="window.openFullscreenGallery('${car.id}', document.getElementById('active-luxury-img').src)">
-            <img src="${images[0]}" id="active-luxury-img" alt="${car.make} ${car.model}" onerror="this.src='logo.jpg'">
+            <img src="${images[0]}" id="active-luxury-img" alt="${car.make} ${car.model}" onerror="this.src='logo.jpg'" referrerpolicy="no-referrer">
             <div class="viewer-actions">
               <button class="viewer-btn" onclick="event.stopPropagation(); window.switchLuxuryDetailImg('${car.id}', -1)"><i class="fas fa-chevron-right"></i></button>
               <button class="viewer-btn" onclick="event.stopPropagation(); window.switchLuxuryDetailImg('${car.id}', 1)"><i class="fas fa-chevron-left"></i></button>
@@ -984,7 +1001,7 @@ window.viewLuxuryCar = function (id) {
           <div class="thumbs-view custom-scrollbar">
             ${images.map((img, i) => `
               <div class="thumb-wrapper ${i === 0 ? 'active' : ''}" onclick="window.setLuxuryDetailImg(this, '${img}')">
-                <img src="${img}" class="thumb-frame" onerror="this.src='logo.jpg'">
+                <img src="${img}" class="thumb-frame" onerror="this.src='logo.jpg'" referrerpolicy="no-referrer">
               </div>
             `).join('')}
           </div>
@@ -1358,7 +1375,7 @@ window.openFullscreenGallery = function (id, activeSrc) {
             </div>
         </div>
         <div class="lb-thumbs">
-            ${images.map(img => `<img src="${img}" class="lb-thumb ${img === activeSrc ? 'active' : ''}" onclick="document.getElementById('lb-main-img').src='${img}'; this.parentElement.querySelectorAll('.lb-thumb').forEach(t=>t.classList.remove('active')); this.classList.add('active');">`).join('')}
+            ${images.map(img => `<img src="${img}" class="lb-thumb ${img === activeSrc ? 'active' : ''}" onclick="document.getElementById('lb-main-img').src='${img}'; this.parentElement.querySelectorAll('.lb-thumb').forEach(t=>t.classList.remove('active')); this.classList.add('active');" referrerpolicy="no-referrer">`).join('')}
         </div>
     `;
   document.body.appendChild(viewer);
@@ -1493,6 +1510,7 @@ window.applySettings = function (s) {
   console.log("[DEBUG] Final Logo Source:", logo);
   document.querySelectorAll(".logo-wrap img, .sidebar-brand img, .splash-logo img, #footer-logo-img, #nav-logo-img, #splash-logo-img").forEach(img => {
     img.src = logo;
+    img.setAttribute("referrerpolicy", "no-referrer");
   });
 
   const nameAr = s.nameAr || "ون كار";
@@ -1882,7 +1900,7 @@ window.syncAdminTables = function (type) {
               <td style="padding:15px;">
                   <div style="display:flex; align-items:center; gap:12px;">
                       <div style="width:40px; height:40px; border-radius:50%; overflow:hidden; background:#222; flex-shrink:0;">
-                          <img src="${avatar}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='logo.jpg'">
+                          <img src="${avatar}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='logo.jpg'" referrerpolicy="no-referrer">
                       </div>
                       <div>
                           <strong style="display:block; font-size:15px;">${item.name || item.email}</strong>
@@ -1954,7 +1972,7 @@ function renderAdminItemRow(type, item) {
     return `
             <div class="admin-item-row car-admin-row" style="background:rgba(255,255,255,0.02); padding:12px; border-radius:16px; border:1px solid var(--glass-border); margin-bottom:12px; display:flex; align-items:center; gap:20px; transition:all 0.3s ease;">
                 <div class="admin-item-thumb" style="width:80px; height:60px; border-radius:10px; overflow:hidden; flex-shrink:0; background:#000;">
-                    <img src="${item.image || 'logo.jpg'}" style="width:100%; height:100%; object-fit:cover; opacity:0.8;" onerror="this.src='logo.jpg'">
+                    <img src="${item.image || 'logo.jpg'}" style="width:100%; height:100%; object-fit:cover; opacity:0.8;" onerror="this.src='logo.jpg'" referrerpolicy="no-referrer">
                 </div>
                 <div class="admin-item-info" style="flex-grow:1;">
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
@@ -2068,7 +2086,7 @@ function renderAdminItemRow(type, item) {
     return `
             <div class="admin-item-row" style="background:rgba(255,255,255,0.02); padding:12px; border-radius:16px; border:1px solid var(--glass-border); margin-bottom:12px; display:flex; align-items:center; gap:20px;">
                 <div class="admin-item-thumb" style="width:80px; height:50px; border-radius:10px; overflow:hidden; flex-shrink:0; background:#000;">
-                    <img src="${thumb}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='logo.jpg'">
+                    <img src="${thumb}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='logo.jpg'" referrerpolicy="no-referrer">
                 </div>
                 <div class="admin-item-info" style="flex-grow:1;">
                     <strong style="display:block; font-size:16px;">${item.title || item.name || "لحظة تسليم"}</strong>
@@ -2095,7 +2113,7 @@ function renderAdminItemRow(type, item) {
     return `
         <div class="admin-item-row" style="background:rgba(255,255,255,0.02); padding:15px; border-radius:16px; border:1px solid var(--glass-border); margin-bottom:12px; display:flex; align-items:center; gap:20px;">
             <div class="admin-item-avatar" style="width:50px; height:50px; border-radius:50%; overflow:hidden; flex-shrink:0; background:var(--bg-alt); border:2px solid var(--p-copper); display:flex; align-items:center; justify-content:center; color:var(--p-copper); font-weight:900;">
-                ${avatar ? `<img src="${avatar}" style="width:100%; height:100%; object-fit:cover;">` : (item.name || "U").charAt(0)}
+                ${avatar ? `<img src="${avatar}" style="width:100%; height:100%; object-fit:cover;" referrerpolicy="no-referrer">` : (item.name || "U").charAt(0)}
             </div>
             <div class="admin-item-info" style="flex-grow:1;">
                 <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
@@ -2125,7 +2143,7 @@ function renderAdminItemRow(type, item) {
             <div style="display:flex; align-items:center; gap:15px;">
                 ${thumb ? `
                     <div style="width:50px; height:40px; border-radius:8px; overflow:hidden; flex-shrink:0;">
-                        <img src="${thumb}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='logo.jpg'">
+                        <img src="${thumb}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='logo.jpg'" referrerpolicy="no-referrer">
                     </div>
                 ` : ""}
                 <div class="admin-item-info">
@@ -2519,7 +2537,7 @@ window.renderCarImageManager = function () {
         return `
           <div class="img-item-v2 ${img.isMain ? 'is-main' : ''}">
             ${img.isMain ? '<span class="main-badge">الرئيسية</span>' : ''}
-            <img src="${src}" alt="Car image">
+            <img src="${src}" alt="Car image" referrerpolicy="no-referrer">
             <div class="img-actions-lite">
               <button type="button" class="img-action-btn-lite" onclick="window.reorderCarImage(${idx}, -1)" title="نقل لليمين">
                 <i class="fas fa-arrow-right"></i>
@@ -2574,6 +2592,13 @@ window.setCarMainImage = function (index) {
 
 window.saveLuxuryItem = async function (e) {
   if (e) e.preventDefault();
+  
+  // 0. Auth Guard for Codespaces / Security
+  if (!auth.currentUser) {
+      alert("⚠️ تنبيه: لم يتم اكتشاف تسجيل دخول صالح.\n\nيرجى محاولة تسجيل الدخول مرة أخرى. إذا كنت تستخدم Codespace، تأكد من إضافة الرابط الحالي في قائمة Authorized Domains في Firebase Console.");
+      return;
+  }
+
   const edit = window.state.currentEdit;
   if (!edit) return;
 
@@ -2604,9 +2629,9 @@ window.saveLuxuryItem = async function (e) {
       let mainImageUrl = "";
 
       const carImages = window.state.carImages || [];
-      if (carImages.length === 0) {
-        // Fallback or warning?
-      }
+      const btn = document.querySelector("#admin-modal .btn-premium");
+      const originalText = btn ? btn.innerText : "حفظ";
+      console.log(`[Storage] Starting upload for ${carImages.length} images...`);
 
       for (let i = 0; i < carImages.length; i++) {
         const img = carImages[i];
@@ -2615,20 +2640,41 @@ window.saveLuxuryItem = async function (e) {
         if (img.type === 'url') {
           url = img.value;
         } else if (img.type === 'file') {
+          if (btn) btn.innerText = `جاري رفع الصورة (${i+1}/${carImages.length})...`;
           const file = img.value;
-          const path = `cars/${Date.now()}_${i}_${file.name.replace(/\s/g, '_')}`;
-          const sRef = storageRef(storage, path);
-          const snapshot = await uploadBytes(sRef, file);
-          url = await getDownloadURL(snapshot.ref);
+          
+          try {
+              // Try standard upload first with a shorter timeout (10s)
+              const path = `cars/${Date.now()}_${i}_${file.name.replace(/\s/g, '_')}`;
+              const sRef = storageRef(storage, path);
+              const uploadTask = uploadBytes(sRef, file, { contentType: file.type });
+              const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Storage Blocked")), 10000));
+              
+              const snapshot = await Promise.race([uploadTask, timeoutPromise]);
+              url = await getDownloadURL(snapshot.ref);
+              url = url.replace('.firebasestorage.app', '.appspot.com');
+              console.log(`[Storage] Upload Success: ${url}`);
+          } catch (uploadErr) {
+              console.warn(`[Failsafe] Storage upload failed or timed out. Falling back to Base64 storage...`, uploadErr);
+              // FALLBACK: Convert to Base64 and store in RTDB directly
+              const reader = new FileReader();
+              const base64Promise = new Promise((resolve) => {
+                  reader.onload = (e) => resolve(e.target.result);
+                  reader.readAsDataURL(file);
+              });
+              url = await base64Promise;
+              console.log(`[Failsafe] Image converted to Base64 successfully.`);
+          }
         }
 
-        finalImageUrls.push(url);
-        if (img.isMain) mainImageUrl = url;
+        if (url) {
+            finalImageUrls.push(url);
+            if (img.isMain) mainImageUrl = url;
+        }
       }
+      if (btn) btn.innerText = "جاري حفظ البيانات النهائية...";
 
-      // If no main image selected, pick first
       if (!mainImageUrl && finalImageUrls.length > 0) mainImageUrl = finalImageUrls[0];
-
       data.image = mainImageUrl;
       data.images = finalImageUrls;
     }
@@ -2722,7 +2768,7 @@ window.renderAdsSlider = function () {
 
   container.innerHTML = ads.map(ad => `
         <div class="ad-slide">
-            <img src="${ad.image || "logo.jpg"}" class="ad-bg-img" alt="${ad.title || "عرض خاص"}">
+            <img src="${ad.image || "logo.jpg"}" class="ad-bg-img" alt="${ad.title || "عرض خاص"}" referrerpolicy="no-referrer">
             <div class="ad-content">
                 <h2 class="luxury-font">${ad.title || ""}</h2>
                 <p>${ad.subtitle || ""}</p>
