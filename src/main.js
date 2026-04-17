@@ -781,7 +781,7 @@ function renderFeaturedOffers(cars) {
         <div class="offer-card-v2" onclick="window.viewLuxuryCar('${car.id}')">
             <div class="offer-badge">عرض حصري</div>
             <div class="offer-img-box">
-                <img src="${car.image || '/logo.jpg'}" alt="${car.make}" onerror="this.src='/logo.jpg'">
+                <img src="${car.image || 'logo.jpg'}" alt="${car.make}" onerror="this.src='logo.jpg'">
             </div>
             <div class="offer-info">
                 <h4>${car.make} ${car.model}</h4>
@@ -883,7 +883,7 @@ window.renderCarGrid = function (cars) {
   grid.innerHTML = cars.map(car => `
     <div class="car-card-premium" onclick="window.viewLuxuryCar('${car.id}')" data-aos="fade-up">
       <div class="car-img-wrap">
-        <img src="${car.image || "/logo.jpg"}" alt="${car.make}" onerror="this.src='/logo.jpg'">
+        <img src="${car.image || "logo.jpg"}" alt="${car.make}" onerror="this.src='logo.jpg'">
         <div class="car-price-v3">${(Number(car.price) || 0).toLocaleString()} <small>ريال</small></div>
         <div class="car-badge-v3 ${car.status === "available" ? "available" : car.status === "reserved" ? "reserved" : "sold"}">${car.status === "available" ? "متاح" : car.status === "reserved" ? "محجوز" : "مباع"}</div>
       </div>
@@ -921,7 +921,7 @@ window.viewLuxuryCar = function (id) {
   // Handle images better
   let images = car.images || [];
   if (images.length === 0 && car.image) images = [car.image];
-  if (images.length === 0) images = ["/logo.jpg"];
+  if (images.length === 0) images = ["logo.jpg"];
 
   const waNumber = window.normalizePhone(window.state.settings.contactSales || "0500000000");
   const waText = `السلام عليكم، أرغب بالاستفسار عن هذه السيارة:\n\n*السيارة:* ${car.make} ${car.model}\n*الموديل:* ${car.year}\n*السعر:* ${Number(car.price).toLocaleString()} ريال\n\nرابط السيارة:\n${window.location.origin}/#car-${car.id}`;
@@ -1472,6 +1472,7 @@ window.applySettings = function (s) {
   if (s.accentColor) root.style.setProperty("--p-copper", s.accentColor);
 
   const logo = s.logo || "logo.jpg";
+  console.log("[DEBUG] Final Logo Source:", logo);
   document.querySelectorAll(".logo-wrap img, .sidebar-brand img, .splash-logo img, #footer-logo-img, #nav-logo-img, #splash-logo-img").forEach(img => {
     img.src = logo;
   });
@@ -2555,7 +2556,6 @@ window.setCarMainImage = function (index) {
 
 window.saveLuxuryItem = async function (e) {
   if (e) e.preventDefault();
-  console.log("[DEBUG] Save Luxury Item Attempted. Current User State:", window.state.user ? "Logged In" : "Logged Out", "Profile:", window.state.userProfile);
   const edit = window.state.currentEdit;
   if (!edit) return;
 
@@ -2636,10 +2636,10 @@ window.saveLuxuryItem = async function (e) {
 
     window.showLuxuryToast(id ? "تم تحديث البيانات بنجاح" : "تم إضافة العنصر بنجاح");
     window.closeModal("item-modal");
-    window.createLog(id ? "تعديل" : "إضافة", `${id ? 'تعديل' : 'إضافة'} في ${type} - ${data.make || data.title || id}`, "data");
   } catch (err) {
-    console.error("Save Error:", err);
-    window.showLuxuryToast("حدث خطأ أثناء الحفظ: " + (err.message || "خطأ غير معروف"), "error");
+    console.error("[ERROR] saveLuxuryItem failed:", err);
+    alert("حدث خطأ أثناء الحفظ:\n" + err.message + "\n\nتلميح: تأكد من إضافة نطاق Codespace الحالي في Firebase Console.");
+    window.showLuxuryToast("فشل الحفظ: " + err.message, "error");
   } finally {
     if (btn) {
       btn.disabled = false;

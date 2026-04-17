@@ -16,7 +16,13 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const db = getDatabase(app); // Realtime Database
+export const db = getDatabase(app);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 export const analytics = getAnalytics(app);
+
+// Codespace Support Check
+if (window.location.hostname.includes('github.dev')) {
+    console.info("%c[Firebase Config] Running in GitHub Codespaces. Make sure to add this domain to Firebase Console -> Auth -> Settings -> Authorized Domains:", "color: #ffcc00; font-weight: bold;");
+    console.info("%c" + window.location.hostname, "color: #00ff00; font-family: monospace;");
+}
