@@ -485,7 +485,19 @@ async function initFirebase() {
   function attachListener(p) {
     if (listeners[p]) return; // Avoid duplicate listeners
     listeners[p] = onValue(ref(db, p), (s) => {
-      const data = s.val();
+      let data = s.val();
+      
+      // Data Normalization for Cars
+      if (p === "cars" && data) {
+          const normalized = {};
+          Object.entries(data).forEach(([id, v]) => {
+              if (!v.image) v.image = v.mainImage || v.img || "logo.jpg";
+              if (!v.bodyType) v.bodyType = v.type || "other";
+              normalized[id] = v;
+          });
+          data = normalized;
+      }
+
       if (p === "settings") {
         window.state.settings = data || {};
         window.applySettings(data);
