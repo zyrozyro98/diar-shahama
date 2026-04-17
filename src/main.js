@@ -472,6 +472,15 @@ async function initFirebase() {
   const publicPaths = ["users", "plates", "locations", "brands", "agents", "specs", "packages", "blogs", "reviews", "cars", "ads", "sales", "settings", "partners"];
   const privatePaths = ["bookings", "notifications", "logs", "quickReplies"];
   const listeners = {};
+  
+  // Debug connection state
+  onValue(ref(db, ".info/connected"), (snapshot) => {
+    if (snapshot.val() === true) {
+      console.log("[Firebase] Connected to Realtime Database");
+    } else {
+      console.warn("[Firebase] Disconnected from Realtime Database");
+    }
+  });
 
   function attachListener(p) {
     if (listeners[p]) return; // Avoid duplicate listeners
