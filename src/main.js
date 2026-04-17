@@ -551,10 +551,11 @@ async function initFirebase() {
 }
 function handleFirstLoad() {
   if (window.state.firstLoadDone) return;
-  const s = window.state.settings;
-  const isMaint = s?.maintenanceMode;
+  const s = window.state.settings || {};
+  const isMaint = s.maintenanceMode;
   const isAdmin = window.state.userProfile?.role === "admin" || window.state.userProfile?.role === "supervisor";
 
+  // If maintenance is on and user is not admin, show maintenance screen
   if (isMaint && !isAdmin) {
     const splash = document.getElementById("luxury-splash");
     if (splash) {
@@ -569,24 +570,29 @@ function handleFirstLoad() {
             </div>
           `;
       splash.style.opacity = "1";
-      splash.classList.remove("hidden");
     }
     return;
   }
 
-  // Hide splash screen when settings are loaded, regardless of cars count
-  if (s && Object.keys(s).length > 0) {
-    setTimeout(() => {
-      const splash = document.getElementById("luxury-splash");
-      if (splash) {
-        splash.style.opacity = "0";
-        setTimeout(() => {
-          splash.classList.add("hidden");
-          splash.remove();
-        }, 800);
-      }
-      window.state.firstLoadDone = true;
-    }, 1200);
+  // Remove splash screen
+  const hideSplash = () => {
+    const splash = document.getElementById("luxury-splash");
+    if (splash) {
+      splash.style.opacity = "0";
+      setTimeout(() => {
+        splash.classList.add("hidden");
+        splash.remove();
+      }, 800);
+    }
+    window.state.firstLoadDone = true;
+  };
+
+  // If settings loaded or after 3 seconds max
+  if (Object.keys(s).length > 0) {
+    setTimeout(hideSplash, 800);
+  } else {
+    // Fallback timer if settings node is totally missing in Firebase
+    setTimeout(hideSplash, 3000);
   }
 }
 
