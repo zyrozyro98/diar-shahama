@@ -19,7 +19,7 @@
     },
     "settings": {
       ".read": true,
-      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'admin' || auth.uid == 'iO8i8Pr5w5a2xxJWYhvesZRUpq62')"
     },
     "bookings": {
       ".read": "auth != null",
