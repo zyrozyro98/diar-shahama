@@ -1518,8 +1518,6 @@ window.applySettings = function (s) {
   }
   if (s.secondaryColor) root.style.setProperty("--p-teal", s.secondaryColor);
   if (s.accentColor) root.style.setProperty("--p-copper", s.accentColor);
-  if (s.bgColor) root.style.setProperty("--bg-main", s.bgColor);
-  if (s.textColor) root.style.setProperty("--text-main", s.textColor);
 
   const logo = s.logo || "logo.jpg";
   document.querySelectorAll(".logo-wrap img, .sidebar-brand img, .splash-logo img, #footer-logo-img, #nav-logo-img, #splash-logo-img").forEach(img => {
@@ -1550,6 +1548,9 @@ window.applySettings = function (s) {
   }
   
   let css = "";
+  if (s.bgColor) css += `body[data-theme="dark"] { --bg-main: ${s.bgColor}; }\n`;
+  if (s.textColor) css += `body[data-theme="dark"] { --text-main: ${s.textColor}; }\n`;
+
   if (s.borderRadius) {
     root.style.setProperty("--border-radius-main", s.borderRadius + "px");
     css += `
@@ -1561,19 +1562,30 @@ window.applySettings = function (s) {
   
   if (s.cardStyle === "solid") {
     css += `
-      .car-card-premium, .modal-inner, .stat-premium-card, .admin-item-row {
+      body[data-theme="dark"] .car-card-premium, body[data-theme="dark"] .modal-inner, body[data-theme="dark"] .stat-premium-card, body[data-theme="dark"] .admin-item-row {
          background: var(--bg-alt) !important;
-         border: 1px solid rgba(255,255,255,0.1) !important;
+         border: 1px solid rgba(255,255,255,0.05) !important;
+         backdrop-filter: none !important;
+      }
+      body[data-theme="light"] .car-card-premium, body[data-theme="light"] .modal-inner, body[data-theme="light"] .stat-premium-card, body[data-theme="light"] .admin-item-row {
+         background: var(--bg-alt) !important;
+         border: 1px solid rgba(0,0,0,0.05) !important;
          backdrop-filter: none !important;
       }
     `;
   } else {
     let op = s.glassOpacity !== undefined ? s.glassOpacity : 0.75;
     css += `
-      .car-card-premium, .modal-inner, .stat-premium-card, .nav-premium, .admin-item-row {
+      body[data-theme="dark"] .car-card-premium, body[data-theme="dark"] .modal-inner, body[data-theme="dark"] .stat-premium-card, body[data-theme="dark"] .nav-premium, body[data-theme="dark"] .admin-item-row {
          background: rgba(17, 24, 39, ${op}) !important;
          backdrop-filter: blur(20px) !important;
          -webkit-backdrop-filter: blur(20px) !important;
+      }
+      body[data-theme="light"] .car-card-premium, body[data-theme="light"] .modal-inner, body[data-theme="light"] .stat-premium-card, body[data-theme="light"] .nav-premium, body[data-theme="light"] .admin-item-row {
+         background: rgba(255, 255, 255, ${op}) !important;
+         backdrop-filter: blur(20px) !important;
+         -webkit-backdrop-filter: blur(20px) !important;
+         border: 1px solid rgba(0,0,0,0.05) !important;
       }
     `;
   }
