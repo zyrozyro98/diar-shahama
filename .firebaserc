@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "onecar1"
-  }
+  },
+  "targets": {
+    "onecar1": {
+      "hosting": {
+        "onecar1": [
+          "onecar1"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
