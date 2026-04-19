@@ -349,6 +349,7 @@ function initUIListeners() {
       const next = current === "dark" ? "light" : "dark";
       document.body.setAttribute("data-theme", next);
       localStorage.setItem("luxury_theme", next);
+      localStorage.setItem("theme_manually_overridden", "true");
       themeBtn.innerHTML = next === "dark" ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
     };
   }
@@ -487,7 +488,13 @@ function initUIListeners() {
 
 function initTheme() {
   const settings = JSON.parse(localStorage.getItem("luxury-settings-cache") || "{}");
-  const theme = localStorage.getItem("luxury_theme") || settings.defaultTheme || "dark";
+  const isOverridden = localStorage.getItem("theme_manually_overridden") === "true";
+  const theme = (isOverridden ? localStorage.getItem("luxury_theme") : settings.defaultTheme) || "dark";
+  
+  if (!isOverridden) {
+      localStorage.setItem("luxury_theme", theme);
+  }
+  
   document.body.setAttribute("data-theme", theme);
   const themeBtn = document.getElementById("theme-btn");
   if (themeBtn) {
@@ -1493,12 +1500,26 @@ window.applySettings = function (s) {
   if (!s) return;
   const root = document.documentElement;
 
+  if (s.defaultTheme) {
+      const isOverridden = localStorage.getItem("theme_manually_overridden") === "true";
+      if (!isOverridden) {
+          document.body.setAttribute("data-theme", s.defaultTheme);
+          localStorage.setItem("luxury_theme", s.defaultTheme);
+          const themeBtn = document.getElementById("theme-btn");
+          if (themeBtn) {
+              themeBtn.innerHTML = s.defaultTheme === "dark" ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+          }
+      }
+  }
+
   if (s.primaryColor) {
     root.style.setProperty("--p-red", s.primaryColor);
     root.style.setProperty("--p-red-glow", s.primaryColor + "66");
   }
   if (s.secondaryColor) root.style.setProperty("--p-teal", s.secondaryColor);
   if (s.accentColor) root.style.setProperty("--p-copper", s.accentColor);
+  if (s.bgColor) root.style.setProperty("--bg-main", s.bgColor);
+  if (s.textColor) root.style.setProperty("--text-main", s.textColor);
 
   const logo = s.logo || "logo.jpg";
   document.querySelectorAll(".logo-wrap img, .sidebar-brand img, .splash-logo img, #footer-logo-img, #nav-logo-img, #splash-logo-img").forEach(img => {
@@ -1518,21 +1539,72 @@ window.applySettings = function (s) {
     root.style.setProperty("--font-main", s.fontFamily);
     document.body.style.fontFamily = s.fontFamily;
   }
+  
+  // Dynamic Design Styles (Border Radius, Card Styles, Hover Effects, Logo Blends)
+  const styleId = "dynamic-design-styles";
+  let style = document.getElementById(styleId);
+  if (!style) {
+    style = document.createElement("style");
+    style.id = styleId;
+    document.head.appendChild(style);
+  }
+  
+  let css = "";
   if (s.borderRadius) {
-    root.style.setProperty("--border-radius-main", s.borderRadius);
-    const styleId = "dynamic-design-styles";
-    let style = document.getElementById(styleId);
-    if (!style) {
-      style = document.createElement("style");
-      style.id = styleId;
-      document.head.appendChild(style);
-    }
-    style.innerHTML = `
+    root.style.setProperty("--border-radius-main", s.borderRadius + "px");
+    css += `
       .car-card-premium, .ad-slide, .nav-premium, .modal-inner, .video-card-v2, .feature-card, .btn-premium { 
-        border-radius: ${s.borderRadius} !important; 
+        border-radius: ${s.borderRadius}px !important; 
       }
     `;
   }
+  
+  if (s.cardStyle === "solid") {
+    css += `
+      .car-card-premium, .modal-inner, .stat-premium-card, .admin-item-row {
+         background: var(--bg-alt) !important;
+         border: 1px solid rgba(255,255,255,0.1) !important;
+         backdrop-filter: none !important;
+      }
+    `;
+  } else {
+    let op = s.glassOpacity !== undefined ? s.glassOpacity : 0.75;
+    css += `
+      .car-card-premium, .modal-inner, .stat-premium-card, .nav-premium, .admin-item-row {
+         background: rgba(17, 24, 39, ${op}) !important;
+         backdrop-filter: blur(20px) !important;
+         -webkit-backdrop-filter: blur(20px) !important;
+      }
+    `;
+  }
+
+  if (s.logoBlend && s.logoBlend !== 'auto') {
+    css += `
+      .logo-wrap img, .sidebar-brand img, .splash-logo img, #footer-logo-img, #nav-logo-img, #splash-logo-img {
+         mix-blend-mode: ${s.logoBlend};
+      }
+    `;
+  }
+  
+  if (s.logoScale) {
+    css += `
+      .logo-wrap img, .sidebar-brand img, .splash-logo img, #footer-logo-img, #nav-logo-img, #splash-logo-img {
+         transform: scale(${s.logoScale});
+      }
+    `;
+  }
+
+  if (s.hoverEffect === "scale") {
+    css += `
+      .car-card-premium:hover, .btn-premium:hover, .stat-premium-card:hover { transform: scale(1.02) translateY(-3px); transition: all 0.3s; z-index: 20; position:relative; }
+    `;
+  } else if (s.hoverEffect === "glow") {
+    css += `
+      .car-card-premium:hover, .btn-premium:hover, .stat-premium-card:hover { box-shadow: 0 0 20px var(--p-red-glow) !important; transition: box-shadow 0.3s; z-index: 20; position:relative; }
+    `;
+  }
+  
+  style.innerHTML = css;
 
   // 1. Guest-facing Dynamic UI
   const aboutText = document.getElementById("about-text-display");
@@ -1575,9 +1647,16 @@ window.applySettings = function (s) {
     "set-color-primary": s.primaryColor || "#a11d21",
     "set-color-secondary": s.secondaryColor || "#1c7c8c",
     "set-color-accent": s.accentColor || "#b8860b",
+    "set-color-bg": s.bgColor || "#05080c",
+    "set-color-text": s.textColor || "#f8fafc",
+    "set-hover-effect": s.hoverEffect || "scale",
+    "set-card-style": s.cardStyle || "glass",
+    "set-glass-opacity": s.glassOpacity !== undefined ? s.glassOpacity : 0.75,
+    "set-logo-blend": s.logoBlend || "auto",
+    "set-logo-scale": s.logoScale || "1",
     "set-default-theme": s.defaultTheme || "dark",
     "set-font-family": s.fontFamily || "'Cairo', sans-serif",
-    "set-border-radius": s.borderRadius || "16px",
+    "set-border-radius": s.borderRadius || "16",
     "set-contact-mgmt": s.contactAdmin || "",
     "set-contact-sales": s.contactSales || "",
     "set-contact-complaints": s.contactComplaints || "",
@@ -1591,7 +1670,15 @@ window.applySettings = function (s) {
   };
   Object.entries(formMapping).forEach(([id, val]) => {
     const el = document.getElementById(id);
-    if (el) el.value = val;
+    if (el) {
+        el.value = val;
+        // visual updates for inputs inside UI
+        if (el.type === 'range' || el.type === 'color') {
+            let ev = document.createEvent('HTMLEvents');
+            ev.initEvent('input', false, true);
+            el.dispatchEvent(ev);
+        }
+    }
   });
 
   const maintenanceEl = document.getElementById("set-maintenance-mode");
@@ -1679,6 +1766,7 @@ window.saveAppSettings = async function () {
   };
 
   try {
+    localStorage.removeItem("theme_manually_overridden");
     await set(ref(db, "settings"), s);
     window.showLuxuryToast("تم حفظ الإعدادات بنجاح");
     window.createLog("تعديل إعدادات", "تحديث شامل لإعدادات الموقع والمنصة", "settings");
