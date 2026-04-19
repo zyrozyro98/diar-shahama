@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "diar-shahama-1088b",
+    "site": "onecar1",
     "public": "dist",
     "cleanUrls": true,
     "trailingSlash": false,
@@ -17,6 +17,7 @@
     ]
   },
   "database": {
+    "instance": "onecar1-default-rtdb",
     "rules": "database.rules.json"
   },
   "firestore": {

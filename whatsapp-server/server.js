@@ -20,6 +20,31 @@ const io = new Server(server, {
 const sessions = {};
 const log = pino({ level: 'error' });
 
+// Firebase Admin SDK Configuration
+const admin = require('firebase-admin');
+const serviceAccount = require('./onecar1-adminsdk.json');
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: "https://onecar1-default-rtdb.firebaseio.com"
+});
+
+const db = admin.database();
+
+async function updateFirebaseStatus(userId, status, metadata = {}) {
+    try {
+        const ref = db.ref(`whatsapp_settings/${userId}`);
+        await ref.update({
+            status: status,
+            lastUpdated: admin.database.ServerValue.TIMESTAMP,
+            ...metadata
+        });
+        console.log(`[Firebase Sync] Status updated to: ${status} for user: ${userId}`);
+    } catch (err) {
+        console.error('[Firebase Sync] Error updating status:', err.message);
+    }
+}
+
 // Global Error Handlers
 process.on('uncaughtException', (err) => {
     console.error('CRITICAL: Uncaught Exception:', err);
@@ -264,11 +289,16 @@ async function startWASession(userId) {
                 }, 5000);
             } else {
                 console.warn(`[Session: ${userId}] Permanent disconnect (Logout). Clearing session.`);
+                await updateFirebaseStatus(userId, 'disconnected');
                 await clearSession(userId);
                 io.emit('disconnected', { userId, msg: 'تم تسجيل الخروج أو جلسة تالفة.' });
             }
         } else if (connection === 'open') {
             console.log(`[Session: ${userId}] WhatsApp session is OPEN and READY`);
+            await updateFirebaseStatus(userId, 'ready', { 
+                phoneNumber: sock.user.id.split(':')[0],
+                pushName: sock.user.name 
+            });
             sessions[userId].isReady = true;
             sessions[userId].initializing = false;
             sessions[userId].lastQr = null;
@@ -349,6 +379,7 @@ io.on('connection', (socket) => {
     socket.on('logout_session', async ({ userId }) => {
         if (sessions[userId]?.sock) {
             try { await sessions[userId].sock.logout(); } catch (e) { }
+            await updateFirebaseStatus(userId, 'disconnected');
             await clearSession(userId);
         }
     });
