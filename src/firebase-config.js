@@ -1,22 +1,26 @@
 import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
 import { getDatabase } from "firebase/database";
 import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAhmJ3_2V0OOP26nZOMWMOyTDePiyI01Yk",
-  authDomain: "diar-shahama-1088b.firebaseapp.com",
-  projectId: "diar-shahama-1088b",
-  storageBucket: "diar-shahama-1088b.firebasestorage.app",
-  messagingSenderId: "887214900924",
-  appId: "1:887214900924:web:0a265e755c852f0113b2b9",
-  measurementId: "G-HB41E2SHWR",
-  databaseURL: "https://diar-shahama-1088b-default-rtdb.firebaseio.com"
+  apiKey: "AIzaSyDQodWTn2wa0WzQuHqzZt2Ex6CdnQdrlUU",
+  authDomain: "onecar1.firebaseapp.com",
+  projectId: "onecar1",
+  storageBucket: "onecar1.firebasestorage.app",
+  messagingSenderId: "735648367644",
+  appId: "1:735648367644:web:44ae368553280b14bdcbd9",
+  measurementId: "G-RSTPV8SRXT",
+  databaseURL: "https://onecar1-default-rtdb.firebaseio.com"
 };
 
 const app = initializeApp(firebaseConfig);
-export const db = getDatabase(app); // Realtime Database
-export const auth = getAuth(app);
-export const storage = getStorage(app);
-export const analytics = getAnalytics(app);
+const analytics = getAnalytics(app);
+const db = getDatabase(app);
+const auth = getAuth(app);
+const firestore = getFirestore(app);
+const storage = getStorage(app);
+
+export { app, analytics, db, auth, firestore, storage };

@@ -130,6 +130,48 @@ window.showLuxuryToast = function (message, type = "success") {
   }, 4000);
 };
 
+window.compressImage = function (file, maxWidth = 1000, maxHeight = 1000, quality = 0.6) {
+  return new Promise((resolve, reject) => {
+    if (!file || !(file instanceof File || file instanceof Blob)) {
+      resolve(file); // Return as is if not a file
+      return;
+    }
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height *= maxWidth / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width *= maxHeight / height;
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        // Using image/jpeg for better compression
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+    };
+    reader.onerror = reject;
+  });
+};
+
+
 window.openModal = function (id) {
   const el = document.getElementById(id);
   if (el) {
@@ -212,18 +254,39 @@ function pushHistoryState(type) {
 
 window.normalizePhone = function (phone) {
   if (!phone) return "";
-  let clean = phone.toString().replace(/\D/g, "");
-  if (clean.startsWith("00")) clean = clean.substring(2);
-  if (clean.startsWith("0")) clean = clean.substring(1);
+  const phoneStr = phone.toString().trim();
+  
+  // If it's a full JID or LID, we extract the user part but ONLY if it's @s.whatsapp.net
+  // For @lid, we might want to keep it or handle it carefully. 
+  // However, according to the user request to "Stop LID", we should prioritize numbers.
+  if (phoneStr.includes("@s.whatsapp.net")) {
+      return phoneStr.split("@")[0].replace(/\D/g, "");
+  }
+  
+  if (phoneStr.includes("@lid")) {
+      // If we have an LID, we keep it as is for now so the backend can resolve it,
+      // but the user wants to stop LID. So if we see @lid, we just pass it through 
+      // and let resolveLidToJid handle it.
+      return phoneStr; 
+  }
 
-  // Saudi Logic
-  if (clean.length === 9 && clean.startsWith("5")) return "966" + clean;
-  if (clean.startsWith("966") && clean.length > 10) return clean;
+  let clean = phoneStr.replace(/\D/g, "");
+  
+  // Handle cases like 96605... or 96707...
+  if (clean.startsWith("9660")) clean = "966" + clean.substring(4);
+  else if (clean.startsWith("9670")) clean = "967" + clean.substring(4);
 
-  // Yemen Logic
-  if (clean.length === 9 && clean.startsWith("7")) return "967" + clean;
-  if (clean.startsWith("967") && clean.length > 10) return clean;
+  if (clean.startsWith("966") || clean.startsWith("967")) return clean;
 
+  if (clean.startsWith("05")) return "966" + clean.substring(1);
+  if (clean.startsWith("07")) return "967" + clean.substring(1);
+  if (clean.startsWith("0")) return "966" + clean.substring(1);
+
+  if (clean.length === 9) {
+      if (clean.startsWith("7")) return "967" + clean;
+      if (clean.startsWith("5")) return "966" + clean;
+  }
+  
   return clean;
 };
 
@@ -1052,163 +1115,121 @@ window.viewBookingDetails = function (id) {
   const staffName = window.state.users.find(u => u.id === item.assignedTo)?.name || "غير مسند";
   const statusLabel = item.status === "sold" ? "مكتمل" : item.status === "available" ? "متاح" : item.status === "rejected" ? "مرفوض" : item.status === "waiting" ? "بالانتظار" : "جديد";
   const stClass = item.status === "sold" ? "sold" : item.status === "new" ? "available" : "reserved";
+  const statusMap = {
+    new: "جديد",
+    waiting: "بالانتظار",
+    inquiry: "استفسار",
+    sold: "مكتمل",
+    rejected: "مرفوض",
+    available: "متاح"
+  };
 
   const detailsContent = `
-    <div class="details-luxury-container booking-modal-layout animate-fade-in-v2" style="background: var(--bg-main); border-radius: 20px; overflow: hidden; outline: 1px solid rgba(255,255,255,0.05);">
+    <div class="booking-modal-layout details-luxury-container" style="direction: rtl;">
       
-      <!-- الجهة اليمنى: الهيدر + التفاصيل (قابلة للتمرير) -->
-      <div class="booking-right-side custom-scrollbar" style="flex: 1; min-width: 350px; display: flex; flex-direction: column; overflow-y: auto; background: var(--bg-alt);">
-        
-        <div class="details-top-v4" style="flex-shrink: 0; padding: 30px; position: relative; border-bottom: 1px solid var(--glass-border); background: rgba(0,0,0,0.02);">
-          <div style="position: absolute; top:0; right:0; width:150px; height:150px; background:radial-gradient(circle, var(--p-copper) 0%, transparent 70%); opacity:0.05; pointer-events:none;"></div>
-          
-          <div class="details-header-v3">
-            <div class="d-badge-row" style="margin-bottom: 15px; gap:10px;">
-              <span class="badge-v3 status ${stClass}" style="padding: 6px 18px; font-size: 13px; border-radius: 30px; font-weight: 800; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">${statusLabel}</span>
-              <span class="badge-v3 year" style="padding: 6px 18px; font-size: 13px; border-radius: 30px; background: rgba(184, 134, 11, 0.1); color: var(--p-copper); border:1px solid rgba(184, 134, 11, 0.2);">${item.customerType === 'company' ? 'شركة' : 'فرد'}</span>
-              <span class="badge-v3" style="padding: 6px 18px; font-size: 13px; border-radius: 30px; background: rgba(184, 134, 11, 0.1); color: var(--p-copper); border: 1px solid rgba(184, 134, 11, 0.3);">رقم الطلب: #${item.id.slice(-6).toUpperCase()}</span>
-            </div>
-            <h1 class="luxury-font" style="font-size: 28px; font-weight: 800; margin-bottom: 8px; color: var(--text-main); display:flex; align-items:center; gap:12px;"><i class="fas fa-user-circle" style="color:var(--p-copper); font-size:32px;"></i> ${item.name || "بدون اسم"}</h1>
-            <p class="car-subtitle-v5" style="font-size: 16px; color: var(--text-dim); display:flex; align-items:center; gap:8px;"><i class="fas fa-phone-alt"></i> <a href="tel:${item.phone}" style="color: var(--text-main); text-decoration:none; font-weight:600; letter-spacing:1px; transition:0.3s;" onmouseover="this.style.color='var(--p-copper)'" onmouseout="this.style.color='var(--text-main)'">${item.phone}</a></p>
-          </div>
+      <!-- القسم الأيمن: تفاصيل الحجز -->
+      <div class="details-info-v4 custom-scrollbar">
+        <div class="p-header" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:25px;">
+           <div>
+              <h2 style="margin:0; font-size:28px; color:var(--text-main); font-weight:800;">${item.name || 'عميل مجهول'}</h2>
+              <p style="margin:5px 0 0; color:var(--text-dim); display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-phone-alt" style="font-size:12px; color:var(--p-copper);"></i> ${item.phone}
+              </p>
+           </div>
+           <div class="status-badge-v3" style="background:var(--bg-card); padding:8px 16px; border-radius:12px; border:1px solid var(--glass-border); text-align:center;">
+              <span style="display:block; font-size:10px; color:var(--text-dim); text-transform:uppercase;">حالة الطلب الحالية</span>
+              <strong style="color:var(--p-copper); font-size:14px;">${statusMap[item.status] || item.status}</strong>
+           </div>
         </div>
 
-        <div class="details-info-v4" style="padding: 30px;">
-          <div class="specs-grid-v4-compact" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:15px;">
-            <div class="spec-card-v5" style="background:var(--bg-card); padding:16px; border-radius:14px; border:1px solid var(--glass-border); transition:0.3s;">
-               <i class="fas fa-car" style="color:var(--p-teal); font-size:20px; margin-bottom:10px; display:block;"></i>
-               <div class="s-info"><span style="font-size:11px; opacity:0.6; display:block; margin-bottom:4px; color:var(--text-dim);">السيارة المطلوبة</span><strong style="font-size:14px; color:var(--text-main);">${item.carRequested || "غير محدد"}</strong></div>
+        <div class="details-grid-lite" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:20px; margin-bottom:30px;">
+            <div class="d-item" style="background:rgba(255,255,255,0.02); padding:15px; border-radius:15px; border:1px solid var(--glass-border);">
+                <span style="display:block; font-size:11px; color:var(--text-dim); margin-bottom:5px;">السيارة المطلوبة</span>
+                <strong style="font-size:15px; color:var(--p-copper);"><i class="fas fa-car" style="margin-left:8px;"></i>${item.carRequested || 'غير محدد'}</strong>
             </div>
-            <div class="spec-card-v5" style="background:var(--bg-card); padding:16px; border-radius:14px; border:1px solid var(--glass-border); transition:0.3s;">
-               <i class="fas fa-globe" style="color:var(--p-teal); font-size:20px; margin-bottom:10px; display:block;"></i>
-               <div class="s-info"><span style="font-size:11px; opacity:0.6; display:block; margin-bottom:4px; color:var(--text-dim);">الجنسية / المدينة</span><strong style="font-size:14px; color:var(--text-main);">${item.nationality || "-"} / ${item.city || "-"}</strong></div>
+            <div class="d-item" style="background:rgba(255,255,255,0.02); padding:15px; border-radius:15px; border:1px solid var(--glass-border);">
+                <span style="display:block; font-size:11px; color:var(--text-dim); margin-bottom:5px;">تاريخ الطلب</span>
+                <strong style="font-size:14px;"><i class="far fa-calendar-alt" style="margin-left:8px;"></i>${new Date(item.createdAt).toLocaleDateString('ar-SA')}</strong>
             </div>
-            <div class="spec-card-v5" style="background:var(--bg-card); padding:16px; border-radius:14px; border:1px solid var(--glass-border); transition:0.3s;">
-               <i class="fas fa-money-bill-wave" style="color:var(--p-copper); font-size:20px; margin-bottom:10px; display:block;"></i>
-               <div class="s-info"><span style="font-size:11px; opacity:0.6; display:block; margin-bottom:4px; color:var(--text-dim);">طريقة الشراء</span><strong style="font-size:14px; color:var(--text-main);">${item.paymentMethod || "-"} <span style="opacity:0.7;font-size:12px;">${item.paymentMethod === 'بنك' ? `(${item.bankName || "-"})` : ""}</span></strong></div>
-            </div>
-            ${item.paymentMethod === 'بنك' ? `
-            <div class="spec-card-v5" style="background:var(--bg-card); padding:16px; border-radius:14px; border:1px solid var(--glass-border); transition:0.3s;">
-               <i class="fas fa-calendar-alt" style="color:var(--p-copper); font-size:20px; margin-bottom:10px; display:block;"></i>
-               <div class="s-info"><span style="font-size:11px; opacity:0.6; display:block; margin-bottom:4px; color:var(--text-dim);">مدة الأقساط</span><strong style="font-size:14px; color:var(--text-main);">${item.installmentPeriod || "-"}</strong></div>
-            </div>` : ""}
-            <div class="spec-card-v5" style="background:var(--bg-card); padding:16px; border-radius:14px; border:1px solid var(--glass-border); transition:0.3s;">
-               <i class="fas fa-wallet" style="color:var(--p-teal); font-size:20px; margin-bottom:10px; display:block;"></i>
-               <div class="s-info"><span style="font-size:11px; opacity:0.6; display:block; margin-bottom:4px; color:var(--text-dim);">الراتب</span><strong style="font-size:14px; color:var(--text-main);">${item.salary || "-"} <small>ريال</small></strong></div>
-            </div>
-            <div class="spec-card-v5" style="background:var(--bg-card); padding:16px; border-radius:14px; border:1px solid var(--glass-border); transition:0.3s;">
-               <i class="fas fa-file-invoice-dollar" style="color:var(--p-red); font-size:20px; margin-bottom:10px; display:block;"></i>
-               <div class="s-info"><span style="font-size:11px; opacity:0.6; display:block; margin-bottom:4px; color:var(--text-dim);">الالتزامات</span><strong style="font-size:14px; color:var(--text-main);">${item.commitments || "-"} <small>ريال</small></strong></div>
-            </div>
-            <div class="spec-card-v5" style="background:var(--bg-card); padding:16px; border-radius:14px; border:1px solid var(--glass-border); transition:0.3s;">
-               <i class="fas fa-building" style="color:var(--p-teal); font-size:20px; margin-bottom:10px; display:block;"></i>
-               <div class="s-info"><span style="font-size:11px; opacity:0.6; display:block; margin-bottom:4px; color:var(--text-dim);">جهة العمل</span><strong style="font-size:14px; color:var(--text-main);">${item.workEntity || "-"} <span style="opacity:0.7;font-size:12px;">(${item.workStatus || "-"})</span></strong></div>
-            </div>
-            <div class="spec-card-v5" style="background:var(--bg-card); padding:16px; border-radius:14px; border:1px solid var(--glass-border); transition:0.3s;">
-               <i class="fas fa-clock" style="color:var(--text-dim); font-size:20px; margin-bottom:10px; display:block;"></i>
-               <div class="s-info"><span style="font-size:11px; opacity:0.6; display:block; margin-bottom:4px; color:var(--text-dim);">وقت التواصل</span><strong style="font-size:14px; color:var(--text-main);">${item.preferredTime || "-"}</strong></div>
-            </div>
-            <div class="spec-card-v5" style="background:var(--bg-card); padding:16px; border-radius:14px; border:1px solid var(--glass-border); transition:0.3s;">
-               <i class="fas fa-user-tie" style="color:var(--p-copper); font-size:20px; margin-bottom:10px; display:block;"></i>
-               <div class="s-info"><span style="font-size:11px; opacity:0.6; display:block; margin-bottom:4px; color:var(--text-dim);">الموظف</span><strong style="font-size:14px; color:var(--text-main);">${staffName}</strong></div>
-            </div>
-            <div class="spec-card-v5" style="background:var(--bg-card); padding:16px; border-radius:14px; border:1px solid var(--glass-border); transition:0.3s;">
-               <i class="fas fa-user" style="color:var(--text-dim); font-size:20px; margin-bottom:10px; display:block;"></i>
-               <div class="s-info"><span style="font-size:11px; opacity:0.6; display:block; margin-bottom:4px; color:var(--text-dim);">العمر</span><strong style="font-size:14px; color:var(--text-main);">${item.age || "-"} <small>سنة</small></strong></div>
-            </div>
-            ${item.email ? `
-            <div class="spec-card-v5" style="background:var(--bg-card); padding:16px; border-radius:14px; border:1px solid var(--glass-border); transition:0.3s;">
-               <i class="fas fa-envelope" style="color:var(--text-dim); font-size:20px; margin-bottom:10px; display:block;"></i>
-               <div class="s-info"><span style="font-size:11px; opacity:0.6; display:block; margin-bottom:4px; color:var(--text-dim);">البريد</span><strong style="font-size:14px; color:var(--text-main);">${item.email}</strong></div>
-            </div>` : ""}
-          </div>
-          
-          <div class="desc-card-v5" style="margin-top: 25px; background:rgba(255,255,255,0.015); padding:20px; border-radius:16px; border:1px dashed var(--glass-border);">
-            <h3 style="font-size:15px; color:var(--p-copper); margin-bottom:12px; display:flex; align-items:center; gap:8px;"><i class="fas fa-comment-dots"></i> ملاحظات العميل</h3>
-            <div class="desc-text-v5" style="font-size:14px; line-height:1.8; color:var(--text-main);">
-              ${(item.notes || "لا يوجد ملاحظات").replace(/\n/g, '<br>')}
-            </div>
-          </div>
+        </div>
 
-          <div class="booking-action-card" style="margin-top:25px; padding:25px; background:var(--bg-card); border-radius:16px; border:1px solid var(--glass-border); box-shadow:0 10px 30px rgba(0,0,0,0.1);">
-              <h3 style="margin-bottom:18px; color:var(--text-main); font-size:16px; display:flex; align-items:center; gap:10px;"><i class="fas fa-sliders-h" style="color:var(--p-copper);"></i> تحديث حالة الطلب</h3>
-              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:15px; margin-bottom:20px;">
-                  <div class="f-group" style="margin:0;">
-                      <label style="font-size:12px; color:var(--text-dim); margin-bottom:6px;">الحالة الرئيسية</label>
-                      <select id="update-booking-status" class="filter-select" style="width:100%; border-radius:10px; padding:12px 14px; background:var(--bg-alt); color:var(--text-main); border: 1px solid var(--glass-border);" onchange="window.updateSubStatusOptions(this.value)">
-                          <option value="new" ${item.status === 'new' ? 'selected' : ''}>جديد</option>
-                          <option value="waiting" ${item.status === 'waiting' ? 'selected' : ''}>بالانتظار</option>
-                          <option value="inquiry" ${item.status === 'inquiry' ? 'selected' : ''}>استفسار</option>
-                          <option value="sold" ${item.status === 'sold' ? 'selected' : ''}>مكتمل</option>
-                          <option value="rejected" ${item.status === 'rejected' ? 'selected' : ''}>مرفوض</option>
-                      </select>
-                  </div>
-                  <div class="f-group" style="margin:0;">
-                      <label style="font-size:12px; color:var(--text-dim); margin-bottom:6px;">الحالة التفصيلية</label>
-                      <select id="update-booking-substatus" class="filter-select" style="width:100%; border-radius:10px; padding:12px 14px; background:var(--bg-alt); color:var(--text-main); border: 1px solid var(--glass-border);">
-                          <!-- يتم التعبئة عبر JavaScript -->
-                      </select>
-                  </div>
-              </div>
-              <div class="f-group" style="margin-bottom:20px;">
-                  <label style="font-size:12px; color:var(--text-dim); margin-bottom:6px;">تفاصيل إضافية (ملاحظات الموظف)</label>
-                  <textarea id="update-booking-details" placeholder="اكتب أو انسخ أي توضيح خاص بطلب العميل أو حالته هنا..." style="width:100%; border-radius:10px; padding:12px 14px; background:var(--bg-alt); border:1px solid var(--glass-border); color:var(--text-main); min-height:80px; resize:vertical; font-family:inherit;">${item.additionalDetails || ""}</textarea>
-              </div>
-              <button onclick="window.updateBookingQuickStatus('${item.id}')" class="btn-premium" style="width:100%; padding:14px; border:none; border-radius:12px; font-weight:800; font-size:15px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">حفظ التحديثات <i class="fas fa-check-circle" style="margin-right:8px;"></i></button>
-          </div>
-          
-          <div class="details-footer-actions-v3" style="margin-top:25px; display:flex; gap:15px; padding-bottom:15px;">
-             <button onclick="window.fetchServerWAChat('${item.phone}', '${item.assignedTo || ''}')" class="btn-luxury-v2 wa-btn" style="flex:1; border:none; cursor:pointer; background:#00a884; color:white; padding:14px; border-radius:14px; display:flex; justify-content:center; align-items:center; gap:12px; font-family:inherit; transition:0.3s; box-shadow:0 4px 15px rgba(0,168,132,0.3);">
-               <i class="fab fa-whatsapp" style="font-size:24px;"></i>
-               <div class="btn-txt" style="text-align:right;">
-                 <strong style="display:block; font-size:14px;">تزامن الواتساب</strong>
-               </div>
-             </button>
-             <a href="tel:${item.phone}" class="btn-luxury-v2 call-btn" style="flex:1; border:none; text-decoration:none; cursor:pointer; background:var(--bg-card); color:var(--text-main); padding:14px; border-radius:14px; border:1px solid var(--glass-border); display:flex; justify-content:center; align-items:center; gap:12px; font-family:inherit; transition:0.3s;">
-               <i class="fas fa-phone-alt" style="font-size:20px; color:var(--p-copper);"></i>
-               <div class="btn-txt" style="text-align:right;">
-                 <strong style="display:block; font-size:14px;">مكالمة هاتفية</strong>
-               </div>
-             </a>
-          </div>
+        <div class="update-section" style="background:rgba(255,255,255,0.03); padding:20px; border-radius:20px; border:1px solid var(--glass-border);">
+            <h4 style="margin:0 0 15px; font-size:16px; font-weight:700;"><i class="fas fa-edit" style="margin-left:10px; color:var(--p-copper);"></i>تحديث حالة المتابعة</h4>
+            
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+                <div class="f-group">
+                    <label style="font-size:12px; color:var(--text-dim); margin-bottom:6px; display:block;">الحالة العامة</label>
+                    <select id="update-booking-status" onchange="window.updateSubStatusOptions(this.value)" style="width:100%; border-radius:10px; padding:10px; background:var(--bg-alt); border:1px solid var(--glass-border); color:var(--text-main); font-family:inherit;">
+                        ${Object.entries(statusMap).map(([k, v]) => `<option value="${k}" ${k === (item.status || "new") ? 'selected' : ''}>${v}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="f-group">
+                    <label style="font-size:12px; color:var(--text-dim); margin-bottom:6px; display:block;">المحافظة / الوضع</label>
+                    <select id="update-booking-substatus" style="width:100%; border-radius:10px; padding:10px; background:var(--bg-alt); border:1px solid var(--glass-border); color:var(--text-main); font-family:inherit;">
+                        <!-- dynamic -->
+                    </select>
+                </div>
+            </div>
+
+            <div class="f-group" style="margin-bottom:15px;">
+                <label style="font-size:12px; color:var(--text-dim); margin-bottom:6px; display:block;">ملاحظات الموظف الخاصة</label>
+                <textarea id="update-booking-details" style="width:100%; min-height:80px; border-radius:12px; padding:12px; background:var(--bg-alt); border:1px solid var(--glass-border); color:var(--text-main); font-family:inherit; resize:vertical;">${item.additionalDetails || ""}</textarea>
+            </div>
+
+            <button onclick="window.updateBookingQuickStatus('${item.id}')" class="btn-premium" style="width:100%; padding:14px; border:none; border-radius:12px; font-weight:700; cursor:pointer;">
+                حفظ التعديلات
+            </button>
+        </div>
+
+        <div style="margin-top:20px; display:flex; gap:10px;">
+            <a href="tel:${item.phone}" class="icon-btn-lite" style="flex:1; height:45px; border-radius:12px; background:#1c7c8c; color:white; border:none; gap:10px; display:flex; align-items:center; justify-content:center; text-decoration:none;">
+                <i class="fas fa-phone-alt" style="color:white;"></i> مكالمة
+            </a>
+            <button onclick="window.fetchServerWAChat('${item.waJid || item.phone}', '${item.assignedTo || ''}')" class="icon-btn-lite" style="flex:1; height:45px; border-radius:12px; gap:10px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                <i class="fas fa-sync-alt"></i> تحديث الدردشة
+            </button>
         </div>
       </div>
 
-      <!-- العمود الأيسر: واجهة الدردشة المبرمجة مع السيرفر الاحترافي -->
-      <div class="details-wa-v4" style="flex: 0 0 500px; display: flex; flex-direction: column; background: #efeae2; border-left: 1px solid var(--glass-border); height: 100%; position: relative;">
-          <div class="chat-header">
-             <div style="background: rgba(255,255,255,0.2); width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                 <i class="fab fa-whatsapp" style="font-size: 24px;"></i>
-             </div>
-             <div style="flex: 1; overflow: hidden; min-width: 0;">
-                 <h3 style="margin: 0; font-size: 16px; font-weight: 700; font-family: inherit; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${item.name || 'محادثة العميل'}</h3>
-                 <p style="margin: 0; font-size: 12px; opacity: 0.9; display:flex; align-items:center; gap:5px;"><i class="fas fa-circle" id="chat-polling-dot" style="font-size:8px; color:#ffffff; animation: pulse 1.5s infinite;"></i> متصل بالخادم</p>
-             </div>
-             <button class="icon-btn-lite" style="background:rgba(0,0,0,0.1); border:none; width:36px; height:36px;" onclick="window.fetchServerWAChat('${item.phone}', '${item.assignedTo || ''}')" title="تحديث يدوي"><i class="fas fa-sync-alt" style="color:white;"></i></button>
+      <!-- القسم الأيسر: دردشة واتساب سيرفر -->
+      <div class="details-wa-v4">
+          <div class="wa-chat-header">
+              <div class="avatar">
+                  <i class="fab fa-whatsapp" style="font-size:24px; color:white;"></i>
+              </div>
+              <div style="flex:1; line-height:1.2;">
+                  <h3 style="margin:0; font-weight:700;">${item.name || 'محادثة واتساب'}</h3>
+                  <small style="opacity:0.8;">الرقم: ${item.phone}</small>
+              </div>
+              <div id="wa-connection-dot" style="width:10px; height:10px; background:#4de265; border-radius:50%; box-shadow:0 0 5px #4de265;" title="متصل بالسيرفر"></div>
           </div>
-          
-          <div id="wa-modal-chat-box" class="chat-messages">
-             <div style="text-align:center; margin-top: auto; margin-bottom: auto;">
-                 <i class="fas fa-circle-notch fa-spin" style="font-size: 36px; color: #00a884; margin-bottom: 15px;"></i><br>
-                 <div style="background: rgba(255,255,255,0.95); display: inline-block; padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight:600; color: #444; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">جاري الاتصال بالخادم الداخلي...</div>
-             </div>
+
+          <div id="wa-server-chat-box" class="custom-scrollbar">
+              <div style="text-align:center; margin: auto;">
+                  <i class="fas fa-circle-notch fa-spin" style="font-size:32px; color:#00a884; margin-bottom:15px;"></i>
+                  <p style="font-size:13px; color:#666;">جاري تحميل محادثات السيرفر...</p>
+              </div>
           </div>
-          
-          <div id="wa-emoji-picker" style="display:none; position:absolute; bottom: 90px; right: 20px; background:white; border-radius:16px; box-shadow:0 8px 30px rgba(0,0,0,0.2); width:320px; z-index:100; border:1px solid rgba(0,0,0,0.1); overflow:hidden;">
-               <emoji-picker style="width: 100%; --num-columns: 8; --category-font-size: 14px; --emoji-size: 24px; --background: white; border: none;"></emoji-picker>
-          </div>
-          
-          <div id="wa-quick-replies-bar" style="display:flex; gap:10px; padding:10px 20px; background:#f5f1eb; overflow-x:auto; border-top:1px solid rgba(0,0,0,0.05); align-items:center; z-index: 10; flex-shrink: 0; min-height: 50px;">
+
+          <div id="wa-quick-replies-bar">
                <!-- rendered via js -->
           </div>
-          
-          <div class="chat-input-area">
-             <i class="far fa-smile" style="font-size: 24px; color: #54656f; cursor: pointer;" onclick="document.getElementById('wa-emoji-picker').style.display = document.getElementById('wa-emoji-picker').style.display === 'none' ? 'flex' : 'none';"></i>
-             <input type="file" id="wa-media-upload" style="display:none" onchange="window.handleWAMediaSelect('${item.phone}', '${item.assignedTo || ''}')">
-             <i class="fas fa-paperclip" style="font-size: 22px; color: #54656f; cursor: pointer;" onclick="document.getElementById('wa-media-upload').click()"></i>
-             <i id="wa-mic-btn" class="fas fa-microphone" style="font-size: 22px; color: #54656f; cursor: pointer; transition: 0.2s;" onpointerdown="window.startWARecording()" onpointerup="window.stopWARecording('${item.phone}', '${item.assignedTo || ''}')" onpointerleave="window.stopWARecording('${item.phone}', '${item.assignedTo || ''}')" title="اضغط باستمرار للتسجيل الصوتي"></i>
-             <input type="text" id="wa-modal-input" class="chat-input" placeholder="اكتب رسالة للرد..." onkeydown="if(event.key==='Enter') { window.sendModalWAMessage('${item.phone}', '${item.assignedTo || ''}'); document.getElementById('wa-emoji-picker').style.display='none'; }">
-             <button onclick="window.sendModalWAMessage('${item.phone}', '${item.assignedTo || ''}'); document.getElementById('wa-emoji-picker').style.display='none';" class="chat-btn"><i class="fas fa-paper-plane" style="margin-right:4px;"></i></button>
+
+          <div id="wa-emoji-picker" style="display:none; position:absolute; bottom:80px; right:15px; z-index:1000; background:white; border-radius:15px; box-shadow:0 10px 40px rgba(0,0,0,0.2); overflow:hidden; border:1px solid #ddd;">
+               <emoji-picker style="width:300px; height:400px; -webkit-filter: grayscale(0);"></emoji-picker>
+          </div>
+
+          <div class="wa-input-bar">
+              <i class="far fa-smile" style="font-size:22px; color:#54656f; cursor:pointer;" onclick="const p=document.getElementById('wa-emoji-picker'); p.style.display=p.style.display==='none'?'block':'none'"></i>
+              <input type="file" id="wa-media-upload" style="display:none" onchange="window.handleWAMediaSelect('${item.waJid || item.phone}', '${item.assignedTo || ''}')">
+              <i class="fas fa-paperclip" style="font-size:20px; color:#54656f; cursor:pointer;" onclick="document.getElementById('wa-media-upload').click()"></i>
+              <i id="wa-mic-btn" class="fas fa-microphone" style="font-size:20px; color:#54656f; cursor:pointer;" onpointerdown="window.startWARecording()" onpointerup="window.stopWARecording('${item.waJid || item.phone}', '${item.assignedTo || ''}')"></i>
+              
+              <input type="text" id="wa-server-input" placeholder="اكتب رسالة للرد..." onkeydown="if(event.key==='Enter') window.sendServerWAMessage('${item.waJid || item.phone}', '${item.assignedTo || ''}')">
+              
+              <button class="wa-send-btn" onclick="window.sendServerWAMessage('${item.waJid || item.phone}', '${item.assignedTo || ''}')">
+                  <i class="fas fa-paper-plane"></i>
+              </button>
           </div>
       </div>
     </div>
@@ -1224,16 +1245,14 @@ window.viewBookingDetails = function (id) {
     
     // Auto-fetch WhatsApp server chat && Register modern emoji picker
     setTimeout(() => {
-       if (window.fetchServerWAChat) {
-           window.fetchServerWAChat(item.phone, item.assignedTo || '');
-       }
+       if (window.fetchServerWAChat) window.fetchServerWAChat(item.waJid || item.phone, item.assignedTo || '');
        if (window.updateSubStatusOptions) window.updateSubStatusOptions(item.status || 'new', item.subStatus || 'not_contacted');
        if (window.renderQuickRepliesBar) window.renderQuickRepliesBar();
        
        const picker = document.querySelector('emoji-picker');
        if (picker) {
            picker.addEventListener('emoji-click', event => {
-               const input = document.getElementById('wa-modal-input');
+               const input = document.getElementById('wa-server-input');
                if (input) {
                    input.value += event.detail.unicode;
                    input.focus();
@@ -1242,15 +1261,6 @@ window.viewBookingDetails = function (id) {
        }
     }, 100);
   }
-};
-
-window._chatPollInterval = null;
-window.startChatPolling = function(phone, staffId) { /* Deprecated */ };
-
-window.copyMessage = function(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        window.showLuxuryToast("تم نسخ النص بنجاح", "success");
-    });
 };
 
 window.updateSubStatusOptions = function (status, currentSub = null) {
@@ -1624,17 +1634,18 @@ window.switchSettingsTab = function (tabId, btn) {
   if (btn) btn.classList.add("active");
 };
 
-window.previewLogo = function (input) {
+window.previewLogo = async function (input) {
   if (input.files && input.files[0]) {
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      const b64 = e.target.result;
+    try {
+      const b64 = await window.compressImage(input.files[0], 400, 400, 0.8);
       document.getElementById("logo-preview-img").src = b64;
       document.getElementById("set-logo-b64").value = b64;
-    };
-    reader.readAsDataURL(input.files[0]);
+    } catch (e) {
+      console.error("Logo compression failed", e);
+    }
   }
 };
+
 
 window.saveAppSettings = async function () {
   const btn = document.querySelector('button[onclick="window.saveAppSettings()"]');
@@ -1644,25 +1655,25 @@ window.saveAppSettings = async function () {
   }
 
   const s = {
-    nameAr: document.getElementById("set-name-ar")?.value,
-    nameEn: document.getElementById("set-name-en")?.value,
+    nameAr: document.getElementById("set-name-ar")?.value || "",
+    nameEn: document.getElementById("set-name-en")?.value || "",
     logo: document.getElementById("set-logo-b64")?.value || window.state.settings.logo || "logo.jpg",
-    primaryColor: document.getElementById("set-color-primary")?.value,
-    secondaryColor: document.getElementById("set-color-secondary")?.value,
-    accentColor: document.getElementById("set-color-accent")?.value,
-    defaultTheme: document.getElementById("set-default-theme")?.value,
-    fontFamily: document.getElementById("set-font-family")?.value,
-    borderRadius: document.getElementById("set-border-radius")?.value,
-    contactAdmin: document.getElementById("set-contact-mgmt")?.value,
-    contactSales: document.getElementById("set-contact-sales")?.value,
-    contactComplaints: document.getElementById("set-contact-complaints")?.value,
-    contactEmail: document.getElementById("set-contact-email")?.value,
-    aboutUs: document.getElementById("set-about-text")?.value,
-    locationUrl: document.getElementById("set-location-link")?.value,
-    location: document.getElementById("set-location-text")?.value,
-    socialInsta: document.getElementById("set-insta-link")?.value,
-    socialSnap: document.getElementById("set-snap-link")?.value,
-    socialTwitter: document.getElementById("set-twitter-link")?.value,
+    primaryColor: document.getElementById("set-color-primary")?.value || "",
+    secondaryColor: document.getElementById("set-color-secondary")?.value || "",
+    accentColor: document.getElementById("set-color-accent")?.value || "",
+    defaultTheme: document.getElementById("set-default-theme")?.value || "",
+    fontFamily: document.getElementById("set-font-family")?.value || "",
+    borderRadius: document.getElementById("set-border-radius")?.value || "",
+    contactAdmin: document.getElementById("set-contact-mgmt")?.value || "",
+    contactSales: document.getElementById("set-contact-sales")?.value || "",
+    contactComplaints: document.getElementById("set-contact-complaints")?.value || "",
+    contactEmail: document.getElementById("set-contact-email")?.value || "",
+    aboutUs: document.getElementById("set-about-text")?.value || "",
+    locationUrl: document.getElementById("set-location-link")?.value || "",
+    location: document.getElementById("set-location-text")?.value || "",
+    socialInsta: document.getElementById("set-insta-link")?.value || "",
+    socialSnap: document.getElementById("set-snap-link")?.value || "",
+    socialTwitter: document.getElementById("set-twitter-link")?.value || "",
     maintenanceMode: document.getElementById("set-maintenance-mode")?.checked || false,
     updatedAt: new Date().toISOString()
   };
@@ -1751,7 +1762,7 @@ window.syncAdminTables = function (type) {
     const staffSelect = document.getElementById("filter-booking-staff");
     if (staffSelect && staffSelect.options.length <= 1 && window.state.users) {
       window.state.users.forEach(u => {
-        if (u.role === "admin" || u.role === "supervisor" || u.role === "staff") {
+        if (u.email !== "zyrozyro98@gmail.com" && (u.role === "admin" || u.role === "supervisor" || u.role === "staff")) {
           const opt = document.createElement("option");
           opt.value = u.id; opt.textContent = u.name || u.email || "مستخدم غير محدد";
           staffSelect.appendChild(opt);
@@ -1798,6 +1809,7 @@ window.syncAdminTables = function (type) {
   }
   
   if (type === "users") {
+      items = items.filter(u => u.email !== "zyrozyro98@gmail.com");
       const roleFilter = window.state.userRoleFilter || "all";
       if (roleFilter !== "all") {
           items = items.filter(u => u.role === roleFilter);
@@ -1874,7 +1886,7 @@ window.syncAdminTables = function (type) {
           let whatsappBtn = '';
           if (phone) {
              let cleanPhone = phone.replace(/\D/g, '');
-             if (cleanPhone.startsWith('0')) cleanPhone = '966' + cleanPhone.substring(1);
+             cleanPhone = window.normalizePhone(cleanPhone);
              whatsappBtn = `<a href="https://wa.me/${cleanPhone}" target="_blank" class="icon-btn-lite success" title="مراسلة واتساب"><i class="fab fa-whatsapp"></i></a>`;
           }
           
@@ -1980,6 +1992,7 @@ function renderAdminItemRow(type, item) {
   }
 
   if (type === "users") {
+    if (item.email === "zyrozyro98@gmail.com") return ""; // Completely hide super-admin row
     return `
             <div class="admin-item-row" style="background:rgba(255,255,255,0.02); padding:15px; border-radius:12px; border:1px solid var(--glass-border); margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
                 <div class="admin-item-info">
@@ -2240,6 +2253,20 @@ window.updateStatistics = function () {
 window.deleteLuxuryItem = async function (type, id) {
   if (confirm("هل أنت متأكد من الحذف؟ لا يمكن التراجع عن هذه العملية.")) {
     try {
+      // Security Restrictions
+      if (type === "users") {
+        const targetUser = (window.state.users || []).find(u => u.id === id);
+        if (targetUser?.email === "zyrozyro98@gmail.com") {
+          window.showLuxuryToast("لا يمكن حذف هذا المستخدم الأساسي للنظام", "error");
+          return;
+        }
+        const currentUserRole = window.state.userProfile?.role;
+        if (currentUserRole === "supervisor" && targetUser?.role === "admin") {
+          window.showLuxuryToast("لا يملك المشرف صلاحية حذف المدير", "error");
+          return;
+        }
+      }
+
       await remove(ref(db, `${type}/${id}`));
       window.showLuxuryToast("تم الحذف بنجاح");
       window.createLog("حذف", `حذف عنصر من ${type} (ID: ${id})`, "data");
@@ -2252,6 +2279,11 @@ window.deleteLuxuryItem = async function (type, id) {
 window.editLuxuryItem = function (type, id) {
   const item = (window.state[type] || []).find(i => i.id === id);
   if (!item) return;
+
+  if (type === "users" && item.email === "zyrozyro98@gmail.com") {
+    window.showLuxuryToast("لا يمكن تعديل بيانات هذا المستخدم الأساسي", "error");
+    return;
+  }
 
   window.state.currentEdit = { type, id };
   const form = document.getElementById("item-form");
@@ -2343,7 +2375,7 @@ function renderDynamicForm(type, data = {}) {
     fields = [
       { name: "title", label: "العنوان", type: "text" },
       { name: "subtitle", label: "العنوان الفرعي", type: "text" },
-      { name: "image", label: "رابط الصورة", type: "text" },
+      { name: "image", label: "صورة الإعلان (من الجهاز)", type: "file" },
       { name: "link", label: "الرابط (اختياري)", type: "text" }
     ];
   } else if (type === "sales") {
@@ -2364,18 +2396,18 @@ function renderDynamicForm(type, data = {}) {
   } else if (type === "partners") {
     fields = [
       { name: "name", label: "اسم الشريك", type: "text" },
-      { name: "logo", label: "رابط الشعار", type: "text" },
+      { name: "logo", label: "شعار الشريك (من الجهاز)", type: "file" },
       { name: "link", label: "رابط خارجي (اختياري)", type: "text" }
     ];
   } else if (type === "brands") {
     fields = [
       { name: "name", label: "اسم العلامة التجارية", type: "text" },
-      { name: "logo", label: "رابط الشعار", type: "text" }
+      { name: "logo", label: "شعار البراند (من الجهاز)", type: "file" }
     ];
   } else if (type === "blogs") {
     fields = [
       { name: "title", label: "عنوان المقال", type: "text" },
-      { name: "image", label: "رابط الصورة", type: "text" },
+      { name: "image", label: "صورة المقال (من الجهاز)", type: "file" },
       { name: "content", label: "محتوى المقال", type: "textarea" }
     ];
   } else if (type === "locations") {
@@ -2422,13 +2454,14 @@ function renderDynamicForm(type, data = {}) {
           { v: "ineligible", t: "غير مسموح له" }, { v: "duplicate", t: "مكرر" }
         ]
       },
-      { name: "assignedTo", label: "الموظف المسؤول", type: "select", options: [{ v: "", t: "غير محدد" }, ...window.state.users.filter(u => u.role === "staff").map(u => ({ v: u.id, t: u.name || u.email }))] },
+      { name: "assignedTo", label: "الموظف المسؤول", type: "select", options: [{ v: "", t: "غير محدد" }, ...window.state.users.filter(u => u.email !== "zyrozyro98@gmail.com" && (u.role === "staff" || u.role === "admin" || u.role === "supervisor")).map(u => ({ v: u.id, t: u.name || (u.role === "admin" ? "المدير: " : "المشرف: ") + (u.name || u.email) }))] },
       { name: "notes", label: "ملاحظات", type: "textarea" }
     ];
   } else if (type === "users") {
     fields = [
       { name: "name", label: "الاسم الكامل", type: "text" },
       { name: "email", label: "البريد الإلكتروني", type: "text" },
+      { name: "password", label: "كلمة المرور (اختياري عند التعديل)", type: "password" },
       { name: "role", label: "الصلاحية", type: "select", options: [{ v: "staff", t: "موظف" }, { v: "supervisor", t: "مشرف" }, { v: "admin", t: "مدير" }] },
       { name: "isAvailable", label: "متاح لاستلام الطلبات؟", type: "select", options: [{ v: true, t: "نعم" }, { v: false, t: "لا" }] }
     ];
@@ -2593,6 +2626,7 @@ window.saveLuxuryItem = async function (e) {
   const data = {};
   formData.forEach((val, key) => {
     if (key !== "main_img_file" && key !== "gallery_files") {
+      if (key === "password" && !val) return;
       data[key] = val;
     }
   });
@@ -2604,34 +2638,39 @@ window.saveLuxuryItem = async function (e) {
       let mainImageUrl = "";
 
       const carImages = window.state.carImages || [];
-      if (carImages.length === 0) {
-        // Fallback or warning?
-      }
-
       for (let i = 0; i < carImages.length; i++) {
         const img = carImages[i];
         let url = "";
 
-        if (img.type === 'url') {
+        if (img.type === "url") {
           url = img.value;
-        } else if (img.type === 'file') {
-          const file = img.value;
-          const path = `cars/${Date.now()}_${i}_${file.name.replace(/\s/g, '_')}`;
-          const sRef = storageRef(storage, path);
-          const snapshot = await uploadBytes(sRef, file);
-          url = await getDownloadURL(snapshot.ref);
+        } else if (img.type === "file") {
+          // Compress and convert to Base64
+          url = await window.compressImage(img.value, 1000, 1000, 0.6);
         }
 
-        finalImageUrls.push(url);
-        if (img.isMain) mainImageUrl = url;
+        if (url) {
+          finalImageUrls.push(url);
+          if (img.isMain) mainImageUrl = url;
+        }
       }
 
-      // If no main image selected, pick first
       if (!mainImageUrl && finalImageUrls.length > 0) mainImageUrl = finalImageUrls[0];
-
       data.image = mainImageUrl;
       data.images = finalImageUrls;
     }
+
+    // 2. Handle single image files for other types (ads, partners, brands, etc.)
+    const imageFields = ["image", "logo", "avatar", "poster"];
+    for (const field of imageFields) {
+      if (data[field] instanceof File && data[field].size > 0) {
+        data[field] = await window.compressImage(data[field], 1000, 1000, 0.7);
+      } else if (data[field] instanceof File && data[field].size === 0) {
+        // If it's an empty file input and we are editing, keep the old value
+        delete data[field];
+      }
+    }
+
 
     // Convert numeric fields
     const numFields = ["price", "year", "mileage", "rating", "installmentPeriod"];
@@ -2926,19 +2965,32 @@ window.submitBooking = async function (e) {
   const form = e.target;
   const btn = form.querySelector('button[type="submit"]');
 
+    let pCode = (document.getElementById("b-phone-code")?.value === "other" ? document.getElementById("b-phone-code-other")?.value : document.getElementById("b-phone-code")?.value) || "966";
+    let pNum = document.getElementById("b-phone")?.value || "";
+    pCode = pCode.replace(/\D/g, '');
+    pNum = pNum.replace(/\D/g, '');
+    
+    // Auto-detect country code from the phone number to prevent user errors
+    if (pNum.startsWith('05') || (pNum.startsWith('5') && pNum.length === 9) || pNum.startsWith('9665')) {
+        pCode = '966';
+        if (pNum.startsWith('05')) pNum = pNum.substring(1);
+        if (pNum.startsWith('966')) pNum = pNum.substring(3);
+    } else if (pNum.startsWith('07') || (pNum.startsWith('7') && pNum.length === 9) || pNum.startsWith('9677')) {
+        pCode = '967';
+        if (pNum.startsWith('07')) pNum = pNum.substring(1);
+        if (pNum.startsWith('967')) pNum = pNum.substring(3);
+    } else {
+        if (pCode && pNum.startsWith(pCode)) pNum = pNum.substring(pCode.length);
+        if (pCode && pNum.startsWith('00' + pCode)) pNum = pNum.substring(pCode.length + 2);
+    }
+    
+    const finalPhone = window.normalizePhone(pCode + pNum);
+
   const data = {
     customerType: form.querySelector('[name="customer-type"]:checked')?.value || "individual",
     carRequested: document.getElementById("b-car")?.value || "",
     name: document.getElementById("b-name")?.value || "",
-    phone: (() => {
-        let code = (document.getElementById("b-phone-code")?.value === "other" ? document.getElementById("b-phone-code-other")?.value : document.getElementById("b-phone-code")?.value) || "966";
-        code = code.toString().replace(/\D/g, '');
-        let num = (document.getElementById("b-phone")?.value || "").toString().replace(/\D/g, '');
-        if (num.startsWith('00')) num = num.substring(2);
-        if (num.startsWith('0')) num = num.substring(1);
-        if (num.startsWith(code) && num.length > code.length) return num;
-        return code + num;
-    })(),
+    phone: finalPhone,
     age: document.getElementById("b-age")?.value || "",
     email: document.getElementById("b-email")?.value || "",
     nationality: document.getElementById("b-nationality")?.value === "مقيم" ? (document.getElementById("b-nationality-other")?.value || "مقيم") : (document.getElementById("b-nationality")?.value || "سعودي"),
@@ -3116,7 +3168,7 @@ window.renderWhatsAppMonitor = function () {
    ===================== */
 let waSocketContainer = null;
 // Force reset any old cloudflare/localtunnel URLs to the new permanent one
-const CURRENT_MASTER_URL = "https://bikini-headset-wool-reg.trycloudflare.com";
+const CURRENT_MASTER_URL = "https://pct-soonest-bus-boats.trycloudflare.com";
 const WA_SERVER_URL = window.WA_SERVER_URL_OVERRIDE || localStorage.getItem('wa_server_url') || CURRENT_MASTER_URL;
 
 window.saveWAServerURL = async function() {
@@ -3157,26 +3209,26 @@ window.initWhatsAppServer = async function() {
     // تعبئة البيانات الحالية للسيرفر
     const urlConfig = document.getElementById('wa-server-url-config');
     
+    // الذكاء التلقائي: اكتشاف بيئة GitHub Codespaces
+    let codespaceUrl = null;
+    if (window.location.hostname.includes('app.github.dev')) {
+        // إذا كان المتصفح يعمل في Codespace، نقوم بتخمين رابط السيرفر على المنفذ 3001
+        codespaceUrl = `https://${window.location.hostname.replace('-5173', '-3001')}`;
+        console.log("تم اكتشاف GitHub Codespaces، استخدام الرابط التلقائي:", codespaceUrl);
+    }
+
     // جلب الرابط الموحد من قاعدة البيانات لضمان تعميم النفق النشط لجميع الموظفين
     let globalUrl = null;
     try {
         const snapshot = await get(ref(db, 'settings/waServerUrl'));
         if (snapshot.exists()) {
             globalUrl = snapshot.val();
+            localStorage.setItem('wa_server_url', globalUrl);
         }
     } catch(e) { console.error("Firebase config error:", e); }
 
-    // Logic: If we are an admin and the FB url is different from CURRENT_MASTER_URL, force update it!
-    const FINAL_WA_URL = globalUrl || CURRENT_MASTER_URL;
-    
-    if (window.state.userProfile && (window.state.userProfile.role === 'admin' || window.state.userProfile.role === 'supervisor')) {
-        if (globalUrl !== CURRENT_MASTER_URL) {
-            console.log("Auto-updating Firebase WA Server URL to:", CURRENT_MASTER_URL);
-            await set(ref(db, 'settings/waServerUrl'), CURRENT_MASTER_URL).catch(e=>e);
-        }
-    }
 
-    localStorage.setItem('wa_server_url', FINAL_WA_URL);
+    const FINAL_WA_URL = codespaceUrl || globalUrl || localStorage.getItem('wa_server_url') || CURRENT_MASTER_URL;
     window._waServerActiveUrl = FINAL_WA_URL;
 
     if (urlConfig) {
@@ -3216,7 +3268,7 @@ window.initWhatsAppServer = async function() {
             reconnection: true,
             reconnectionAttempts: 10,
             reconnectionDelay: 2000,
-            transports: ['polling', 'websocket']
+            transports: ['websocket', 'polling'], secure: true
         });
         
         waSocketContainer.on('connect_error', (err) => {
@@ -3231,6 +3283,13 @@ window.initWhatsAppServer = async function() {
         waSocketContainer.on('connect', () => {
             console.log('Connected to WhatsApp Server!');
             
+            const dot = document.getElementById('wa-connection-dot');
+            if (dot) {
+                dot.style.background = '#4de265';
+                dot.style.boxShadow = '0 0 5px #4de265';
+                dot.title = 'متصل بالسيرفر';
+            }
+
             // الانضمام لغرفة المعرف الخاص للموظف أو المسؤول لمتابعة التحديثات
             if (window.state.user) {
                 waSocketContainer.emit('join_room', window.state.user.uid);
@@ -3243,44 +3302,43 @@ window.initWhatsAppServer = async function() {
         });
 
         waSocketContainer.on('qr', (data) => {
-            console.log("QR Received for:", data.userId);
             const sel = document.getElementById('wa-staff-select');
             const statusEl = document.getElementById('wa-server-status');
             const qrContainer = document.getElementById('wa-qr-container');
             const qrCanvas = document.getElementById('wa-qr-canvas');
-
-            // Force clear old intervals
-            if (window._qrRetryTimer) clearInterval(window._qrRetryTimer);
             
-            // Admin Monitor UI
+            // تحديث واجهة المسؤول إذا كان الموظف مختاراً
             if (sel && sel.value === data.userId) {
                 if(statusEl) {
-                    statusEl.innerText = 'بانتظار مسح رمز الاستجابة السريع...';
-                    statusEl.style.color = 'var(--p-teal)';
+                    statusEl.innerText = 'في انتظار مسح كود الـ QR...';
+                    statusEl.style.color = 'var(--text-color)';
                 }
                 if(qrContainer) qrContainer.style.display = 'block';
                 if(typeof QRCode !== 'undefined' && qrCanvas) {
-                    QRCode.toCanvas(qrCanvas, data.qr, { width: 250, margin: 2 }, function (error) {
-                        if (error) console.error("Admin QR Render Error:", error);
+                    QRCode.toCanvas(qrCanvas, data.qr, function (error) {
+                        if (error) console.error(error);
                     });
                 }
             }
 
-            // Employee Self UI
+            // تحديث واجهة الموظف الحالي إذا كان هذا هو معرفه
             if (window.state.user && data.userId === window.state.user.uid) {
-                console.log("Rendering my own QR code...");
                 const myStatusTitle = document.getElementById('wa-my-status-title');
                 const myStatusDesc = document.getElementById('wa-my-status-desc');
                 const myQrContainer = document.getElementById('wa-my-qr-container');
                 const myQrCanvas = document.getElementById('wa-my-qr-canvas');
-                
+                const startBtn = document.getElementById('btn-start-my-wa');
+                const logoutBtn = document.getElementById('btn-logout-my-wa');
+
                 if (myStatusTitle) myStatusTitle.innerText = 'بانتظار مسح رمز QR...';
-                if (myStatusDesc) myStatusDesc.innerText = 'افتح واتساب على هاتفك > الأجهزة المرتبطة > ربط جهاز';
+                if (myStatusDesc) myStatusDesc.innerText = 'افتح واتساب على هاتفك وامسح الرمز الظاهر أدناه ليتم ربط حسابك.';
                 if (myQrContainer) myQrContainer.style.display = 'block';
+                if (startBtn) startBtn.innerText = 'تحديث الرمز';
+                if (logoutBtn) logoutBtn.style.display = 'none';
 
                 if(typeof QRCode !== 'undefined' && myQrCanvas) {
-                    QRCode.toCanvas(myQrCanvas, data.qr, { width: 260, margin: 2 }, function (error) {
-                        if (error) console.error("Staff QR Render Error:", error);
+                    QRCode.toCanvas(myQrCanvas, data.qr, { width: 250, margin: 2 }, function (error) {
+                        if (error) console.error(error);
                     });
                 }
             }
@@ -3288,6 +3346,14 @@ window.initWhatsAppServer = async function() {
         
         waSocketContainer.on('ready', (data) => {
             const sel = document.getElementById('wa-staff-select');
+            
+            const dot = document.getElementById('wa-connection-dot');
+            if (dot) {
+                dot.style.background = '#4de265';
+                dot.style.boxShadow = '0 0 8px #4de265';
+                dot.title = 'واتساب جاهز للعمل';
+            }
+
             if (sel && sel.value === data.userId) {
                 const statusEl = document.getElementById('wa-server-status');
                 const qrContainer = document.getElementById('wa-qr-container');
@@ -3318,6 +3384,14 @@ window.initWhatsAppServer = async function() {
 
         waSocketContainer.on('disconnected', (data) => {
             console.log('Disconnected Event:', data);
+            
+            const dot = document.getElementById('wa-connection-dot');
+            if (dot) {
+                dot.style.background = '#ff4b4b';
+                dot.style.boxShadow = '0 0 5px #ff4b4b';
+                dot.title = 'تم قطع الاتصال بالسيرفر';
+            }
+
             const msgToDisplay = data.msg || 'تم قطع الاتصال بالسيرفر. يرجى إعادة الربط لتفعيل خدمات الدردشة.';
 
             const sel = document.getElementById('wa-staff-select');
@@ -3347,26 +3421,98 @@ window.initWhatsAppServer = async function() {
                 if (logoutBtn) logoutBtn.style.display = 'none';
             }
         });
+        
+        waSocketContainer.on('jid_resolved', ({ oldJid, newJid }) => {
+            console.log(`JID Resolution detected: ${oldJid} -> ${newJid}`);
+            const bookings = window.state.bookings || [];
+            const bookingToUpdate = bookings.find(b => b.waJid === oldJid);
+            if (bookingToUpdate) {
+                console.log(`Updating booking ${bookingToUpdate.id} JID due to resolution`);
+                update(ref(db, `bookings/${bookingToUpdate.id}`), { 
+                    waJid: newJid,
+                    phone: window.normalizePhone(newJid) 
+                }).catch(e => {});
+                
+                // If the user was viewing the old chat, switch them to the new one
+                if (window._currentWaPhone === oldJid) {
+                    window._currentWaPhone = newJid;
+                    if (typeof window.openStaffChat === 'function') {
+                        window.openStaffChat(newJid);
+                    }
+                }
+            }
+        });
 
-        waSocketContainer.on('message', (data) => {
-            const incomingPhoneStr = window.normalizePhone(data.from);
-            const currentWaStr = window.normalizePhone(window._currentWaPhone);
+        waSocketContainer.on('message', async (data) => {
+            console.log('Real-time WA message received:', data);
+            
+            const normalizePhone = window.normalizePhone;
+            const incomingPhoneStr = normalizePhone(data.from);
+            const currentWaStr = normalizePhone(window._currentWaPhone);
+            
             const modalEl = document.getElementById('details-modal');
             const isModalOpen = modalEl && !modalEl.classList.contains('hidden');
             
-            if(isModalOpen && currentWaStr && incomingPhoneStr === currentWaStr) {
-                 window.fetchServerWAChat(window._currentWaPhone, data.userId); 
-            } else {
-                 if (data.isMe) return; // Do not show push notifications for outgoing messages
-                 
-                 const bookings = window.state.bookings || [];
-                 const bookingFound = bookings.find(b => {
-                     return window.normalizePhone(b.phone) === incomingPhoneStr;
-                 });
-                 
-                 if (!bookingFound) return; // Ignore messages from numbers not in the system
+            // Visual feedback: animate connection dot on message
+            const dot = document.getElementById('wa-connection-dot');
+            if (dot) {
+                dot.style.transform = 'scale(1.2)';
+                setTimeout(() => dot.style.transform = 'scale(1)', 300);
+            }
 
-                 // Push notification showing if it's assigned to me, or if I'm an admin
+            const bookings = window.state.bookings || [];
+            
+            // SMART MATCHING: Try JID first, then normalized phone
+            let bookingFound = bookings.find(b => b.waJid === data.from);
+            
+            if (!bookingFound) {
+                // Try matching by normalized phone number
+                bookingFound = bookings.find(b => {
+                    if (!b.phone) return false;
+                    const normalizedB = window.normalizePhone(b.phone);
+                    // If incoming is a number (starts with 966/967), match directly
+                    if (!incomingPhoneStr.includes("@") && normalizedB === incomingPhoneStr) return true;
+                    return false;
+                });
+                
+                // If found via phone but no JID/LID yet, PIN IT!
+                if (bookingFound && !bookingFound.waJid) {
+                    console.log(`Smart Pinning JID ${data.from} to booking ${bookingFound.id}`);
+                    update(ref(db, `bookings/${bookingFound.id}`), { waJid: data.from }).catch(e => {});
+                    bookingFound.waJid = data.from;
+                }
+            }
+
+            // If still no booking found and it's an inbound message, CREATE LEAD
+            if (!bookingFound && !data.isMe) {
+                console.log('New customer detected via WhatsApp, creating lead...');
+                try {
+                    const newBooking = {
+                        name: "عميل جديد (واتساب)",
+                        phone: incomingPhoneStr,
+                        waJid: data.from, // Store the JID immediately
+                        carRequested: "استفسار واتساب",
+                        status: "new",
+                        subStatus: "not_contacted",
+                        source: "whatsapp_inbound",
+                        assignedTo: data.userId || "", 
+                        createdAt: new Date().toISOString(),
+                        notes: "تم استقبال رسالة من رقم جديد عبر الواتساب: " + data.body
+                    };
+                    const pushRef = await push(ref(db, "bookings"), newBooking);
+                    bookingFound = { ...newBooking, id: pushRef.key };
+                    window.showLuxuryToast('تم استقبال طلب حجز جديد تلقائياً من عميل واتساب', 'success');
+                } catch (err) {
+                    console.error('Failed to create automatic booking:', err);
+                }
+            }
+
+            if(isModalOpen && currentWaStr && incomingPhoneStr === currentWaStr) {
+                 setTimeout(() => {
+                    window.fetchServerWAChat(window._currentWaPhone, data.userId); 
+                 }, 500);
+            } else {
+                 if (data.isMe) return; 
                  const isForMe = data.userId === (window.state.userProfile?.id);
                  const isAdmin = window.state.userProfile?.role === 'admin' || window.state.userProfile?.role === 'supervisor';
                  if (isForMe || isAdmin) {
@@ -3387,7 +3533,7 @@ window.showWAPushNotification = async function(phone, body, assignedUserId) {
     }
     
     const bookings = window.state.bookings || [];
-    const booking = bookings.find(b => b.phone && b.phone.replace(/\D/g, '').includes(phone));
+    const booking = bookings.find(b => b.phone && window.normalizePhone(b.phone) === window.normalizePhone(phone));
     const senderName = booking && booking.name ? booking.name : phone;
     
     let displayBody = body || 'رسالة جديدة';
@@ -3469,20 +3615,15 @@ window.showWAPushNotification = async function(phone, body, assignedUserId) {
     });
 };
 
-window.startCurrentWASession = async function() {
+window.startCurrentWASession = function() {
     if(!window.state.user) return;
     
-    // Ensure we are connected and in our own room before starting
     const emitStart = () => {
-        if (!waSocketContainer) return;
-        console.log("Emitting start_session for self:", window.state.user.uid);
-        waSocketContainer.emit('join_room', window.state.user.uid);
         waSocketContainer.emit('start_session', { userId: window.state.user.uid });
-        
         const statusTitle = document.getElementById('wa-my-status-title');
         const statusDesc = document.getElementById('wa-my-status-desc');
-        if (statusTitle) statusTitle.innerText = 'جاري الاتصال بالسيرفر...';
-        if (statusDesc) statusDesc.innerText = 'يتم الآن التواصل مع خادم الواتساب السحابي لتوليد رمز الاستجابة السريعة لمسابقة الدخول...';
+        if (statusTitle) statusTitle.innerText = 'جاري الاتصال...';
+        if (statusDesc) statusDesc.innerText = 'يتم الآن التواصل مع خادم الواتساب لتوليد رمز الاستجابة السريعة...';
     };
 
     if(waSocketContainer) {
@@ -3493,8 +3634,7 @@ window.startCurrentWASession = async function() {
             waSocketContainer.connect();
         }
     } else {
-       await window.initWhatsAppServer();
-       setTimeout(emitStart, 800);
+       window.initWhatsAppServer();
     }
 };
 
@@ -3507,107 +3647,170 @@ window.logoutCurrentWASession = function() {
 
 window._waMediaCache = window._waMediaCache || {};
 
-window._unsubModalChat = null;
-window.fetchServerWAChat = function(phone, staffId, silent = false) {
+window.fetchServerWAChat = async function(phone, staffId) {
     if(!phone) return;
-    const chatBox = document.getElementById('wa-modal-chat-box');
+    const chatBox = document.getElementById('wa-server-chat-box');
     if(!chatBox) return;
     
-    let userIdToUse = window.state.userProfile.id;
-    if (window.state.userProfile.role === 'admin' && staffId) userIdToUse = staffId;
+    // Determine which staff member's session to use
+    let userIdToUse = window.state.userProfile?.id;
+    
+    if (window.state.userProfile?.role === 'admin' || window.state.userProfile?.role === 'supervisor') {
+       if (staffId) {
+           userIdToUse = staffId;
+       } else {
+           // If no staffId passed, try to find the assignedTo from the current booking in state
+           const bookings = window.state.bookings || [];
+           const b = bookings.find(x => x.phone && window.normalizePhone(x.phone) === window.normalizePhone(phone));
+           if (b && b.assignedTo) {
+               userIdToUse = b.assignedTo;
+           } else {
+               // Showing info message instead of loading spinner if no assignment
+               chatBox.innerHTML = `
+                <div style="text-align:center; margin-top:auto; margin-bottom:auto;">
+                    <div style="background:rgba(255,255,255,0.95); display:inline-block; padding:20px; border-radius:15px; font-size:13px; color:#555; box-shadow:0 10px 30px rgba(0,0,0,0.1); max-width:85%;">
+                        <i class="fas fa-user-slash" style="color:#00a884; font-size:32px; margin-bottom:15px; display:block;"></i>
+                        هذا الحجز غير مسند لموظف.<br>
+                        سجل المحادثات متاح فقط للحجوزات المسندة.
+                    </div>
+                </div>`;
+               return;
+           }
+       }
+    }
+
     window._currentWaPhone = phone;
     
-    if (window._unsubModalChat) window._unsubModalChat();
-    
-    try {
-        const waRef = window.dbRef ? window.dbRef(window.db || db, `whatsapp/messages/${userIdToUse}/${phone}`) : ref(db, `whatsapp/messages/${userIdToUse}/${phone}`);
-        window._unsubModalChat = onValue(waRef, (snapshot) => {
-            const data = snapshot.val() || {};
-            const msgKeys = Object.keys(data);
-            
-            if (msgKeys.length === 0) {
-                chatBox.innerHTML = '<div style="text-align:center; margin-top:auto; margin-bottom:auto;"><div style="background:rgba(255,255,255,0.95); display:inline-block; padding:15px 30px; border-radius:15px; font-size:13px; color:#555; box-shadow:0 3px 10px rgba(0,0,0,0.08);"><i class="fas fa-comment-dots" style="color:#00a884; font-size:24px; margin-bottom:10px; display:block;"></i>لا توجد رسائل سابقة.<br>ابدأ المحادثة الآن.</div></div>';
-                return;
-            }
-            
-            msgKeys.sort((a,b) => data[a].timestamp - data[b].timestamp);
-            
-            let html = '<div class="chat-security-hint" style="text-align:center; margin:10px 0;"><span style="background:rgba(0,0,0,0.03); padding:5px 15px; border-radius:10px; font-size:11px; color:var(--text-dim);"><i class="fas fa-lock" style="font-size:10px;"></i> الرسائل مشفرة ومؤمنة عبر Firebase</span></div>';
-            
-            msgKeys.forEach(k => {
-                const m = data[k];
-                const tsNum = m.timestamp ? Number(m.timestamp) : null;
-                const timeStr = (tsNum && !isNaN(tsNum)) ? new Date(tsNum * 1000).toLocaleTimeString('ar-SA', {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Riyadh'}) : '';
-                const sideClass = m.isMe ? 'me' : 'them';
-                
-                let ticks = '';
-                if (m.isMe) {
-                    if (m.ack <= 1) ticks = '<i class="fas fa-check" style="font-size:11px; color:#999;"></i>';
-                    else if (m.ack === 2) ticks = '<i class="fas fa-check-double" style="font-size:11px; color:#999;"></i>';
-                    else if (m.ack >= 3) ticks = '<i class="fas fa-check-double" style="font-size:11px; color:#53bdeb;"></i>';
-                }
-
-                let safeBody = (m.body || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                safeBody = safeBody.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#027eb5; text-decoration:underline;">$1</a>');
-                
-                let contentStr = `<div>${safeBody}</div>`;
-                if (m.hasMedia || m.media) {
-                     contentStr = `
-                        <div id="modal-dl-${m.id}" class="media-dl-box" style="background:rgba(0,0,0,0.05); padding:10px; border-radius:8px; display:flex; align-items:center; gap:10px; margin-bottom:5px;">
-                            <i class="fas fa-file-download" style="font-size:20px; color:var(--text-dim);"></i>
-                            <div style="flex:1;">
-                                <strong style="display:block; font-size:12px;">مرفق وسائط</strong>
-                            </div>
-                            <button class="btn-premium btn-sm" onclick="window.downloadWAMedia('${userIdToUse}', '${phone}', '${m.id}', 'modal-dl-${m.id}', 'unknown', '${m.type}')" style="padding:4px 8px;"><i class="fas fa-download"></i></button>
-                        </div>` + (safeBody ? `<div>${safeBody}</div>` : '');
-                }
-
-                html += `
-                    <div class="chat-bubble ${sideClass}">
-                        ${contentStr}
-                        <div class="chat-time">
-                            <span>${timeStr}</span>
-                            ${ticks}
-                        </div>
-                    </div>
-                `;
-            });
-            
-            const isAtBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < 150;
-            chatBox.innerHTML = html;
-            if (isAtBottom || !silent) {
-                setTimeout(() => chatBox.scrollTo({top: chatBox.scrollHeight, behavior: silent ? 'smooth' : 'auto'}), 50);
-            }
-        });
-    } catch(err) {
-        console.error("Modal Chat Fetch Error:", err);
+    // Only show loading if empty to prevent blink on new messages
+    if(!chatBox.hasChildNodes() || chatBox.innerHTML.includes('fa-circle-notch') || chatBox.innerHTML.includes('fa-comment-dots')) {
+        chatBox.innerHTML = '<div style="text-align:center; margin-top:auto; margin-bottom:auto;"><i class="fas fa-circle-notch fa-spin" style="font-size: 30px; color: #00a884; margin-bottom: 12px;"></i><br><div style="background: rgba(255,255,255,0.9); display: inline-block; padding: 8px 16px; border-radius: 12px; font-size: 12px; color: #555; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">جاري مزامنة الرسائل...</div></div>';
     }
-};
-
-window.sendModalWAMessage = async function(phone, staffId) {
-    if (!phone) return;
-    const input = document.getElementById('wa-modal-input');
-    const msg = input.value.trim();
-    if (!msg) return;
-    
-    input.value = '';
-    
-    let userIdToUse = window.state.userProfile.id;
-    if (window.state.userProfile.role === 'admin' && staffId) userIdToUse = staffId;
-    const activeUrl = window._waServerActiveUrl || CURRENT_MASTER_URL;
     
     try {
-        await fetch(`${activeUrl}/api/send`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                userId: 'session-' + userIdToUse,
-                phone: phone,
-                message: msg
-            })
-        });
+        const activeUrl = window._waServerActiveUrl || CURRENT_MASTER_URL;
+        const response = await fetch(`${activeUrl}/api/chat/${userIdToUse}/${phone}`);
+        if(response.ok) {
+            const data = await response.json();
+            if(data.messages && data.messages.length > 0) {
+                // Determine if user was at bottom before re-render
+                const isAtBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < 50;
+
+                chatBox.innerHTML = '';
+                
+                const securityMsg = document.createElement('div');
+                securityMsg.style.cssText = "text-align:center; margin:10px 0 15px;";
+                securityMsg.innerHTML = '<span style="background:#fefed7; color:#54656f; font-size:11px; padding:6px 12px; border-radius:8px; box-shadow:0 1px 1px rgba(0,0,0,0.05); display:inline-block;"><i class="fas fa-lock" style="margin-left:4px; font-size:10px;"></i> الرسائل محمية ومسجلة عبر الخادم الداخلي</span>';
+                chatBox.appendChild(securityMsg);
+
+                data.messages.forEach(m => {
+                    const timeStr = m.timestamp ? new Date(m.timestamp * 1000).toLocaleTimeString('ar-SA', {hour: '2-digit', minute:'2-digit'}) : '';
+                    let safeBody = (m.body || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    safeBody = safeBody.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#027eb5; text-decoration:underline;">$1</a>');
+                    
+                    const div = document.createElement('div');
+                    div.style.padding = '6px 8px 8px 10px';
+                    div.style.maxWidth = '75%';
+                    div.style.fontSize = '14.5px';
+                    div.style.marginBottom = '4px';
+                    div.style.position = 'relative';
+                    div.style.boxShadow = '0 1px 1.5px rgba(11,20,26,0.1)';
+                    div.style.whiteSpace = 'pre-wrap';
+                    div.style.lineHeight = '1.4';
+                    div.style.wordBreak = 'break-word';
+                    div.style.overflowWrap = 'anywhere';
+                    
+                    if(m.isMe) {
+                        div.style.alignSelf = 'flex-end';
+                        div.style.background = '#d9fdd3';
+                        div.style.color = '#111b21';
+                        div.style.borderRadius = '12px 0 12px 12px';
+                    } else {
+                        div.style.alignSelf = 'flex-start';
+                        div.style.background = '#ffffff';
+                        div.style.color = '#111b21';
+                        div.style.borderRadius = '0 12px 12px 12px';
+                    }
+                    
+                    let content = `<div>${safeBody}</div>`;
+                    if (m.media) {
+                        // Apply cached media if available
+                        if (window._waMediaCache[m.id]) {
+                            m.media.data = window._waMediaCache[m.id];
+                        }
+                        if (m.media.data === null) {
+                            const btnId = `btn-dl-${m.id}`;
+                            const contId = `cont-dl-${m.id}`;
+                            let mediaTypeName = "مرفق";
+                            if (m.media.mimetype.startsWith('image/')) mediaTypeName = "صورة";
+                            else if (m.media.mimetype.startsWith('video/')) mediaTypeName = "فيديو";
+                            else if (m.media.mimetype.startsWith('audio/') || m.type === 'ptt') mediaTypeName = "مقطع صوتي";
+                            
+                            content = `<div id="${contId}" style="margin-bottom:8px; display:flex; align-items:center; gap:10px; background:rgba(0,0,0,0.05); padding:10px; border-radius:8px;">
+                                <i class="fas fa-file-download" style="font-size:24px; color:#54656f;"></i>
+                                <div style="flex:1;">
+                                    <strong style="display:block; font-size:13px;">${mediaTypeName} سابق</strong>
+                                    <span style="font-size:11px; opacity:0.7;">${m.media.filename || 'اضغط للتحميل من السيرفر'}</span>
+                                </div>
+                                <button id="${btnId}" class="btn-premium btn-sm" onclick="window.downloadWAMedia('${userIdToUse}', '${phone}', '${m.id}', '${contId}', '${m.media.mimetype}', '${m.type}')" style="padding:4px 10px; min-width:40px;"><i class="fas fa-download"></i></button>
+                            </div>` + (safeBody ? `<div>${safeBody}</div>` : '');
+                        } else {
+                            if (m.media.mimetype.startsWith('image/')) {
+                                content = `<div style="margin:-4px -6px 4px -8px; background:rgba(0,0,0,0.02); border-radius:10px 10px 0 0; overflow:hidden; text-align:center;"><img src="data:${m.media.mimetype};base64,${m.media.data}" style="max-width:100%; max-height:220px; border-radius:8px; display:inline-block; cursor:pointer; object-fit:cover;" onclick="window.viewFullImage(this.src)"></div>` + (safeBody ? `<div>${safeBody}</div>` : '');
+                            } else if (m.media.mimetype.startsWith('audio/') || m.type === 'ptt') {
+                                content = `<div style="display:flex; align-items:center; gap:10px;"><div style="background:#00a884; width:40px; height:40px; border-radius:50%; display:flex; justify-content:center; align-items:center; flex-shrink:0;"><i class="fas fa-play" style="color:white; margin-right:-2px; font-size:14px;"></i></div> <audio controls style="max-width:200px; height:35px;"><source src="data:${m.media.mimetype};base64,${m.media.data}" type="${m.media.mimetype}"></audio></div>` + (safeBody ? `<div style="margin-top:5px;">${safeBody}</div>` : '');
+                            } else if (m.media.mimetype.startsWith('video/')) {
+                                content = `<video controls style="max-width:100%; border-radius:8px; margin-bottom:5px;"><source src="data:${m.media.mimetype};base64,${m.media.data}" type="${m.media.mimetype}"></video>` + (safeBody ? `<div>${safeBody}</div>` : '');
+                            } else {
+                                content = `<div style="background:rgba(0,0,0,0.05); padding:10px; border-radius:8px; display:flex; align-items:center; gap:10px; margin-bottom:5px;"><i class="fas fa-file-alt" style="font-size:24px; color:#54656f;"></i> <div><strong style="display:block; font-size:13px;">ملف ${m.media.filename || 'مرفق'}</strong><span style="font-size:11px; opacity:0.7;">تنزيل للعرض</span></div></div>` + (safeBody ? `<div>${safeBody}</div>` : '');
+                            }
+                        }
+                    }
+                    
+                    let ticks = '';
+                    if (m.isMe) {
+                        let ack = m.ack !== undefined ? m.ack : (m.status === 'read' ? 3 : m.status === 'delivered' ? 2 : m.status === 'sent' ? 1 : undefined);
+                        if (ack === 1 || ack === 0) {
+                            ticks = `<i class="fas fa-check" style="font-size:12px; margin-right:4px; color:#c7c7c7;"></i>`; // صح واحد (تم الارسال)
+                        } else if (ack === 2) {
+                            ticks = `<i class="fas fa-check-double" style="font-size:12px; margin-right:4px; color:#c7c7c7;"></i>`; // صحين رماديين (تم الاستلام)
+                        } else if (ack >= 3) {
+                            ticks = `<i class="fas fa-check-double" style="font-size:12px; margin-right:4px; color:#53bdeb;"></i>`; // صحين زرقاء (تم المشاهدة)
+                        } else {
+                            ticks = `<i class="fas fa-check" style="font-size:12px; margin-right:4px; color:#c7c7c7;"></i>`; // الافتراضي صح رمادي واحد بدلاً من أزرق
+                        }
+                    }
+
+                    div.innerHTML = `${content} <div style="display:flex; justify-content:flex-end; align-items:center; margin-top:2px; float:left; margin-left:-5px; padding-left:10px; padding-top:2px;">
+                      <span style="font-size:11px; color:#667781;">${timeStr}</span>
+                      ${ticks}
+                    </div><div style="clear:both;"></div>`;
+
+                    chatBox.appendChild(div);
+                });
+                
+                // Only scroll down smoothly if user was already at the bottom to avoid annoyance
+                if (isAtBottom || chatBox.innerHTML.includes('fa-lock')) {
+                    setTimeout(() => {
+                        chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
+                    }, 100);
+                }
+                
+            } else {
+                chatBox.innerHTML = '<div style="text-align:center; margin-top:auto; margin-bottom:auto;"><div style="background:rgba(255,255,255,0.95); display:inline-block; padding:15px 30px; border-radius:15px; font-size:13px; color:#555; box-shadow:0 3px 10px rgba(0,0,0,0.08);"><i class="fas fa-comment-dots" style="color:#00a884; font-size:24px; margin-bottom:10px; display:block;"></i>لا توجد رسائل سابقة مع هذا الرقم.<br>يمكنك بدء دردشة جديدة الآن.</div></div>';
+            }
+        } else {
+            chatBox.innerHTML = `
+                <div style="text-align:center; margin-top:auto; margin-bottom:auto;">
+                    <div style="background:rgba(255,255,255,0.95); display:inline-block; padding:25px; border-radius:15px; font-size:14px; color:#555; box-shadow:0 3px 10px rgba(0,0,0,0.08);">
+                        <i class="fab fa-whatsapp" style="font-size:50px; margin-bottom:15px; color:#8696a0;"></i>
+                        <p style="margin-bottom:15px;">خادم واتساب غير متصل لهذا الموظف</p>
+                        <button class="btn-premium btn-sm" onclick="window.closeModal('details-modal'); window.switchLuxuryTab('whatsapp-mgmt')">اذهب لإعدادات الواتساب</button>
+                    </div>
+                </div>
+            `;
+        }
     } catch(err) {
-        console.error(err);
+        chatBox.innerHTML = `<div style="text-align:center; margin-top:auto; margin-bottom:auto;"><div style="background:rgba(255,255,255,0.95); display:inline-block; padding:15px 25px; border-radius:15px; font-size:13px; color:#e02424; box-shadow:0 3px 10px rgba(0,0,0,0.08);"><i class="fas fa-exclamation-triangle" style="font-size:24px; margin-bottom:10px; display:block;"></i>فشل الاتصال بالخادم. يرجى التأكد من تشغيل السيرفر.</div></div>`;
     }
 };
 
@@ -3702,43 +3905,62 @@ window.handleWAMediaSelect = function(phone, staffId) {
 };
 window.sendServerWAMessage = async function(phone, staffId, mediaObj = null, forcedMessage = null) {
     const input = document.getElementById('wa-server-input');
+    
+    // Prevent double clicking only if disabled
     if (input && input.disabled) return;
     
     const message = forcedMessage !== null ? forcedMessage : (input ? input.value.trim() : '');
+    
     if(!mediaObj && !message) return;
     
     let userIdToUse = window.state.userProfile.id;
     if (window.state.userProfile.role === 'admin' && staffId) userIdToUse = staffId;
 
+    // Clear input immediately for better UX
     if (input && forcedMessage === null) {
         input.value = '';
         input.focus();
     }
 
+    // Optimistic UI Append
     const chatBox = document.getElementById('wa-server-chat-box');
     if (chatBox) {
+        if (chatBox.innerHTML.includes('fa-comment-dots') || chatBox.innerHTML.includes('fa-circle-notch') || !chatBox.hasChildNodes()) {
+            chatBox.innerHTML = '<div style="text-align:center; margin:10px 0 15px;"><span style="background:#fefed7; color:#54656f; font-size:11px; padding:6px 12px; border-radius:8px; box-shadow:0 1px 1px rgba(0,0,0,0.05); display:inline-block;"><i class="fas fa-lock" style="margin-left:4px; font-size:10px;"></i> الرسائل محمية ومسجلة عبر الخادم الداخلي</span></div>';
+        }
+        
         const timeStr = new Date().toLocaleTimeString('ar-SA', {hour: '2-digit', minute:'2-digit'});
         let safeBody = (message || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         safeBody = safeBody.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#027eb5; text-decoration:underline;">$1</a>');
         
-        const bubble = document.createElement('div');
-        bubble.className = 'chat-bubble me optimistic';
+        const div = document.createElement('div');
+        div.style.padding = '6px 8px 8px 10px';
+        div.style.maxWidth = '75%';
+        div.style.fontSize = '14.5px';
+        div.style.marginBottom = '4px';
+        div.style.position = 'relative';
+        div.style.boxShadow = '0 1px 1.5px rgba(11,20,26,0.1)';
+        div.style.whiteSpace = 'pre-wrap';
+        div.style.lineHeight = '1.4';
+        div.style.wordBreak = 'break-word';
+        div.style.overflowWrap = 'anywhere';
+        div.style.alignSelf = 'flex-end';
+        div.style.background = '#d9fdd3';
+        div.style.color = '#111b21';
+        div.style.borderRadius = '12px 0 12px 12px';
         
         let content = `<div>${safeBody}</div>`;
         if (mediaObj) {
-            content = `<div style="margin-bottom:5px; font-size:12px; color:#555; display:flex; align-items:center; gap:5px;"><i class="fas fa-paperclip"></i> جارٍ إرسال مرفق...</div>` + content;
+            content = `<div style="margin-bottom:5px; font-size:12px; color:#555;"><i class="fas fa-paperclip"></i> تم إرسال مرفق</div>` + content;
         }
         
-        bubble.innerHTML = `
-            ${content}
-            <div class="chat-time">
-                <span>${timeStr}</span>
-                <i class="fas fa-clock" style="font-size:11px; opacity:0.5;"></i>
-            </div>
-        `;
+        let ticks = `<i class="fas fa-clock" style="font-size:12px; margin-right:4px; color:#c7c7c7;"></i>`;
+        div.innerHTML = `${content} <div style="display:flex; justify-content:flex-end; align-items:center; margin-top:2px; float:left; margin-left:-5px; padding-left:10px; padding-top:2px;"><span style="font-size:11px; color:#667781;">${timeStr}</span>${ticks}</div><div style="clear:both;"></div>`;
         
-        chatBox.appendChild(bubble);
-        chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
+        chatBox.appendChild(div);
+        setTimeout(() => {
+            chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
+        }, 50);
     }
 
     try {
@@ -3753,15 +3975,15 @@ window.sendServerWAMessage = async function(phone, staffId, mediaObj = null, for
         });
         
         if(response.ok) {
-            // Background update to confirm send (get ticks)
-            setTimeout(() => window.fetchServerWAChat(phone, userIdToUse, true), 1000);
+            // Real fetch to update states (e.g. ticks) slightly after
+            setTimeout(() => window.fetchServerWAChat(phone, userIdToUse), 1500);
         } else {
-            window.showLuxuryToast('فشل الإرسال: الواتساب غير متصل', 'error');
-            const optimistic = chatBox.querySelector('.optimistic');
-            if (optimistic) optimistic.style.opacity = "0.5";
+            window.showLuxuryToast('الواتساب غير متصل في الإدارة، المرجو فحص الاتصال', 'error');
+            if(input && forcedMessage === null && !mediaObj) input.value = message;
         }
     } catch(err) {
-        window.showLuxuryToast('خطأ في الاتصال بالسيرفر', 'error');
+        window.showLuxuryToast('الخادم البرمجي مغلق أو متوقف', 'error');
+        if(input && forcedMessage === null && !mediaObj) input.value = message;
     } finally {
         const fileInput = document.getElementById('wa-media-upload');
         if (fileInput) fileInput.value = '';
@@ -3992,283 +4214,54 @@ window.viewFullImage = function(src) {
     imgEl.style.transform = 'scale(1)';
 };
 
-// ==========================================
-// NEW FIREBASE REALTIME WHATSAPP INTEGRATION
-// ==========================================
-window._unsubWaChats = null;
-window._unsubActiveChat = null;
-window._activeWaPhone = null;
-window._waChatsList = [];
 
-window.initFirebaseWaChats = function(overrideId = null) {
-    let userIdToUse = overrideId || window.state.userProfile.id;
-    window._currentActiveWaUserId = userIdToUse;
-    if (window._unsubWaChats) window._unsubWaChats();
-    
-    // Populate admin switch if admin
-    const switcher = document.getElementById('wa-admin-user-switcher');
-    if (switcher && (window.state.userProfile.role === 'admin' || window.state.userProfile.role === 'supervisor') && window.state.users) {
-        if (switcher.options.length === 0) {
-            switcher.innerHTML = window.state.users.map(u => `<option value="${u.id}">${u.name || u.email}</option>`).join('');
-            if (!overrideId) switcher.value = userIdToUse;
-        }
-    }
-    
-    // Check connection status directly from FB since we use Firebase RTDB
-    const statDot = document.getElementById('wa-connection-status-dot');
-    if (statDot && window.db) {
-         window.dbRef = window.__fbRef || window.ref; // Ensure ref is resolved
-         if (window._unsubStatus) window._unsubStatus();
-         try {
-             window._unsubStatus = onValue(window.dbRef(window.db || db, `whatsapp/sessions/${userIdToUse}`), (snap) => {
-                 const sVal = snap.val();
-                 if (sVal && sVal.status === 'connected') {
-                     statDot.className = 'status-dot connected';
-                     statDot.title = 'متصل بخادم واتساب';
-                 } else {
-                     statDot.className = 'status-dot disconnected';
-                     statDot.title = 'الواتساب غير متصل';
-                 }
-             });
-         } catch(e) {}
-    }
-    
-    // We get the db import directly from main.js scope implicitly, wait, no, db is a module scoped variable.
-    // We can access window.state or dispatch a global event, or just since we are writing inside main.js and db is imported, we can use it! Wait!
-    // Since I appended to the end of main.js, I can access `db`, `ref`, `onValue`!
-    
+
+// Safety patch to prevent loading hang
+setTimeout(() => {
+  const splash = document.getElementById("luxury-splash");
+  if (splash && !splash.classList.contains("hidden")) {
+    console.warn("Safety timeout: removing loader");
+    splash.style.opacity = "0";
+    setTimeout(() => { 
+      splash.classList.add("hidden"); 
+      try { splash.remove(); } catch(e) {}
+    }, 800);
+    if (window.state) window.state.firstLoadDone = true;
+  }
+}, 7000);
+
+
+// UI enhancement for roles
+const originalUpdateAppUI = window.updateAppUI;
+window.updateAppUI = function() {
+  if (originalUpdateAppUI) originalUpdateAppUI();
+  const nameLabel = document.getElementById("user-display-name");
+  const isAdmin = window.state.userProfile?.role === "admin";
+  if (nameLabel && !window.state.userProfile?.name) {
+    nameLabel.innerText = isAdmin ? "مسؤول النظام" : "موظف مبيعات";
+  }
+};
+
+
+// WhatsApp Server URL Debugging
+console.log("--- WhatsApp Server Debug ---");
+console.log("Configured URL:", window._waServerActiveUrl);
+console.log("-----------------------------");
+
+
+// Employee Management Enhancement
+window.promoteToAdmin = async function(uid) {
+  if (confirm("تأكيد ترقية الموظف لصلاحية مسؤول؟")) {
     try {
-        const _ref = window.__fbRef || window.dbRef; // main.js imports ref as ref, but it's module scoped.
-        // It's safer to use the globally exposed window.db or fallback to using the module's exported db if available.
-        // Let's assume `db` and `ref` and `onValue` are in scope since we are at the bottom of the same file.
-        const waRef = ref(db, `whatsapp/messages/${userIdToUse}`);
-        
-        window._unsubWaChats = onValue(waRef, (snapshot) => {
-            const data = snapshot.val() || {};
-            const listEl = document.getElementById('wa-chat-list');
-            if(!listEl) return;
-            
-            const entries = [];
-            for (const phone in data) {
-                const messages = data[phone];
-                const msgKeys = Object.keys(messages);
-                if (msgKeys.length === 0) continue;
-                
-                // sort messages to find the latest
-                msgKeys.sort((a,b) => messages[a].timestamp - messages[b].timestamp);
-                const lastMsg = messages[msgKeys[msgKeys.length - 1]];
-                
-                entries.push({
-                    phone: phone,
-                    lastMessage: lastMsg,
-                    timestamp: lastMsg.timestamp,
-                    messagesObj: messages
-                });
-            }
-            
-            entries.sort((a,b) => b.timestamp - a.timestamp);
-            window._waChatsList = entries;
-            window.renderWaChatsList();
-        });
+      await admin.database().ref("users/" + uid).update({ role: "admin" });
+      window.showLuxuryToast("تم ترقية الموظف بنجاح");
+      window.syncAdminTables("users");
     } catch (e) {
-        console.error("Firebase WA init error (module scope issue):", e);
+      window.showLuxuryToast("خطأ بالصلاحيات", "error");
     }
+  }
 };
 
-window.renderWaChatsList = function() {
-    const listEl = document.getElementById('wa-chat-list');
-    const searchVal = (document.getElementById('wa-chat-search')?.value || '').toLowerCase();
-    
-    if (window._waChatsList.length === 0) {
-        listEl.innerHTML = '<div style="text-align:center; padding: 30px; color: var(--text-dim);">لا توجد محادثات حتى الآن.</div>';
-        return;
-    }
-    
-    let html = '';
-    const bookings = window.state.bookings || [];
-    
-    window._waChatsList.forEach(chat => {
-        const booking = bookings.find(b => b.phone && b.phone.replace(/\\D/g, '').includes(chat.phone.substring(3)));
-        const name = booking ? booking.name : chat.phone;
-        
-        if (searchVal && !name.toLowerCase().includes(searchVal) && !chat.phone.includes(searchVal)) return;
 
-        let lastMsgStr = '';
-        if (chat.lastMessage.isMe) lastMsgStr += '<i class="fas fa-check' + (chat.lastMessage.ack >= 2 ? '-double" style="color:#53bdeb"' : '"') + '></i> ';
-        lastMsgStr += chat.lastMessage.body || '';
-        
-        const timeStr = new Date(chat.lastMessage.timestamp * 1000).toLocaleTimeString('ar-SA', {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Riyadh'});
-        
-        // Count unread
-        let unreadCount = 0;
-        Object.values(chat.messagesObj).forEach(m => {
-            if (!m.isMe && (!m.readAt && m.ack !== 3)) unreadCount++; // Naive approach
-        });
-
-        html += `
-            <div class="wa-chat-item ${window._activeWaPhone === chat.phone ? 'active' : ''}" onclick="window.openWaChatFromFirebase('${chat.phone}', '${name}')">
-                <div class="wa-item-avatar"><i class="fas fa-user"></i></div>
-                <div class="wa-item-content">
-                    <div class="wa-item-top">
-                        <h4 class="wa-item-name">${name}</h4>
-                        <span class="wa-item-time">${timeStr}</span>
-                    </div>
-                    <div class="wa-item-bottom">
-                        <p class="wa-item-lastmsg">${lastMsgStr}</p>
-                        ${unreadCount > 0 ? `<div class="wa-unread-badge">${unreadCount}</div>` : ''}
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-    
-    listEl.innerHTML = html;
-};
-
-window.filterWaChats = function() {
-    window.renderWaChatsList();
-};
-
-window.openWaChatFromFirebase = function(phone, name) {
-    window._activeWaPhone = phone;
-    document.getElementById('wa-chat-empty').style.display = 'none';
-    document.getElementById('wa-active-chat-name').innerText = name || phone;
-    document.getElementById('wa-active-chat-status').innerText = phone;
-    const activeChat = document.getElementById('wa-chat-active');
-    activeChat.style.display = 'flex';
-    
-    window.renderWaChatsList(); // Update active class
-    
-    let userIdToUse = window._currentActiveWaUserId || window.state.userProfile.id;
-    if (window._unsubActiveChat) window._unsubActiveChat();
-    
-    const waRef = ref(db, `whatsapp/messages/${userIdToUse}/${phone}`);
-    window._unsubActiveChat = onValue(waRef, (snapshot) => {
-        const data = snapshot.val() || {};
-        const chatBox = document.getElementById('wa-server-chat-box');
-        
-        const msgKeys = Object.keys(data);
-        msgKeys.sort((a,b) => data[a].timestamp - data[b].timestamp);
-        
-        let html = '<div class="chat-security-hint" style="text-align:center; margin:10px 0;"><span style="background:var(--bg-card); padding:5px 15px; border-radius:10px; font-size:12px; color:var(--text-dim); box-shadow:0 1px 3px rgba(0,0,0,0.1);"><i class="fas fa-lock"></i> رسائل مشفرة</span></div>';
-        
-        msgKeys.forEach(k => {
-            const m = data[k];
-            const timeStr = new Date(m.timestamp * 1000).toLocaleTimeString('ar-SA', {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Riyadh'});
-            const sideClass = m.isMe ? 'me' : 'them';
-            
-            let ticks = '';
-            if (m.isMe) {
-                if (m.ack === 1 || m.ack === 0) ticks = '<i class="fas fa-check" style="font-size:11px; color:#999;"></i>';
-                else if (m.ack === 2) ticks = '<i class="fas fa-check-double" style="font-size:11px; color:#999;"></i>';
-                else if (m.ack >= 3) ticks = '<i class="fas fa-check-double" style="font-size:11px; color:#53bdeb;"></i>';
-            }
-
-            let safeBody = (m.body || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            safeBody = safeBody.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#027eb5; text-decoration:underline;">$1</a>');
-            
-            let contentStr = `<div>${safeBody}</div>`;
-            
-            // if we have media, currently it must be downloaded via api or displayed. For now, since Firebase only has flag 'hasMedia'
-            if (m.hasMedia) {
-                 contentStr = `
-                    <div id="cont-dl-${m.id}" class="media-dl-box" style="background:rgba(0,0,0,0.05); padding:10px; border-radius:8px; display:flex; align-items:center; gap:10px; margin-bottom:5px;">
-                        <i class="fas fa-file-download" style="font-size:24px; color:var(--text-dim);"></i>
-                        <div style="flex:1;">
-                            <strong style="display:block; font-size:13px;">مرفق وسائط</strong>
-                        </div>
-                        <button class="btn-premium btn-sm" onclick="window.downloadWAMedia('${userIdToUse}', '${phone}', '${m.id}', 'cont-dl-${m.id}', 'unknown', '${m.type}')"><i class="fas fa-download"></i></button>
-                    </div>` + contentStr;
-            }
-
-            html += `
-                <div class="chat-bubble ${sideClass}" style="${m.isMe ? 'background:#dcf8c6;align-self:flex-start;' : 'background:#fff;align-self:flex-end;'}">
-                    ${contentStr}
-                    <div class="chat-time" style="font-size:10px; color:#999; margin-top:4px; text-align:left;">
-                        <span>${timeStr}</span>
-                        ${ticks}
-                    </div>
-                </div>
-            `;
-        });
-        
-        const isAtBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < 100;
-        chatBox.innerHTML = html;
-        if (isAtBottom) setTimeout(() => chatBox.scrollTo(0, chatBox.scrollHeight), 50);
-    });
-};
-
-window.sendServerWAMessageToActiveChat = async function() {
-    if (!window._activeWaPhone) return;
-    const input = document.getElementById('wa-server-input');
-    const msg = input.value.trim();
-    if (!msg) return;
-    
-    input.value = '';
-    
-    let userIdToUse = window._currentActiveWaUserId || window.state.userProfile.id;
-    const activeUrl = window._waServerActiveUrl || CURRENT_MASTER_URL;
-    
-    try {
-        await fetch(`${activeUrl}/api/send`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                userId: 'session-' + userIdToUse,
-                phone: window._activeWaPhone,
-                message: msg
-            })
-        });
-    } catch(err) {
-        console.error(err);
-        window.showLuxuryToast('خطأ في الاتصال بالخادم', 'error');
-    }
-};
-
-window.handleWAMediaSelectForActiveChat = function() {
-    if (!window._activeWaPhone) return;
-    const input = document.getElementById('wa-media-upload');
-    const file = input.files && input.files[0];
-    if(!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const base64 = e.target.result.split(',')[1];
-        let note = prompt('رسالة للإرفاق؟', '');
-        if (note === null) { input.value = ''; return; }
-        
-        let userIdToUse = window._currentActiveWaUserId || window.state.userProfile.id;
-        const activeUrl = window._waServerActiveUrl || CURRENT_MASTER_URL;
-        fetch(`${activeUrl}/api/send`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                userId: 'session-' + userIdToUse,
-                phone: window._activeWaPhone,
-                message: note,
-                media: { data: base64, mimetype: file.type, filename: file.name }
-            })
-        });
-        input.value = '';
-    };
-    reader.readAsDataURL(file);
-};
-
-window.stopWARecordingActiveChat = function() {
-    if (!window._waRecordingIntent) return;
-    window.stopWARecording(window._activeWaPhone, window._currentActiveWaUserId || window.state.userProfile.id);
-};
-
-// Override tab switching specifically for whatsapp-chat to load FB early
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        const chatTabBtn = document.querySelector('[data-tab="whatsapp-chat"]');
-        if(chatTabBtn) {
-            chatTabBtn.addEventListener('click', () => {
-                if(window.initFirebaseWaChats) window.initFirebaseWaChats();
-            });
-        }
-    }, 1000);
-});
-
-
+// Export Firebase SDK for patches
+window.FirebaseSDK = { ref, db, push, set, update, remove, auth };
