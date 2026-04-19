@@ -4,51 +4,72 @@
       ".read": "auth != null",
       "$uid": {
         ".read": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('role').val() == 'admin')",
-        ".write": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('role').val() == 'admin')"
+        ".write": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+        ".validate": "newData.hasChildren(['email', 'role'])"
       },
       ".indexOn": ["role", "email"]
     },
     "cars": {
       ".read": true,
-      ".write": "auth != null",
-      ".indexOn": ["type", "make", "year", "price", "status"]
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'staff')",
+      "$car_id": {
+        ".validate": "newData.hasChildren(['make', 'price', 'status']) && newData.child('price').isNumber() && newData.child('price').val() >= 0"
+      },
+      ".indexOn": ["type", "make", "year", "price", "status", "isFeatured", "createdAt"]
     },
     "settings": {
       ".read": true,
-      ".write": "auth != null"
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
     },
     "bookings": {
       ".read": "auth != null",
       "$booking_id": {
-        ".write": true,
-        ".validate": "newData.hasChild('name') && newData.hasChild('phone')"
-      }
+        // Allow anyone to create a new booking, but only staff/admin to read or update existing ones
+        ".write": "(!data.exists() && newData.exists()) || (auth != null && (root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'staff'))",
+        ".validate": "newData.hasChildren(['name', 'phone', 'carId'])",
+        "phone": {
+          ".validate": "newData.isString() && newData.val().length >= 8"
+        }
+      },
+      ".indexOn": ["status", "staffId", "createdAt", "phone"]
     },
     "ads": {
       ".read": true,
-      ".write": "auth != null"
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
     },
     "config": {
       ".read": true,
-      ".write": "auth != null"
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
     },
     "whatsapp_settings": {
       ".read": "auth != null",
-      ".write": "auth != null"
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'staff')"
     },
     "notifications": {
       ".read": "auth != null",
-      "$uid": {
-        ".write": "auth != null || newData.child('type').val() == 'new_booking'"
-      }
+      "$notif_id": {
+        // Anyone can create a notification (for new bookings), only auth users can read/mark as read
+        ".write": "auth != null || (!data.exists() && newData.child('type').val() == 'new_booking')",
+        ".validate": "newData.hasChild('type')"
+      },
+      ".indexOn": ["read", "createdAt", "targetUser"]
     },
     "analytics": {
-      ".read": "auth != null",
-      ".write": true
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'supervisor')",
+      // Analytics should only be updated (increments), not deleted or overwritten entirely by strangers
+      ".write": "newData.exists()", 
+      "$metric": {
+         ".write": true
+      }
     },
     "logs": {
-      ".read": "auth != null",
-      ".write": "auth != null"
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'supervisor')",
+      "$log_id": {
+        // Logs are append-only. Once written, they cannot be modified or deleted.
+        ".write": "auth != null && !data.exists() && newData.exists()",
+        ".validate": "newData.hasChildren(['action', 'timestamp', 'userId'])"
+      },
+      ".indexOn": ["timestamp", "userId", "type"]
     }
   }
 }

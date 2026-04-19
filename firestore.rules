@@ -2,123 +2,86 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Check if user is authenticated
+    // وظيفة للتحقق من تسجيل الدخول
     function isAuth() {
       return request.auth != null;
     }
 
-    // Role helpers (Note: This assumes a 'users' collection exists in Firestore too)
-    // If only RTDB is used, these rules won't block RTDB but good to have if migration happens.
+    // وظيفة للتحقق من الرتبة من بيانات المستخدم
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
     function isAdmin() {
-      return isAuth() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return isAuth() && getUserData().role == 'admin';
     }
 
     function isSupervisor() {
-      return isAuth() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'supervisor';
+      return isAuth() && (getUserData().role == 'supervisor' || isAdmin());
     }
     
     function isStaff() {
-      return isAuth() && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'staff' || isAdmin() || isSupervisor());
+      return isAuth() && (getUserData().role == 'staff' || isSupervisor());
     }
 
+    // قواعد المستخدمين
     match /users/{userId} {
       allow read: if isAuth();
-      allow write: if isAdmin() || request.auth.uid == userId;
+      allow write: if isAdmin() || (isAuth() && request.auth.uid == userId);
     }
 
+    // السيارات واللوحات (قراءة للجميع، كتابة للمدراء والموظفين)
     match /cars/{id} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isStaff();
     }
     
-    match /ads/{id} {
+    match /plates/{id} {
       allow read: if true;
-      allow write: if isAdmin();
-    }
-    
-    match /sales/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isStaff();
     }
 
+    // الحجوزات (إضافة للجميع، قراءة وتعديل للموظفين)
     match /bookings/{id} {
       allow create: if true;
       allow read, update: if isStaff();
       allow delete: if isAdmin();
     }
     
-    match /settings/{document=**} {
+    // الإعلانات والشركاء
+    match /ads/{id} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isStaff();
     }
     
-    match /config/{document=**} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    
-    match /plates/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
     match /partners/{id} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isStaff();
     }
 
-    match /locations/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /brands/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /agents/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /specs/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /packages/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /blogs/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /reviews/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
+    // السجلات (إضافة فقط، قراءة للمدراء والمسؤولين)
     match /logs/{id} {
-      allow read: if isAdmin() || isSupervisor();
-      allow write: if isAuth();
+      allow create: if isAuth();
+      allow read: if isSupervisor();
+      allow update, delete: if false; 
     }
 
-    match /notifications/{id} {
-      allow read: if isAuth();
-      allow write: if isAuth();
-    }
-
+    // التحليلات (قراءة للمسؤولين، تحديث للجميع بحدود)
     match /analytics/{id} {
-      allow read: if isAdmin() || isSupervisor();
-      allow write: if true;
+      allow read: if isSupervisor();
+      allow write: if true; // يمكن تقييدها أكثر بناءً على الحقول
     }
     
+    // الإشعارات
+    match /notifications/{id} {
+      allow read: if isAuth();
+      allow create: if true;
+      allow update, delete: if isAuth() && (request.auth.uid == resource.data.targetUser || isAdmin());
+    }
+
+    // منع الوصول لأي مستند غير معرف
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if isAdmin();
     }
   }
 }

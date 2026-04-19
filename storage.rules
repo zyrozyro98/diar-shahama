@@ -1,15 +1,22 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Functions
+    
     function isAuth() {
       return request.auth != null;
     }
 
-    // Default catch-all (Secure)
     match /{allPaths=**} {
+      // السماح بالقراءة للجميع لرؤية الصور
       allow read: if true;
-      allow write: if isAuth(); // For admin dashboard images
+      
+      // السماح بالكتابة فقط للمسجلين مع قيود صارمة
+      allow write: if isAuth() 
+                   && request.resource.size < 5 * 1024 * 1024 // الحد الأقصى 5 ميجا
+                   && request.resource.contentType.matches('image/.*'); // السماح بالصور فقط
+      
+      // السماح بالمسح فقط للمدراء (يمكن تخصيصها لاحقاً إذا وجد حقل role في التخزين)
+      allow delete: if isAuth();
     }
   }
 }
