@@ -3484,7 +3484,7 @@ window.initWhatsAppServer = async function() {
             }
 
             // If still no booking found and it's an inbound message, CREATE LEAD
-            if (!bookingFound && !data.isMe) {
+            if (false && !bookingFound && !data.isMe) {
                 console.log('New customer detected via WhatsApp, creating lead...');
                 try {
                     const newBooking = {
@@ -3515,7 +3515,7 @@ window.initWhatsAppServer = async function() {
                  if (data.isMe) return; 
                  const isForMe = data.userId === (window.state.userProfile?.id);
                  const isAdmin = window.state.userProfile?.role === 'admin' || window.state.userProfile?.role === 'supervisor';
-                 if (isForMe || isAdmin) {
+                 if ((isForMe || isAdmin) && bookingFound) {
                      if (window.showWAPushNotification) window.showWAPushNotification(incomingPhoneStr, data.body, data.userId);
                  }
             }
