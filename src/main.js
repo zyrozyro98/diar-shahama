@@ -2433,7 +2433,7 @@ function renderDynamicForm(type, data = {}) {
           { v: "ineligible", t: "غير مسموح له" }, { v: "duplicate", t: "مكرر" }
         ]
       },
-      { name: "assignedTo", label: "الموظف المسؤول", type: "select", options: [{ v: "", t: "غير محدد" }, ...window.state.users.filter(u => u.role === "staff").map(u => ({ v: u.id, t: u.name || u.email }))] },
+      { name: "assignedTo", label: "الموظف المسؤول", type: "select", options: [{ v: "", t: "غير محدد" }, ...window.state.users.filter(u => u.role === "staff" || u.role === "admin" || u.role === "supervisor").map(u => ({ v: u.id, t: u.name || (u.role === "admin" ? "المدير: " : "المشرف: ") + (u.name || u.email) }))] },
       { name: "notes", label: "ملاحظات", type: "textarea" }
     ];
   } else if (type === "users") {
