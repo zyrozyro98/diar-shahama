@@ -22,12 +22,40 @@ const log = pino({ level: 'error' });
 
 // Firebase Admin SDK Configuration
 const admin = require('firebase-admin');
-const serviceAccount = require('./onecar1-adminsdk.json');
+const fs = require('fs');
+const path = require('path');
 
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://onecar1-default-rtdb.firebaseio.com"
-});
+let serviceAccount;
+
+// Logic to find a service account file
+const possibleFiles = [
+    './onecar1-adminsdk.json',
+    './diar-shahama-1088b-firebase-adminsdk-fbsvc-4aa115b2a1.json',
+    '../whatsapp-server-adminsdk.json'
+];
+
+try {
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+        serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+        console.log("Firebase Admin initialized via environment variable.");
+    } else {
+        const filePath = possibleFiles.find(f => fs.existsSync(path.join(__dirname, f)));
+        if (filePath) {
+            serviceAccount = require(filePath);
+            console.log(`Firebase Admin initialized via file: ${filePath}`);
+        } else {
+            throw new Error("لم يتم العثور على ملف Service Account (JSON). يرجى التأكد من وجود الملف في مجلد whatsapp-server");
+        }
+    }
+
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        databaseURL: "https://onecar1-default-rtdb.firebaseio.com"
+    });
+} catch (err) {
+    console.error("CRITICAL ERROR: Failed to initialize Firebase Admin:", err.message);
+    process.exit(1);
+}
 
 const db = admin.database();
 

