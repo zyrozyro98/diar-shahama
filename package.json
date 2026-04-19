@@ -7,10 +7,12 @@
         "dev": "vite",
         "build": "vite build",
         "preview": "vite preview",
-        "codespace": "concurrently \"npm run dev\" \"cd whatsapp-server && npm start\""
+        "codespace": "concurrently \"npm run dev\" \"cd whatsapp-server && npm start\"",
+        "start:pm2": "pm2 start ecosystem.config.cjs"
     },
     "devDependencies": {
         "concurrently": "^9.2.1",
+        "pm2": "^6.0.14",
         "vite": "^5.0.0"
     },
     "dependencies": {

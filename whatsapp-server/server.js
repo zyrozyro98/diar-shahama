@@ -6,6 +6,7 @@ const pino = require('pino');
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestWaWebVersion, downloadMediaMessage, jidNormalizedUser } = require('@whiskeysockets/baileys');
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
 
 const app = express();
 app.use(cors());
@@ -467,6 +468,12 @@ app.post('/api/send', async (req, res) => {
             sendContent = { text: message };
         }
 
+        // Humanized sending: Typing indicator and random delay
+        await sessions[userId].sock.sendPresenceUpdate('composing', jid);
+        const randomDelay = Math.floor(Math.random() * 2000) + 1000; // 1-3 seconds
+        await new Promise(resolve => setTimeout(resolve, randomDelay));
+        await sessions[userId].sock.sendPresenceUpdate('paused', jid);
+
         const sentMsg = await sessions[userId].sock.sendMessage(jid, sendContent);
 
         // Manually push to store immediately so next fetch sees it instantly
@@ -606,4 +613,37 @@ app.get('/api/media/:userId/:phone/:messageId', async (req, res) => {
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`ULTRA_ENGINE_${PORT}_LIVE`);
+    
+    // Humanized Self-pinging mechanism to keep Render alive
+    const RENDER_URL = process.env.RENDER_EXTERNAL_URL || process.env.PUBLIC_URL;
+    if (RENDER_URL) {
+        const userAgents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1'
+        ];
+
+        function startKeepAlive() {
+            const randomInterval = (Math.floor(Math.random() * 8) + 6) * 60 * 1000; // 6 to 14 minutes
+            const randomUA = userAgents[Math.floor(Math.random() * userAgents.length)];
+            const randomPath = `/ping?v=${Math.random().toString(36).substring(7)}`;
+
+            setTimeout(() => {
+                const options = {
+                    headers: { 'User-Agent': randomUA }
+                };
+                https.get(`${RENDER_URL}${randomPath}`, options, (res) => {
+                    console.log(`[Keep-Alive] Humanized ping sent: ${randomPath} - Status: ${res.statusCode}`);
+                    startKeepAlive(); // Schedule next ping
+                }).on('error', (err) => {
+                    console.error(`[Keep-Alive] Ping failed:`, err.message);
+                    setTimeout(startKeepAlive, 60000); // Retry in 1 minute
+                });
+            }, randomInterval);
+        }
+
+        console.log(`[Keep-Alive] Starting stealth self-ping system for: ${RENDER_URL}`);
+        startKeepAlive();
+    }
 });
