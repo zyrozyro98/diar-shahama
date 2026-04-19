@@ -22,8 +22,6 @@ const log = pino({ level: 'error' });
 
 // Firebase Admin SDK Configuration
 const admin = require('firebase-admin');
-const fs = require('fs');
-const path = require('path');
 
 let serviceAccount;
 
@@ -161,7 +159,7 @@ async function startWASession(userId) {
             unique.sort((a, b) => (a.messageTimestamp || 0) - (b.messageTimestamp || 0));
             store.messages[jid].array = unique.slice(-500);
             delete store.messages[lid];
-            
+
             // Notify frontend to merge/update
             io.emit('jid_resolved', { userId, oldJid: lid, newJid: jid });
         }
@@ -323,9 +321,9 @@ async function startWASession(userId) {
             }
         } else if (connection === 'open') {
             console.log(`[Session: ${userId}] WhatsApp session is OPEN and READY`);
-            await updateFirebaseStatus(userId, 'ready', { 
+            await updateFirebaseStatus(userId, 'ready', {
                 phoneNumber: sock.user.id.split(':')[0],
-                pushName: sock.user.name 
+                pushName: sock.user.name
             });
             sessions[userId].isReady = true;
             sessions[userId].initializing = false;
@@ -334,9 +332,9 @@ async function startWASession(userId) {
 
             // Fetch contacts to help LID resolution
             try {
-                const contacts = await sock.fetchStatus(sock.user.id); 
+                const contacts = await sock.fetchStatus(sock.user.id);
                 // This is just to trigger some activity, baileys usually syncs automatically.
-            } catch (e) {}
+            } catch (e) { }
         }
     });
 
