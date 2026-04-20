@@ -2599,6 +2599,16 @@ function renderDynamicForm(type, data = {}) {
                 <button type="button" onclick="window.insertQRVariable('(اسم الموظف)')" style="background:var(--p-gold); border:none; padding:6px 12px; border-radius:12px; font-size:13px; font-weight:bold; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">(اسم الموظف)</button>
                 <button type="button" onclick="window.insertQRVariable('(اسم العميل)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(اسم العميل)</button>
                 <button type="button" onclick="window.insertQRVariable('(اسم السيارة)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(اسم السيارة)</button>
+                <button type="button" onclick="window.insertQRVariable('(الماركة)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(الماركة)</button>
+                <button type="button" onclick="window.insertQRVariable('(الموديل)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(الموديل)</button>
+                <button type="button" onclick="window.insertQRVariable('(سنة الصنع)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(سنة الصنع)</button>
+                <button type="button" onclick="window.insertQRVariable('(السعر)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(السعر)</button>
+                <button type="button" onclick="window.insertQRVariable('(المحرك)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(المحرك)</button>
+                <button type="button" onclick="window.insertQRVariable('(الممشى)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(الممشى)</button>
+                <button type="button" onclick="window.insertQRVariable('(نوع الوقود)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(نوع الوقود)</button>
+                <button type="button" onclick="window.insertQRVariable('(فئة السيارة)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(فئة السيارة)</button>
+                <button type="button" onclick="window.insertQRVariable('(اللون الخارجي)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(اللون الخارجي)</button>
+                <button type="button" onclick="window.insertQRVariable('(اللون الداخلي)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(اللون الداخلي)</button>
                 <button type="button" onclick="window.insertQRVariable('(طريقة الشراء)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(طريقة الشراء)</button>
                 <button type="button" onclick="window.insertQRVariable('(اسم البنك)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(اسم البنك)</button>
                 <button type="button" onclick="window.insertQRVariable('(مدة الأقساط)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(مدة الأقساط)</button>
@@ -4268,6 +4278,17 @@ window.applyQuickReply = function(content) {
         
         let custName = "العميل";
         let carDetails = "السيارة";
+        let carMake = "غير محدد";
+        let carModel = "غير محدد";
+        let carYear = "غير محدد";
+        let carPrice = "غير محدد";
+        let carEngine = "غير محدد";
+        let carMileage = "غير محدد";
+        let carFuel = "غير محدد";
+        let carBody = "غير محدد";
+        let carColorExt = "غير محدد";
+        let carColorInt = "غير محدد";
+
         let paymentMethod = "";
         let bankName = "غير محدد";
         let installmentPeriod = "غير محدد";
@@ -4278,22 +4299,55 @@ window.applyQuickReply = function(content) {
         
         if (window._currentWaPhone) {
             const current = window._currentWaPhone.toString();
-            const matches = window.state.bookings?.filter(b => {
+            const matches = (window.state.bookings || []).filter(b => {
                 return (b.phone && b.phone.toString() === current) || 
                        (b.waJid && b.waJid.toString() === current) || 
                        (b.phone && current.includes(b.phone.toString()));
             });
             if (matches && matches.length > 0) {
-                matches.sort((a, b) => b.createdAt - a.createdAt);
+                matches.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
                 const latestBooking = matches[0];
                 if (latestBooking.name) custName = latestBooking.name;
-                if (latestBooking.brand || latestBooking.model) {
-                   carDetails = `${latestBooking.brand || ''} ${latestBooking.model || ''} ${latestBooking.year || ''}`.trim();
-                } else if (latestBooking.carName) {
-                   carDetails = latestBooking.carName;
+                
+                // Fetch full car details if linked
+                let carObj = null;
+                if (latestBooking.carId) {
+                    carObj = (window.state.cars || []).find(c => c.id === latestBooking.carId);
+                } else if (latestBooking.carRequested) {
+                    // Try matching by name/text
+                    carObj = (window.state.cars || []).find(c => {
+                        const fullName = `${c.make} ${c.model} ${c.year}`.toLowerCase();
+                        return fullName.includes(latestBooking.carRequested.toLowerCase()) || 
+                               latestBooking.carRequested.toLowerCase().includes(fullName);
+                    });
                 }
+
+                if (carObj) {
+                    carMake = carObj.make || carMake;
+                    carModel = carObj.model || carModel;
+                    carYear = carObj.year || carYear;
+                    carPrice = carObj.price ? Number(carObj.price).toLocaleString('ar-SA') : carPrice;
+                    carEngine = carObj.engine || carEngine;
+                    carMileage = carObj.mileage || carMileage;
+                    carFuel = carObj.fuelType || carFuel;
+                    carColorExt = carObj.color || carColorExt;
+                    carColorInt = carObj.interiorColor || carColorInt;
+                    
+                    const bodyMap = { sedan: 'سيدان', suv: 'SUV', coupe: 'كوبيه', luxury: 'فاخرة', pickup: 'بيك آب' };
+                    carBody = bodyMap[carObj.bodyType] || carObj.bodyType || carBody;
+
+                    carDetails = `${carMake} ${carModel} ${carYear}`.trim();
+                } else if (latestBooking.brand || latestBooking.model) {
+                    carDetails = `${latestBooking.brand || ''} ${latestBooking.model || ''} ${latestBooking.year || ''}`.trim();
+                    carMake = latestBooking.brand || carMake;
+                    carModel = latestBooking.model || carModel;
+                    carYear = latestBooking.year || carYear;
+                } else if (latestBooking.carName || latestBooking.carRequested) {
+                    carDetails = latestBooking.carName || latestBooking.carRequested;
+                }
+
                 if (latestBooking.paymentMethod) {
-                   paymentMethod = latestBooking.paymentMethod === 'cash' ? 'كاش' : 'تمويل';
+                    paymentMethod = latestBooking.paymentMethod === 'cash' ? 'كاش' : 'تمويل';
                 }
                 if (latestBooking.bankName) bankName = latestBooking.bankName;
                 if (latestBooking.installmentPeriod) installmentPeriod = latestBooking.installmentPeriod;
@@ -4306,6 +4360,17 @@ window.applyQuickReply = function(content) {
         
         finalContent = finalContent.replace(/\(اسم العميل\)/g, custName);
         finalContent = finalContent.replace(/\(اسم السيارة\)/g, carDetails);
+        finalContent = finalContent.replace(/\(الماركة\)/g, carMake);
+        finalContent = finalContent.replace(/\(الموديل\)/g, carModel);
+        finalContent = finalContent.replace(/\(سنة الصنع\)/g, carYear);
+        finalContent = finalContent.replace(/\(السعر\)/g, carPrice);
+        finalContent = finalContent.replace(/\(المحرك\)/g, carEngine);
+        finalContent = finalContent.replace(/\(الممشى\)/g, carMileage);
+        finalContent = finalContent.replace(/\(نوع الوقود\)/g, carFuel);
+        finalContent = finalContent.replace(/\(فئة السيارة\)/g, carBody);
+        finalContent = finalContent.replace(/\(اللون الخارجي\)/g, carColorExt);
+        finalContent = finalContent.replace(/\(اللون الداخلي\)/g, carColorInt);
+
         finalContent = finalContent.replace(/\(طريقة الشراء\)/g, paymentMethod);
         finalContent = finalContent.replace(/\(اسم السيارة وتفاصيلها وطريقة الشراء وتفاصيله كاملة\)/g, `${carDetails} - الدفع: ${paymentMethod}`);
         
