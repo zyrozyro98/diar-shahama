@@ -1035,7 +1035,7 @@ window.viewLuxuryCar = function (id) {
             </div>
             <div class="spec-card-v5">
                <i class="fas fa-cog"></i>
-               <div class="s-info"><span>الجير</span><strong>${car.gearbox || "أوتوماتيك"}</strong></div>
+               <div class="s-info"><span>الجير</span><strong>${car.gearbox || "أوتوماتيكي"}</strong></div>
             </div>
              <div class="spec-card-v5">
                <i class="fas fa-car-side"></i>
@@ -2669,7 +2669,7 @@ function renderDynamicForm(type, data = {}) {
       { name: "price", label: "السعر", type: "number", required: true },
       { name: "mileage", label: "الممشى (كم)", type: "number", required: true },
       { name: "engine", label: "المحرك", type: "text", placeholder: "مثال: 8 سليندر، 4.0L" },
-      { name: "gearbox", label: "ناقل الحركة", type: "select", options: [{ v: "أوتوماتيك", t: "أوتوماتيك" }, { v: "عادي", t: "عادي" }] },
+      { name: "gearbox", label: "ناقل الحركة", type: "select", options: [{ v: "عادي", t: "عادي" }, { v: "أوتوماتيكي", t: "أوتوماتيكي" }, { v: "CVT", t: "CVT" }] },
       { name: "fuelType", label: "نوع الوقود", type: "select", options: [{ v: "بنزين", t: "بنزين" }, { v: "ديزل", t: "ديزل" }, { v: "هايبرد", t: "هايبرد" }, { v: "كهرباء", t: "كهرباء" }] },
       { name: "bodyType", label: "فئة السيارة", type: "select", options: [{ v: "sedan", t: "سيدان" }, { v: "suv", t: "SUV" }, { v: "coupe", t: "كوبيه" }, { v: "luxury", t: "فاخرة" }, { v: "pickup", t: "بيك آب" }] },
       { name: "color", label: "اللون خارجي", type: "text" },
