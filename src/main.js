@@ -828,8 +828,8 @@ function renderFeaturedOffers(cars) {
             <div class="offer-info">
                 <h4>${car.make} ${car.model}</h4>
                 <div class="offer-price">
-                    <span>${(Number(car.price) || 0).toLocaleString()}</span>
-                    <small style="font-size: 14px; margin-right: 5px;">ريال</small>
+                    <span>${car.price ? Number(car.price).toLocaleString() : (car.monthlyInstallment ? `قسط: ${Number(car.monthlyInstallment).toLocaleString()}` : "تواصل معنا")}</span>
+                    ${car.price || car.monthlyInstallment ? '<small style="font-size: 14px; margin-right: 5px;">ريال</small>' : ''}
                 </div>
                 <button class="btn-premium btn-sm" style="margin-top: 10px; width: 100%;">تفاصيل العرض</button>
             </div>
@@ -922,7 +922,7 @@ window.renderCarGrid = function (cars) {
     <div class="car-card-premium" onclick="window.viewLuxuryCar('${car.id}')" data-aos="fade-up">
       <div class="car-img-wrap">
         <img src="${car.image || "logo.jpg"}" alt="${car.make}" loading="lazy" onerror="this.src='logo.jpg'">
-        <div class="car-price-v3">${(Number(car.price) || 0).toLocaleString()} <small>ريال</small></div>
+        <div class="car-price-v3">${car.price ? `${Number(car.price).toLocaleString()} <small>ريال</small>` : (car.monthlyInstallment ? `قسط من: ${Number(car.monthlyInstallment).toLocaleString()} <small>ريال</small>` : "عند التواصل")}</div>
         <div class="car-badge-v3 ${car.status === "available" ? "available" : car.status === "reserved" ? "reserved" : "sold"}">${car.status === "available" ? "متاح" : car.status === "reserved" ? "محجوز" : "مباع"}</div>
       </div>
       <div class="car-info-v3">
@@ -962,7 +962,9 @@ window.viewLuxuryCar = function (id) {
   if (images.length === 0) images = ["logo.jpg"];
 
   const waNumber = window.normalizePhone(window.state.settings.contactSales || "0500000000");
-  const waText = `السلام عليكم، أرغب بالاستفسار عن هذه السيارة:\n\n*السيارة:* ${car.make} ${car.model}\n*الموديل:* ${car.year}\n*السعر:* ${Number(car.price).toLocaleString()} ريال\n\nرابط السيارة:\n${window.location.origin}/#car-${car.id}`;
+  const priceText = car.price ? `${Number(car.price).toLocaleString()} ريال` : "عند التواصل";
+  const installmentText = car.monthlyInstallment ? `\n*القسط الشهري يبدأ من:* ${Number(car.monthlyInstallment).toLocaleString()} ريال` : "";
+  const waText = `السلام عليكم، أرغب بالاستفسار عن هذه السيارة:\n\n*السيارة:* ${car.make} ${car.model}\n*الموديل:* ${car.year}\n*سعر الكاش:* ${priceText}${installmentText}\n\nرابط السيارة:\n${window.location.origin}/#car-${car.id}`;
   const waLink = `https://wa.me/${waNumber}?text=${encodeURIComponent(waText)}`;
 
   const detailsContent = `
@@ -981,12 +983,18 @@ window.viewLuxuryCar = function (id) {
           <p class="car-subtitle-v5">${car.engine || ""} | ${car.gearbox || ""} | ${car.fuelType || ""}</p>
         </div>
         <div class="price-premium-v6">
-          <div class="p-header">السعر الكاش</div>
+          <div class="p-header">سعر الكاش</div>
           <div class="p-main">
-            <span class="p-amount">${(Number(car.price) || 0).toLocaleString()}</span>
-            <span class="p-curr">ريال</span>
+            <span class="p-amount">${car.price ? Number(car.price).toLocaleString() : "عند التواصل"}</span>
+            <span class="p-curr">${car.price ? "ريال" : ""}</span>
           </div>
-          <div class="VAT-hint">السعر شامل ضريبة القيمة المضافة</div>
+          ${car.monthlyInstallment ? `
+            <div class="p-header" style="margin-top:12px; border-top:1px solid rgba(255,255,255,0.1); padding-top:8px;">قسط شهري يبدأ من</div>
+            <div class="p-main-sm" style="font-size:22px; color:var(--p-copper); font-weight:800;">
+              ${Number(car.monthlyInstallment).toLocaleString()} <span style="font-size:12px; font-weight:400; opacity:0.8;">ريال / شهرياً</span>
+            </div>
+          ` : ""}
+          <div class="VAT-hint">${car.price ? "السعر شامل ضريبة القيمة المضافة" : ""}</div>
         </div>
       </div>
 
@@ -2281,7 +2289,7 @@ function renderAdminItemRow(type, item) {
                     <div class="meta-row" style="font-size:12px; color:var(--text-dim); display:flex; gap:15px; flex-wrap:wrap;">
                         <span><i class="fas fa-tachometer-alt"></i> ${Number(item.mileage || 0).toLocaleString()} كم</span>
                         <span><i class="fas fa-paint-brush"></i> ${item.color || "-"}</span>
-                        <span style="color:var(--p-red); font-weight:800;">${Number(item.price || 0).toLocaleString()} ريال</span>
+                        <span style="color:var(--p-red); font-weight:800;">${item.price ? Number(item.price).toLocaleString() + " ريال" : (item.monthlyInstallment ? "قسط: " + Number(item.monthlyInstallment).toLocaleString() + " ريال" : "عند التواصل")}</span>
                     </div>
                 </div>
                 <div class="admin-actions" style="display:flex; gap:8px; align-items:center;">
@@ -2666,8 +2674,9 @@ function renderDynamicForm(type, data = {}) {
       { name: "make", label: "الماركة", type: "select", options: [{ v: "", t: "اختر الماركة" }, ...brandOptions], required: true },
       { name: "model", label: "الموديل", type: "text", required: true },
       { name: "year", label: "السنة", type: "number", required: true },
-      { name: "price", label: "السعر", type: "number", required: true },
-      { name: "mileage", label: "الممشى (كم)", type: "number", required: true },
+      { name: "price", label: "سعر الكاش", type: "number" },
+      { name: "monthlyInstallment", label: "قسط شهري يبدأ بـ", type: "number" },
+      { name: "mileage", label: "الممشى (كم)", type: "number" },
       { name: "engine", label: "المحرك", type: "text", placeholder: "مثال: 8 سليندر، 4.0L" },
       { name: "gearbox", label: "ناقل الحركة", type: "select", options: [{ v: "عادي", t: "عادي" }, { v: "أوتوماتيكي", t: "أوتوماتيكي" }, { v: "CVT", t: "CVT" }] },
       { name: "fuelType", label: "نوع الوقود", type: "select", options: [{ v: "بنزين", t: "بنزين" }, { v: "ديزل", t: "ديزل" }, { v: "هايبرد", t: "هايبرد" }, { v: "كهرباء", t: "كهرباء" }] },
@@ -3018,7 +3027,7 @@ window.saveLuxuryItem = async function (e) {
 
 
     // Convert numeric fields
-    const numFields = ["price", "year", "mileage", "rating", "installmentPeriod"];
+    const numFields = ["price", "year", "mileage", "rating", "installmentPeriod", "monthlyInstallment"];
     numFields.forEach(f => {
       if (data[f] !== undefined && data[f] !== "" && data[f] !== null) {
         data[f] = Number(data[f]);
