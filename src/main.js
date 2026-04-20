@@ -109,6 +109,7 @@ window.showLuxuryToast = function (message, type = "success") {
     padding: 12px 25px;
     border-radius: 50px;
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     font-weight: 600;
     margin-bottom: 10px;
@@ -1501,6 +1502,60 @@ window.logout = async function () {
 // SETTINGS & BRANDING
 // =========================================================================================
 
+window.DESIGN_PRESETS = {
+  emerald: {
+    primaryColor: "#065f46",
+    secondaryColor: "#10b981",
+    accentColor: "#fbbf24",
+    glassBlur: 25,
+    borderRadius: 20,
+    cardStyle: "glass",
+    glassOpacity: 0.6
+  },
+  royal: {
+    primaryColor: "#4c1d95",
+    secondaryColor: "#8b5cf6",
+    accentColor: "#f59e0b",
+    glassBlur: 15,
+    borderRadius: 12,
+    cardStyle: "glass",
+    glassOpacity: 0.8
+  },
+  midnight: {
+    primaryColor: "#1e1b4b",
+    secondaryColor: "#4338ca",
+    accentColor: "#6366f1",
+    glassBlur: 30,
+    borderRadius: 24,
+    cardStyle: "glass",
+    glassOpacity: 0.7
+  },
+  classic: {
+    primaryColor: "#a11d21",
+    secondaryColor: "#1c7c8c",
+    accentColor: "#b8860b",
+    glassBlur: 0,
+    borderRadius: 8,
+    cardStyle: "solid",
+    glassOpacity: 1
+  }
+};
+
+window.applyDesignPreset = function(presetKey) {
+  const preset = window.DESIGN_PRESETS[presetKey];
+  if (!preset) return;
+  
+  // Update form inputs if they exist
+  if (document.getElementById("set-primary-color")) document.getElementById("set-primary-color").value = preset.primaryColor;
+  if (document.getElementById("set-secondary-color")) document.getElementById("set-secondary-color").value = preset.secondaryColor;
+  if (document.getElementById("set-accent-color")) document.getElementById("set-accent-color").value = preset.accentColor;
+  if (document.getElementById("set-glass-blur")) document.getElementById("set-glass-blur").value = preset.glassBlur;
+  if (document.getElementById("set-border-radius")) document.getElementById("set-border-radius").value = preset.borderRadius;
+  
+  window.applySettings({...window.state.settings, ...preset});
+  showToast(window.state.lang === 'ar' ? "تم تطبيق النمط بنجاح" : "Preset applied successfully");
+};
+
 window.applySettings = function (s) {
   if (!s) return;
   const root = document.documentElement;
@@ -1565,31 +1620,39 @@ window.applySettings = function (s) {
     `;
   }
   
+  if (s.glassBlur) root.style.setProperty("--glass-blur", s.glassBlur + "px");
+  if (s.shadowDepth) root.style.setProperty("--shadow-depth", s.shadowDepth + "px");
+  if (s.shadowOpacity) root.style.setProperty("--shadow-opacity", s.shadowOpacity);
+  if (s.animSpeed) root.style.setProperty("--anim-speed-multiplier", s.animSpeed);
+
   if (s.cardStyle === "solid") {
     css += `
       body[data-theme="dark"] .car-card-premium, body[data-theme="dark"] .modal-inner, body[data-theme="dark"] .stat-premium-card, body[data-theme="dark"] .admin-item-row {
          background: var(--bg-alt) !important;
          border: 1px solid rgba(255,255,255,0.05) !important;
          backdrop-filter: none !important;
+         -webkit-backdrop-filter: none !important;
       }
       body[data-theme="light"] .car-card-premium, body[data-theme="light"] .modal-inner, body[data-theme="light"] .stat-premium-card, body[data-theme="light"] .admin-item-row {
          background: var(--bg-alt) !important;
          border: 1px solid rgba(0,0,0,0.05) !important;
          backdrop-filter: none !important;
+         -webkit-backdrop-filter: none !important;
       }
     `;
   } else {
     let op = s.glassOpacity !== undefined ? s.glassOpacity : 0.75;
+    let blurVal = s.glassBlur !== undefined ? s.glassBlur : 20;
     css += `
       body[data-theme="dark"] .car-card-premium, body[data-theme="dark"] .modal-inner, body[data-theme="dark"] .stat-premium-card, body[data-theme="dark"] .nav-premium, body[data-theme="dark"] .admin-item-row {
          background: rgba(17, 24, 39, ${op}) !important;
-         backdrop-filter: blur(20px) !important;
-         -webkit-backdrop-filter: blur(20px) !important;
+         backdrop-filter: blur(${blurVal}px) !important;
+         -webkit-backdrop-filter: blur(${blurVal}px) !important;
       }
       body[data-theme="light"] .car-card-premium, body[data-theme="light"] .modal-inner, body[data-theme="light"] .stat-premium-card, body[data-theme="light"] .nav-premium, body[data-theme="light"] .admin-item-row {
          background: rgba(255, 255, 255, ${op}) !important;
-         backdrop-filter: blur(20px) !important;
-         -webkit-backdrop-filter: blur(20px) !important;
+         backdrop-filter: blur(${blurVal}px) !important;
+         -webkit-backdrop-filter: blur(${blurVal}px) !important;
          border: 1px solid rgba(0,0,0,0.05) !important;
       }
     `;
@@ -1621,6 +1684,20 @@ window.applySettings = function (s) {
     `;
   }
   
+  if (s.enableAnimations === false) {
+    css += `* { transition: none !important; animation: none !important; }`;
+  } else if (s.enableAnimations === true) {
+    css += `
+      .car-card-premium, .stat-premium-card, .feature-card {
+        animation: fadeInUp 0.6s backwards calc(var(--anim-speed-multiplier) * 0.1s);
+      }
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+    `;
+  }
+
   style.innerHTML = css;
 
   // 1. Guest-facing Dynamic UI
@@ -1674,6 +1751,10 @@ window.applySettings = function (s) {
     "set-default-theme": s.defaultTheme || "dark",
     "set-font-family": s.fontFamily || "'Cairo', sans-serif",
     "set-border-radius": s.borderRadius || "16",
+    "set-glass-blur": s.glassBlur || 20,
+    "set-shadow-depth": s.shadowDepth || 40,
+    "set-anim-speed": s.animSpeed || 1,
+    "set-enable-animations": s.enableAnimations !== undefined ? s.enableAnimations.toString() : "true",
     "set-contact-mgmt": s.contactAdmin || "",
     "set-contact-sales": s.contactSales || "",
     "set-contact-complaints": s.contactComplaints || "",
@@ -1775,6 +1856,10 @@ window.saveAppSettings = async function () {
     defaultTheme: document.getElementById("set-default-theme")?.value || "",
     fontFamily: document.getElementById("set-font-family")?.value || "",
     borderRadius: document.getElementById("set-border-radius")?.value || "",
+    glassBlur: parseInt(document.getElementById("set-glass-blur")?.value || "20"),
+    shadowDepth: parseInt(document.getElementById("set-shadow-depth")?.value || "40"),
+    animSpeed: parseFloat(document.getElementById("set-anim-speed")?.value || "1"),
+    enableAnimations: document.getElementById("set-enable-animations")?.value === "true",
     contactAdmin: document.getElementById("set-contact-mgmt")?.value || "",
     contactSales: document.getElementById("set-contact-sales")?.value || "",
     contactComplaints: document.getElementById("set-contact-complaints")?.value || "",
