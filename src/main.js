@@ -1232,7 +1232,12 @@ window.viewBookingDetails = function (id) {
               <i class="fas fa-paperclip" style="font-size:20px; color:#54656f; cursor:pointer;" onclick="document.getElementById('wa-media-upload').click()"></i>
               <i id="wa-mic-btn" class="fas fa-microphone" style="font-size:20px; color:#54656f; cursor:pointer;" onpointerdown="window.startWARecording()" onpointerup="window.stopWARecording('${item.waJid || item.phone}', '${item.assignedTo || ''}')"></i>
               
-              <input type="text" id="wa-server-input" placeholder="اكتب رسالة للرد..." onkeydown="if(event.key==='Enter') window.sendServerWAMessage('${item.waJid || item.phone}', '${item.assignedTo || ''}')">
+              <textarea id="wa-server-input" placeholder="اكتب رسالة للرد..." rows="1" 
+                        style="flex:1; border:none; background:#f0f2f5; border-radius:20px; padding:10px 18px; font-family:inherit; font-size:14.5px; resize:none; max-height:150px; outline:none; height:42px; line-height:1.4; display:block; transition: background 0.2s;" 
+                        onfocus="this.style.background='white'; this.style.boxShadow='inset 0 0 0 1px #eee';" 
+                        onblur="this.style.background='#f0f2f5'; this.style.boxShadow='none';"
+                        oninput="this.style.height = '42px'; this.style.height = Math.min(this.scrollHeight, 150) + 'px';" 
+                        onkeydown="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); window.sendServerWAMessage('${item.waJid || item.phone}', '${item.assignedTo || ''}'); }"></textarea>
               
               <button class="wa-send-btn" onclick="window.sendServerWAMessage('${item.waJid || item.phone}', '${item.assignedTo || ''}')">
                   <i class="fas fa-paper-plane"></i>
@@ -4056,6 +4061,7 @@ window.sendServerWAMessage = async function(phone, staffId, mediaObj = null, for
     // Clear input immediately for better UX
     if (input && forcedMessage === null) {
         input.value = '';
+        input.style.height = '42px';
         input.focus();
     }
 
@@ -4309,6 +4315,9 @@ window.applyQuickReply = function(content) {
         finalContent = finalContent.replace(/\(حالة الجهة\)/g, workStatus);
         
         input.value = finalContent;
+        // Trigger auto-resize
+        input.style.height = '42px';
+        input.style.height = Math.min(input.scrollHeight, 150) + 'px';
         input.focus();
     }
 };
