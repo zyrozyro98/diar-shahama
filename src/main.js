@@ -3305,7 +3305,7 @@ window.renderWhatsAppMonitor = function () {
    ===================== */
 let waSocketContainer = null;
 // Force reset any old cloudflare/localtunnel URLs to the new permanent one
-const CURRENT_MASTER_URL = "https://pct-soonest-bus-boats.trycloudflare.com";
+const CURRENT_MASTER_URL = "https://whatsapp-server-tq4f.onrender.com";
 const WA_SERVER_URL = window.WA_SERVER_URL_OVERRIDE || localStorage.getItem('wa_server_url') || CURRENT_MASTER_URL;
 
 window.saveWAServerURL = async function() {
