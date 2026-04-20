@@ -3845,7 +3845,7 @@ window.fetchServerWAChat = async function(phone, staffId) {
                 chatBox.appendChild(securityMsg);
 
                 data.messages.forEach(m => {
-                    const timeStr = m.timestamp ? new Date(m.timestamp * 1000).toLocaleTimeString('ar-SA', {hour: '2-digit', minute:'2-digit'}) : '';
+                    const timeStr = m.timestamp ? new Date(Number(m.timestamp) * 1000).toLocaleTimeString('ar-SA', {hour: 'numeric', minute:'2-digit', hour12: true}) : '';
                     let safeBody = (m.body || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
                     safeBody = safeBody.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#027eb5; text-decoration:underline;">$1</a>');
                     
@@ -4072,7 +4072,7 @@ window.sendServerWAMessage = async function(phone, staffId, mediaObj = null, for
             chatBox.innerHTML = '<div style="text-align:center; margin:10px 0 15px;"><span style="background:#fefed7; color:#54656f; font-size:11px; padding:6px 12px; border-radius:8px; box-shadow:0 1px 1px rgba(0,0,0,0.05); display:inline-block;"><i class="fas fa-lock" style="margin-left:4px; font-size:10px;"></i> الرسائل محمية ومسجلة عبر الخادم الداخلي</span></div>';
         }
         
-        const timeStr = new Date().toLocaleTimeString('ar-SA', {hour: '2-digit', minute:'2-digit'});
+        const timeStr = new Date().toLocaleTimeString('ar-SA', {hour: 'numeric', minute:'2-digit', hour12: true});
         let safeBody = (message || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         safeBody = safeBody.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#027eb5; text-decoration:underline;">$1</a>');
         
@@ -4237,7 +4237,7 @@ window.renderQuickRepliesBar = function() {
     }
     
     let html = visible.map(q => `
-        <button onclick="window.applyQuickReply(\`${q.content.replace(/"/g, '&quot;').replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\\n/g, '\\\\n')}\`)" style="background:white; border:1px solid var(--glass-border); padding:6px 12px; border-radius:16px; font-size:12px; color:#54656f; cursor:pointer; flex-shrink:0; white-space:nowrap; transition:all 0.2s; box-shadow:0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#f0f2f5'" onmouseout="this.style.background='white'">
+        <button onclick="window.applyQuickReplyById('${q.id}')" style="background:white; border:1px solid var(--glass-border); padding:6px 12px; border-radius:16px; font-size:12px; color:#54656f; cursor:pointer; flex-shrink:0; white-space:nowrap; transition:all 0.2s; box-shadow:0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#f0f2f5'" onmouseout="this.style.background='white'">
             ${q.title}
         </button>
     `).join("");
@@ -4249,6 +4249,13 @@ window.renderQuickRepliesBar = function() {
     }
     
     bar.innerHTML = html;
+};
+
+window.applyQuickReplyById = function(id) {
+    const qr = (window.state.quickReplies || []).find(q => q.id === id);
+    if (qr && qr.content) {
+        window.applyQuickReply(qr.content);
+    }
 };
 
 window.applyQuickReply = function(content) {

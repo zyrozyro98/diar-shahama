@@ -476,12 +476,6 @@ app.post('/api/send', async (req, res) => {
             sendContent = { text: message };
         }
 
-        // Humanized sending: Typing indicator and random delay
-        await sessions[userId].sock.sendPresenceUpdate('composing', jid);
-        const randomDelay = Math.floor(Math.random() * 2000) + 1000; // 1-3 seconds
-        await new Promise(resolve => setTimeout(resolve, randomDelay));
-        await sessions[userId].sock.sendPresenceUpdate('paused', jid);
-
         const sentMsg = await sessions[userId].sock.sendMessage(jid, sendContent);
 
         // Manually push to store immediately so next fetch sees it instantly
@@ -562,7 +556,7 @@ app.get('/api/chat/:userId/:phone', async (req, res) => {
         return {
             id: m.key.id,
             body: body,
-            timestamp: m.messageTimestamp,
+            timestamp: m.messageTimestamp?.low || m.messageTimestamp || Math.floor(Date.now() / 1000),
             isMe: m.key.fromMe,
             status: m.status !== undefined ? m.status : undefined,
             ack: m.status !== undefined ? m.status : undefined,
