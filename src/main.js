@@ -1511,7 +1511,9 @@ window.DESIGN_PRESETS = {
     glassBlur: 25,
     borderRadius: 20,
     cardStyle: "glass",
-    glassOpacity: 0.6
+    glassOpacity: 0.6,
+    light: { bgColor: "#ecfdf5", textColor: "#064e3b" },
+    dark: { bgColor: "#022c22", textColor: "#ecfdf5" }
   },
   royal: {
     primaryColor: "#4c1d95",
@@ -1520,7 +1522,9 @@ window.DESIGN_PRESETS = {
     glassBlur: 15,
     borderRadius: 12,
     cardStyle: "glass",
-    glassOpacity: 0.8
+    glassOpacity: 0.8,
+    light: { bgColor: "#f5f3ff", textColor: "#2e1065" },
+    dark: { bgColor: "#0f0720", textColor: "#f5f3ff" }
   },
   midnight: {
     primaryColor: "#1e1b4b",
@@ -1529,7 +1533,9 @@ window.DESIGN_PRESETS = {
     glassBlur: 30,
     borderRadius: 24,
     cardStyle: "glass",
-    glassOpacity: 0.7
+    glassOpacity: 0.7,
+    light: { bgColor: "#f0f9ff", textColor: "#0c4a6e" },
+    dark: { bgColor: "#020617", textColor: "#f0f9ff" }
   },
   classic: {
     primaryColor: "#a11d21",
@@ -1538,18 +1544,20 @@ window.DESIGN_PRESETS = {
     glassBlur: 0,
     borderRadius: 8,
     cardStyle: "solid",
-    glassOpacity: 1
+    glassOpacity: 1,
+    light: { bgColor: "#f8fafc", textColor: "#0f172a" },
+    dark: { bgColor: "#05080c", textColor: "#f8fafc" }
   },
   gold: {
-    primaryColor: "#000000",
-    secondaryColor: "#b8860b",
+    primaryColor: "#b8860b",
+    secondaryColor: "#d4af37",
     accentColor: "#ffd700",
     glassBlur: 10,
     borderRadius: 0,
     cardStyle: "glass",
     glassOpacity: 0.9,
-    bgColor: "#050505",
-    textColor: "#ffffff"
+    light: { bgColor: "#fffdf0", textColor: "#2d2300" },
+    dark: { bgColor: "#050500", textColor: "#fffdf0" }
   },
   ocean: {
     primaryColor: "#0f172a",
@@ -1558,7 +1566,9 @@ window.DESIGN_PRESETS = {
     glassBlur: 20,
     borderRadius: 30,
     cardStyle: "glass",
-    glassOpacity: 0.5
+    glassOpacity: 0.5,
+    light: { bgColor: "#f0f9ff", textColor: "#0c4a6e" },
+    dark: { bgColor: "#020617", textColor: "#f0f9ff" }
   },
   carbon: {
     primaryColor: "#171717",
@@ -1567,7 +1577,9 @@ window.DESIGN_PRESETS = {
     glassBlur: 5,
     borderRadius: 4,
     cardStyle: "solid",
-    glassOpacity: 1
+    glassOpacity: 1,
+    light: { bgColor: "#f5f5f5", textColor: "#171717" },
+    dark: { bgColor: "#0a0a0a", textColor: "#f5f5f5" }
   }
 };
 
@@ -1695,8 +1707,17 @@ window.applySettings = function (s) {
   }
   
   let css = "";
-  if (s.bgColor) css += `body[data-theme="dark"] { --bg-main: ${s.bgColor}; }\n`;
-  if (s.textColor) css += `body[data-theme="dark"] { --text-main: ${s.textColor}; }\n`;
+  
+  // Theme-aware Global Background & Text Overrides
+  const darkBG = s.dark?.bgColor || s.bgColor;
+  const darkText = s.dark?.textColor || s.textColor;
+  const lightBG = s.light?.bgColor;
+  const lightText = s.light?.textColor;
+
+  if (darkBG) css += `body[data-theme="dark"] { --bg-main: ${darkBG}; }\n`;
+  if (darkText) css += `body[data-theme="dark"] { --text-main: ${darkText}; }\n`;
+  if (lightBG) css += `body[data-theme="light"] { --bg-main: ${lightBG}; }\n`;
+  if (lightText) css += `body[data-theme="light"] { --text-main: ${lightText}; }\n`;
 
   if (s.borderRadius) {
     root.style.setProperty("--border-radius-main", s.borderRadius + "px");
