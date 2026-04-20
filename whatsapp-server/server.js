@@ -36,6 +36,9 @@ const possibleFiles = [
 try {
     if (process.env.FIREBASE_SERVICE_ACCOUNT) {
         serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+        if (serviceAccount && serviceAccount.private_key) {
+            serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+        }
         console.log("Firebase Admin initialized via environment variable.");
     } else {
         const filePath = possibleFiles.find(f => fs.existsSync(path.join(__dirname, f)));
@@ -60,15 +63,20 @@ const db = admin.database();
 
 async function updateFirebaseStatus(userId, status, metadata = {}) {
     try {
+        if (!admin.apps.length) return; // Not initialized
         const ref = db.ref(`whatsapp_settings/${userId}`);
-        await ref.update({
+        // don't await strictly to prevent blocking connection flow if Firebase is slow
+        ref.update({
             status: status,
             lastUpdated: admin.database.ServerValue.TIMESTAMP,
             ...metadata
+        }).then(() => {
+            console.log(`[Firebase Sync] Status updated to: ${status} for user: ${userId}`);
+        }).catch(err => {
+            console.error('[Firebase Sync] Error updating status:', err.message);
         });
-        console.log(`[Firebase Sync] Status updated to: ${status} for user: ${userId}`);
     } catch (err) {
-        console.error('[Firebase Sync] Error updating status:', err.message);
+        console.error('[Firebase Sync] catch error:', err.message);
     }
 }
 
@@ -316,13 +324,13 @@ async function startWASession(userId) {
                 }, 5000);
             } else {
                 console.warn(`[Session: ${userId}] Permanent disconnect (Logout). Clearing session.`);
-                await updateFirebaseStatus(userId, 'disconnected');
+                updateFirebaseStatus(userId, 'disconnected');
                 await clearSession(userId);
                 io.emit('disconnected', { userId, msg: 'تم تسجيل الخروج أو جلسة تالفة.' });
             }
         } else if (connection === 'open') {
             console.log(`[Session: ${userId}] WhatsApp session is OPEN and READY`);
-            await updateFirebaseStatus(userId, 'ready', {
+            updateFirebaseStatus(userId, 'ready', {
                 phoneNumber: sock.user.id.split(':')[0],
                 pushName: sock.user.name
             });
@@ -406,7 +414,7 @@ io.on('connection', (socket) => {
     socket.on('logout_session', async ({ userId }) => {
         if (sessions[userId]?.sock) {
             try { await sessions[userId].sock.logout(); } catch (e) { }
-            await updateFirebaseStatus(userId, 'disconnected');
+            updateFirebaseStatus(userId, 'disconnected');
             await clearSession(userId);
         }
     });
