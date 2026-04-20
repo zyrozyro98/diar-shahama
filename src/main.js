@@ -519,7 +519,7 @@ async function initFirebase() {
   await setPersistence(auth, browserLocalPersistence);
 
   // Define data paths
-  const publicPaths = ["users", "plates", "locations", "brands", "agents", "specs", "packages", "blogs", "reviews", "cars", "ads", "sales", "settings", "partners"];
+  const publicPaths = ["users", "plates", "locations", "brands", "agents", "specs", "packages", "blogs", "reviews", "cars", "ads", "sales", "settings", "partners", "custom_presets"];
   const privatePaths = ["bookings", "notifications", "logs", "quickReplies"];
   const listeners = {};
 
@@ -537,6 +537,7 @@ async function initFirebase() {
         if (p === "sales") window.renderSalesVideos();
         if (p === "partners") window.renderPartners();
         if (p === "reviews") window.renderPublicReviews();
+        if (p === "custom_presets") window.renderCustomPresets();
 
         // Refresh admin tables if in dashboard
         if (window.state.user) {
@@ -1538,22 +1539,108 @@ window.DESIGN_PRESETS = {
     borderRadius: 8,
     cardStyle: "solid",
     glassOpacity: 1
+  },
+  gold: {
+    primaryColor: "#000000",
+    secondaryColor: "#b8860b",
+    accentColor: "#ffd700",
+    glassBlur: 10,
+    borderRadius: 0,
+    cardStyle: "glass",
+    glassOpacity: 0.9,
+    bgColor: "#050505",
+    textColor: "#ffffff"
+  },
+  ocean: {
+    primaryColor: "#0f172a",
+    secondaryColor: "#38bdf8",
+    accentColor: "#2dd4bf",
+    glassBlur: 20,
+    borderRadius: 30,
+    cardStyle: "glass",
+    glassOpacity: 0.5
+  },
+  carbon: {
+    primaryColor: "#171717",
+    secondaryColor: "#404040",
+    accentColor: "#ef4444",
+    glassBlur: 5,
+    borderRadius: 4,
+    cardStyle: "solid",
+    glassOpacity: 1
   }
 };
 
 window.applyDesignPreset = function(presetKey) {
   const preset = window.DESIGN_PRESETS[presetKey];
   if (!preset) return;
-  
-  // Update form inputs if they exist
-  if (document.getElementById("set-primary-color")) document.getElementById("set-primary-color").value = preset.primaryColor;
-  if (document.getElementById("set-secondary-color")) document.getElementById("set-secondary-color").value = preset.secondaryColor;
-  if (document.getElementById("set-accent-color")) document.getElementById("set-accent-color").value = preset.accentColor;
-  if (document.getElementById("set-glass-blur")) document.getElementById("set-glass-blur").value = preset.glassBlur;
-  if (document.getElementById("set-border-radius")) document.getElementById("set-border-radius").value = preset.borderRadius;
-  
   window.applySettings({...window.state.settings, ...preset});
-  showToast(window.state.lang === 'ar' ? "تم تطبيق النمط بنجاح" : "Preset applied successfully");
+  showLuxuryToast(window.state.lang === 'ar' ? "تم تطبيق النمط بنجاح" : "Preset applied successfully");
+};
+
+window.saveCustomDesign = async function() {
+  const name = prompt(window.state.lang === 'ar' ? "أدخل اسماً لمظهرك المخصص:" : "Enter a name for your custom design:");
+  if (!name) return;
+
+  const currentSettings = {
+    primaryColor: document.getElementById("set-color-primary")?.value,
+    secondaryColor: document.getElementById("set-color-secondary")?.value,
+    accentColor: document.getElementById("set-color-accent")?.value,
+    glassBlur: parseInt(document.getElementById("set-glass-blur")?.value || "20"),
+    shadowDepth: parseInt(document.getElementById("set-shadow-depth")?.value || "40"),
+    borderRadius: document.getElementById("set-border-radius")?.value || "16",
+    cardStyle: document.getElementById("set-card-style")?.value || "glass",
+    glassOpacity: parseFloat(document.getElementById("set-glass-opacity")?.value || "0.75"),
+    bgColor: document.getElementById("set-color-bg")?.value,
+    textColor: document.getElementById("set-color-text")?.value,
+    name: name,
+    createdAt: new Date().toISOString()
+  };
+
+  try {
+    const newRef = push(ref(db, "custom_presets"));
+    await set(newRef, currentSettings);
+    showLuxuryToast(window.state.lang === 'ar' ? "تم حفظ المظهر الخاص بنجاح" : "Custom design saved successfully");
+  } catch (e) {
+    showLuxuryToast("فشل الحفظ", "error");
+  }
+};
+
+window.deleteCustomPreset = async function(id) {
+  if (!confirm(window.state.lang === 'ar' ? "هل أنت متأكد من حذف هذا المظهر؟" : "Are you sure you want to delete this preset?")) return;
+  try {
+    await remove(ref(db, `custom_presets/${id}`));
+    showLuxuryToast(window.state.lang === 'ar' ? "تم الحذف" : "Deleted");
+  } catch(e) {
+    showLuxuryToast("Error", "error");
+  }
+};
+
+window.renderCustomPresets = function() {
+  const container = document.getElementById("custom-presets-list");
+  if (!container) return;
+  
+  const presets = window.state.custom_presets || [];
+  if (presets.length === 0) {
+    container.innerHTML = `<div style="grid-column: 1/-1; text-align:center; opacity:0.5; padding:20px;">${window.state.lang === 'ar' ? 'لا يوجد مظاهر محفوظة' : 'No saved designs'}</div>`;
+    return;
+  }
+
+  container.innerHTML = presets.map(p => `
+    <div class="custom-preset-card" style="background:var(--bg-card); border:1px solid var(--glass-border); padding:15px; border-radius:12px; display:flex; justify-content:space-between; align-items:center;">
+       <div>
+         <div style="font-weight:bold; margin-bottom:5px;">${p.name}</div>
+         <div style="display:flex; gap:5px;">
+            <span style="width:12px; height:12px; border-radius:50%; background:${p.primaryColor};"></span>
+            <span style="width:12px; height:12px; border-radius:50%; background:${p.secondaryColor};"></span>
+         </div>
+       </div>
+       <div style="display:flex; gap:10px;">
+          <button class="btn-premium btn-sm" onclick="window.applySettings(window.state.custom_presets.find(x => x.id === '${p.id}'))" style="padding:5px 10px; font-size:11px;">تطبيق</button>
+          <button class="btn-premium btn-sm" onclick="window.deleteCustomPreset('${p.id}')" style="background:var(--p-red); padding:5px 10px; font-size:11px;"><i class="fas fa-trash"></i></button>
+       </div>
+    </div>
+  `).join('');
 };
 
 window.applySettings = function (s) {
