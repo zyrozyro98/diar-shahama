@@ -4218,7 +4218,67 @@ window.renderQuickRepliesBar = function() {
 window.applyQuickReply = function(content) {
     const input = document.getElementById("wa-server-input");
     if(input) {
-        input.value = content;
+        let finalContent = content;
+        
+        const empName = window.state.userProfile?.name || "الموظف";
+        finalContent = finalContent.replace(/\(اسم الموظف\)/g, empName);
+        
+        let custName = "العميل";
+        let carDetails = "السيارة";
+        let paymentMethod = "";
+        let bankName = "غير محدد";
+        let installmentPeriod = "غير محدد";
+        let salary = "غير محدد";
+        let commitments = "غير محدد";
+        let workEntity = "غير محدد";
+        let workStatus = "غير محدد";
+        
+        if (window._currentWaPhone) {
+            const current = window._currentWaPhone.toString();
+            const matches = window.state.bookings?.filter(b => {
+                return (b.phone && b.phone.toString() === current) || 
+                       (b.waJid && b.waJid.toString() === current) || 
+                       (b.phone && current.includes(b.phone.toString()));
+            });
+            if (matches && matches.length > 0) {
+                matches.sort((a, b) => b.createdAt - a.createdAt);
+                const latestBooking = matches[0];
+                if (latestBooking.name) custName = latestBooking.name;
+                if (latestBooking.brand || latestBooking.model) {
+                   carDetails = `${latestBooking.brand || ''} ${latestBooking.model || ''} ${latestBooking.year || ''}`.trim();
+                } else if (latestBooking.carName) {
+                   carDetails = latestBooking.carName;
+                }
+                if (latestBooking.paymentMethod) {
+                   paymentMethod = latestBooking.paymentMethod === 'cash' ? 'كاش' : 'تمويل';
+                }
+                if (latestBooking.bankName) bankName = latestBooking.bankName;
+                if (latestBooking.installmentPeriod) installmentPeriod = latestBooking.installmentPeriod;
+                if (latestBooking.salary) salary = latestBooking.salary;
+                if (latestBooking.commitments) commitments = latestBooking.commitments;
+                if (latestBooking.workEntity) workEntity = latestBooking.workEntity;
+                if (latestBooking.workStatus) workStatus = latestBooking.workStatus;
+            }
+        }
+        
+        finalContent = finalContent.replace(/\(اسم العميل\)/g, custName);
+        finalContent = finalContent.replace(/\(اسم السيارة\)/g, carDetails);
+        finalContent = finalContent.replace(/\(طريقة الشراء\)/g, paymentMethod);
+        finalContent = finalContent.replace(/\(اسم السيارة وتفاصيلها وطريقة الشراء وتفاصيله كاملة\)/g, `${carDetails} - الدفع: ${paymentMethod}`);
+        
+        finalContent = finalContent.replace(/\(اسم البنك الراتب عليه أو المفضل\)/g, bankName);
+        finalContent = finalContent.replace(/\(اسم البنك\)/g, bankName);
+        finalContent = finalContent.replace(/\(مدة الأقساط المفضل\)/g, installmentPeriod);
+        finalContent = finalContent.replace(/\(مدة الأقساط\)/g, installmentPeriod);
+        finalContent = finalContent.replace(/\(الراتب الشهري \(صافي\)\)/g, salary);
+        finalContent = finalContent.replace(/\(الراتب الشهري\)/g, salary);
+        finalContent = finalContent.replace(/\(الراتب\)/g, salary);
+        finalContent = finalContent.replace(/\(الإلتزامات الشهرية\)/g, commitments);
+        finalContent = finalContent.replace(/\(الإلتزامات\)/g, commitments);
+        finalContent = finalContent.replace(/\(جهة العمل\)/g, workEntity);
+        finalContent = finalContent.replace(/\(حالة الجهة\)/g, workStatus);
+        
+        input.value = finalContent;
         input.focus();
     }
 };
