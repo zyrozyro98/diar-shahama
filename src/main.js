@@ -2958,6 +2958,58 @@ window.updateStatistics = function () {
     `).join("");
   }
 
+  // 3. Status Distribution Chart (CSS Donut)
+  const donut = document.getElementById("status-donut-chart");
+  if (donut) {
+    const s = counters.sold + counters.done;
+    const a = counters.new + counters.waiting + counters.inquiry;
+    const c = counters.cancelled;
+    const total = s + a + c || 1;
+    
+    const pS = Math.round((s / total) * 100);
+    const pA = Math.round((a / total) * 100);
+    const pC = 100 - pS - pA;
+
+    donut.style.background = `conic-gradient(
+      #00a884 0% ${pS}%, 
+      var(--p-gold) ${pS}% ${pS + pA}%, 
+      #e02424 ${pS + pA}% 100%
+    )`;
+    donut.setAttribute("data-pct", `${pS}% ناجح`);
+  }
+
+  // 4. Monthly Leaderboard
+  const leaderboard = document.getElementById("supervisor-leaderboard");
+  if (leaderboard && window.state.users && window.state.bookings) {
+    const now = new Date();
+    const currentMonthBookings = window.state.bookings.filter(b => {
+      const d = new Date(b.createdAt || 0);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+
+    const staffStats = window.state.users
+      .filter(u => u.role === "staff" || u.role === "supervisor")
+      .map(u => {
+        const sold = currentMonthBookings.filter(b => b.assignedTo === u.id && (b.status === "sold" || b.status === "done")).length;
+        const total = currentMonthBookings.filter(b => b.assignedTo === u.id).length;
+        return { ...u, soldCount: sold, totalAssigned: total };
+      })
+      .sort((a, b) => b.soldCount - a.soldCount)
+      .slice(0, 5);
+
+    leaderboard.innerHTML = staffStats.map((s, idx) => `
+      <div class="leader-item">
+        <div class="leader-rank">${idx + 1}</div>
+        <div class="leader-avatar"><img src="${s.image || 'logo.jpg'}" onerror="this.src='logo.jpg'"></div>
+        <div class="leader-info">
+          <strong>${s.name || s.email}</strong>
+          <span>${s.soldCount} مبيعات / ${s.totalAssigned} طلبات</span>
+        </div>
+        <div class="leader-score">${s.soldCount > 0 ? Math.round((s.soldCount / (s.totalAssigned || 1)) * 100) : 0}%</div>
+      </div>
+    `).join("");
+  }
+
   // Auto-refresh Periodical Report
   if (window.state.currentPeriodReport) {
     window.switchPeriodReport(window.state.currentPeriodReport);
