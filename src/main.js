@@ -5529,12 +5529,12 @@ window.formatDateRelative = function (ts) {
 
 
 window.playNotificationSound = function () {
-  if (window.state.soundEnabled === false) return;
+  if (window.state && window.state.soundEnabled === false) return;
   try {
-    const audio = new Audio(" https://assets.mixkit.co/active_storage/sfx/2861/2861-preview.mp3\);
- audio.volume = 0.5;
- audio.play().catch(e => console.warn(\Audio play failed:\, e));
- } catch (e) {
- console.warn(\Audio error:\, e);
- }
+    const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2861/2861-preview.mp3");
+    audio.volume = 0.5;
+    audio.play().catch(e => console.warn("Audio play failed:", e));
+  } catch (e) {
+    console.warn("Audio error:", e);
+  }
 };

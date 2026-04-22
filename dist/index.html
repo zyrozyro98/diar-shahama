@@ -45,7 +45,7 @@
             }
         })();
     </script>
-  <script type="module" crossorigin src="/assets/index-BBHIqOmx.js"></script>
+  <script type="module" crossorigin src="/assets/index-1pw7Y9m3.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/vendor-Bg_btqvK.js">
   <link rel="modulepreload" crossorigin href="/assets/firebase-BfvlcbVS.js">
   <link rel="modulepreload" crossorigin href="/assets/emoji-picker-CeBMFWb3.js">
@@ -230,6 +230,10 @@
             flex-direction: column;
             background: rgba(0, 0, 0, 0.2);
         }
+
+        /* Toggle Switch Icons */
+        .toggle-switch input:checked + .slider .fa-volume-up { opacity: 1 !important; }
+        .toggle-switch input:checked + .slider .fa-volume-mute { opacity: 0 !important; }
 
         /* Premium Notifications */
         .notification-premium-item {
@@ -1134,14 +1138,7 @@
                                     <span class="slider round"></span>
                                 </div>
                             </div>
-                            <div class="mini-stat-item">
-                                <label for="sound-toggle">تنبيهات صوتية</label>
-                                <div class="toggle-switch" onclick="window.toggleSound()">
-                                    <input type="checkbox" id="sound-toggle" checked
-                                        aria-label="تفعيل أو تعطيل التنبيهات الصوتية" title="التنبيهات الصوتية">
-                                    <span class="slider round"></span>
-                                </div>
-                            </div>
+
                             <div class="dash-summary-stats">
                                 <div class="m-stat" title="طلبات جديدة بانتظارك">
                                     <i class="fas fa-hourglass-start"
@@ -1375,8 +1372,15 @@
                                     </button>
                                     <h2 class="luxury-font m-0">لوحة <span class="highlight">التحكم</span></h2>
                                 </div>
-                                <div class="dash-header-welcome-meta">
-                                    <p class="m-0">مرحباً بك مجدداً في نظام إدارة المبيعات</p>
+                                <div class="dash-header-welcome-meta" style="display:flex; align-items:center; gap:10px;">
+                                    <p class="m-0" style="margin-left:10px;">مرحباً بك مجدداً في نظام إدارة المبيعات</p>
+                                    
+                                    <!-- Sound Toggle Button -->
+                                    <button class="icon-btn-lite rel" id="header-sound-toggle" title="كتم / تفعيل الصوت" aria-label="تبديل الصوت" onclick="window.toggleSound()">
+                                        <i class="fas fa-volume-up" id="header-sound-icon"></i>
+                                    </button>
+
+                                    <!-- Notifications Bell -->
                                     <button class="icon-btn-lite rel" id="dash-notif-bell" title="مركز الإشعارات"
                                         aria-label="مشاهدة الإشعارات"
                                         onclick="document.querySelector('.dash-tab[data-tab=\'notifications-mgmt\']').click()">
