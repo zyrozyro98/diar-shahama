@@ -1,4 +1,4 @@
-﻿import { initializeApp, deleteApp } from "firebase/app";
+import { initializeApp, deleteApp } from "firebase/app";
 import { db, auth, storage, analytics, firebaseConfig } from "./firebase-config.js";
 import {
   ref, onValue, set, push, update, remove, get, increment, runTransaction
@@ -2518,6 +2518,13 @@ window.syncAdminTables = function (type) {
     });
   }
 
+  if (type === "notifications") {
+    const isAdmin = window.state.userProfile?.role === "admin" || window.state.userProfile?.role === "supervisor";
+    if (!isAdmin && window.state.user) {
+      items = items.filter(n => n.userId === window.state.user.uid || n.assignedTo === window.state.user.uid);
+    }
+  }
+
   // Type-specific filters
   if (type === "cars") {
     const makeFilter = document.getElementById("admin-filter-car-make");
@@ -2816,6 +2823,10 @@ function renderAdminItemRow(type, item) {
   if (type === "notifications") {
     const isRead = !!item.read;
     const notifType = item.type || "system";
+    const isAdminView = window.state.userProfile?.role === "admin" || window.state.userProfile?.role === "supervisor";
+    const staffId = item.userId || item.assignedTo;
+    const staffMember = window.state.users?.find(u => u.id === staffId);
+    const staffName = staffMember ? (staffMember.name || staffMember.email) : "نظام";
     
     const icons = {
       wa_message: "fab fa-whatsapp",
@@ -2831,17 +2842,20 @@ function renderAdminItemRow(type, item) {
           </div>
           <div class="notif-content">
               <div class="notif-header">
-                  <span class="notif-title">${item.title || "تنبيه بالنظام"}</span>
+                  <div style="display:flex; flex-direction:column; gap:2px;">
+                      <span class="notif-title">${item.title || "تنبيه بالنظام"}</span>
+                      ${isAdminView ? `<span style="font-size:11px; color:var(--p-gold); font-weight:bold;">الموظف: ${staffName}</span>` : ""}
+                  </div>
                   <span class="notif-time">${window.formatDateRelative ? window.formatDateRelative(item.timestamp) : new Date(item.timestamp).toLocaleString('ar-SA')}</span>
               </div>
               <p class="notif-body">${item.text || item.message || ""}</p>
               <div class="notif-actions" onclick="event.stopPropagation()">
                   ${!isRead ? `
-                      <button class="btn-premium btn-xs" style="padding:4px 10px;" onclick="window.markNotificationRead('${item.id}')">
+                      <button class="btn-premium btn-xs" style="padding:4px 12px; font-size:11px;" onclick="window.markNotificationRead('${item.id}')">
                           <i class="fas fa-check"></i> مقروء
                       </button>
                   ` : ''}
-                  <button class="btn-premium btn-xs danger" style="padding:4px 10px;" onclick="window.deleteLuxuryItem('notifications', '${item.id}')">
+                  <button class="btn-premium btn-xs danger" style="padding:4px 12px; font-size:11px;" onclick="window.deleteLuxuryItem('notifications', '${item.id}')">
                       <i class="fas fa-trash"></i> حذف
                   </button>
               </div>
