@@ -644,6 +644,7 @@ function updateAppUI() {
 
   document.querySelectorAll(".admin-only").forEach(el => el.classList.toggle("hidden", !isAdmin && !isSupervisor));
   document.querySelectorAll(".supervisor-only").forEach(el => el.classList.toggle("hidden", !isSupervisor && !isAdmin));
+  document.querySelectorAll(".admin-strictly").forEach(el => el.classList.toggle("hidden", !isAdmin));
   document.querySelectorAll(".staff-only").forEach(el => el.classList.toggle("hidden", isAdmin || isSupervisor));
 
   if (isLoggedIn) {
@@ -2577,7 +2578,14 @@ window.syncAdminTables = function (type) {
 };
 
 function renderAdminItemRow(type, item) {
-  const isAdmin = window.state.userProfile?.role === "admin" || window.state.userProfile?.role === "supervisor";
+  const isSuperOrAdmin = window.state.userProfile?.role === "admin" || window.state.userProfile?.role === "supervisor";
+  const isFullAdmin = window.state.userProfile?.role === "admin";
+  const isSupervisor = window.state.userProfile?.role === "supervisor";
+  
+  // Whitelist of types where Supervisor can edit/delete
+  const supervisorCanEdit = ["bookings", "notifications"];
+  const canEdit = isFullAdmin || (isSupervisor && supervisorCanEdit.includes(type));
+  
   const statusClass = item.status === "sold" ? "danger" : item.status === "available" ? "success" : "warning";
   const statusLabel = item.status === "sold" ? "مباع" : item.status === "available" ? "متاح" : "محجوز";
 
@@ -2608,7 +2616,7 @@ function renderAdminItemRow(type, item) {
                     <span class="badge-${stClass}" style="font-size:10px; padding:3px 8px; border-radius:5px;">${statusMap[item.status] || item.status || "جديد"}</span>
                     <button class="icon-btn-lite view" onclick="window.viewBookingDetails('${item.id}')" title="عرض التفاصيل"><i class="fas fa-eye"></i></button>
                     <button class="icon-btn-lite" onclick="window.editLuxuryItem('bookings', '${item.id}')" title="تعديل الحجز" aria-label="Edit Booking"><i class="fas fa-edit"></i></button>
-                    ${isAdmin ? `<button class="icon-btn-lite danger" onclick="window.deleteLuxuryItem('bookings', '${item.id}')" title="حذف الحجز" aria-label="Delete Booking"><i class="fas fa-trash"></i></button>` : ""}
+                    ${canEdit ? `<button class="icon-btn-lite danger" onclick="window.deleteLuxuryItem('bookings', '${item.id}')" title="حذف الحجز" aria-label="Delete Booking"><i class="fas fa-trash"></i></button>` : ""}
                 </div>
             </div>
         `;
@@ -2634,7 +2642,7 @@ function renderAdminItemRow(type, item) {
                 <div class="admin-actions" style="display:flex; gap:8px; align-items:center;">
                     <span class="badge-${statusClass}" style="font-size:10px; padding:4px 10px; border-radius:6px; font-weight:700;">${statusLabel}</span>
                     <button class="icon-btn-lite view" onclick="window.viewLuxuryCar('${item.id}')" title="عرض التفاصيل"><i class="fas fa-eye"></i></button>
-                    ${isAdmin ? `
+                    ${canEdit ? `
                         <button class="icon-btn-lite" onclick="window.editLuxuryItem('cars', '${item.id}')" title="تعديل"><i class="fas fa-edit"></i></button>
                         <button class="icon-btn-lite danger" onclick="window.deleteLuxuryItem('cars', '${item.id}')" title="حذف"><i class="fas fa-trash"></i></button>
                     ` : ""}
@@ -2656,7 +2664,7 @@ function renderAdminItemRow(type, item) {
                 </div>
                 <div class="admin-actions">
                     <button class="icon-btn-lite" onclick="window.editLuxuryItem('users', '${item.id}')" title="تعديل المستخدم" aria-label="Edit User"><i class="fas fa-edit"></i></button>
-                    ${isAdmin ? `<button class="icon-btn-lite danger" onclick="window.deleteLuxuryItem('users', '${item.id}')" title="حذف المستخدم" aria-label="Delete User"><i class="fas fa-trash"></i></button>` : ""}
+                    ${canEdit ? `<button class="icon-btn-lite danger" onclick="window.deleteLuxuryItem('users', '${item.id}')" title="حذف المستخدم" aria-label="Delete User"><i class="fas fa-trash"></i></button>` : ""}
                 </div>
             </div>
         `;
@@ -2671,7 +2679,7 @@ function renderAdminItemRow(type, item) {
                 </div>
                 <div class="admin-actions" style="display:flex; gap:10px; align-items:center;">
                     <span class="badge-${statusClass}" style="font-size:10px; padding:3px 8px; border-radius:5px;">${statusLabel}</span>
-                    ${isAdmin ? `
+                    ${canEdit ? `
                         <button class="icon-btn-lite" onclick="window.editLuxuryItem('plates', '${item.id}')" title="تعديل"><i class="fas fa-edit"></i></button>
                         <button class="icon-btn-lite danger" onclick="window.deleteLuxuryItem('plates', '${item.id}')" title="حذف"><i class="fas fa-trash"></i></button>
                     ` : ""}
@@ -2692,7 +2700,7 @@ function renderAdminItemRow(type, item) {
                     <p style="font-size:13px; opacity:0.8; margin-top:4px;">${item.text || item.message || ""}</p>
                     <span style="font-size:11px; opacity:0.5; margin-top:5px; display:block;"><i class="far fa-clock"></i> ${new Date(item.timestamp).toLocaleString()}</span>
                 </div>
-                ${isAdmin ? `
+                ${canEdit ? `
                 <div class="admin-actions">
                     <button class="icon-btn-lite danger" onclick="window.deleteLuxuryItem('notifications', '${item.id}')" title="حذف"><i class="fas fa-trash"></i></button>
                 </div>
@@ -2743,7 +2751,7 @@ function renderAdminItemRow(type, item) {
                 </div>
                 <div class="admin-actions">
                     <button class="icon-btn-lite view" onclick="window.openVideoLightbox('${url}')" title="معاينة"><i class="fas fa-eye"></i></button>
-                    ${isAdmin ? `
+                    ${canEdit ? `
                         <button class="icon-btn-lite" onclick="window.editLuxuryItem('sales', '${item.id}')" title="تعديل"><i class="fas fa-edit"></i></button>
                         <button class="icon-btn-lite danger" onclick="window.deleteLuxuryItem('sales', '${item.id}')" title="حذف"><i class="fas fa-trash"></i></button>
                     ` : ""}
@@ -2872,7 +2880,7 @@ window.updateStatistics = function () {
     bookingsBadge.classList.toggle("hidden", counters.new === 0);
   }
 
-  // Staff-Specific UI Refresh (Line 661+)
+  // Staff-Specific UI Refresh
   const currentUid = window.state.user?.uid;
   const isStaff = window.state.userProfile?.role === "staff";
 
@@ -2896,6 +2904,118 @@ window.updateStatistics = function () {
     if (rCount) rCount.innerText = rate + "%";
     if (aToggle) aToggle.checked = window.state.userProfile.isAvailable !== false;
   }
+
+  // 2. Supervisor Dashboard Elements (Merged from Reports)
+  const supTotalVal = document.getElementById("total-inventory-value");
+  const supConvRate = document.getElementById("overall-conversion-rate");
+  const supActiveBookings = document.getElementById("active-bookings-count");
+  const supConvBar = document.getElementById("conversion-bar");
+  
+  if (supTotalVal) {
+    const total = (window.state.cars || []).reduce((sum, c) => sum + (parseFloat(c.price) || 0), 0);
+    supTotalVal.innerText = total.toLocaleString() + " ريال";
+  }
+  if (supActiveBookings) {
+    supActiveBookings.innerText = counters.new + counters.waiting + counters.inquiry;
+  }
+  if (supConvRate) {
+    const totalBookings = (window.state.bookings || []).length;
+    const soldCount = (window.state.bookings || []).filter(b => b.status === "sold" || b.status === "done").length;
+    const rate = totalBookings > 0 ? Math.round((soldCount / totalBookings) * 100) : 0;
+    supConvRate.innerText = rate + "%";
+    if (supConvBar) supConvBar.style.width = rate + "%";
+  }
+
+  // Monthly Goal
+  const goalPercent = document.getElementById("monthly-goal-percent");
+  const goalFill = document.getElementById("monthly-goal-fill");
+  if (goalPercent && goalFill) {
+    const soldThisMonth = (window.state.bookings || []).filter(b => {
+      if (b.status !== "sold" && b.status !== "done") return false;
+      const date = new Date(b.createdAt || 0);
+      const now = new Date();
+      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    }).length;
+    const target = 50; 
+    const pct = Math.min(100, Math.round((soldThisMonth / target) * 100));
+    goalPercent.innerText = pct + "%";
+    goalFill.style.width = pct + "%";
+  }
+
+  // Supervisor Recent Logs
+  const logList = document.getElementById("supervisor-recent-logs");
+  if (logList && window.state.logs) {
+    const recent = [...window.state.logs].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 10);
+    logList.innerHTML = recent.map(log => `
+      <div class="log-entry-lite">
+        <div class="le-icon"><i class="fas ${log.type === 'auth' ? 'fa-key' : log.type === 'data' ? 'fa-database' : 'fa-info-circle'}"></i></div>
+        <div class="le-body">
+          <div class="le-top"><strong>${log.action}</strong> <span>${new Date(log.timestamp).toLocaleTimeString()}</span></div>
+          <p>${log.details}</p>
+          <small>بواسطة: ${log.user}</small>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  // Auto-refresh Periodical Report
+  if (window.state.currentPeriodReport) {
+    window.switchPeriodReport(window.state.currentPeriodReport);
+  } else {
+    window.switchPeriodReport('day');
+  }
+};
+
+window.switchPeriodReport = function (period, btn) {
+  window.state.currentPeriodReport = period;
+  if (btn) {
+    document.querySelectorAll('.p-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  } else {
+    // If called without btn, find the correct tab to highlight
+    const tabs = document.querySelectorAll('.p-tab');
+    const periodMap = { day: 0, week: 1, month: 2, year: 3 };
+    const index = periodMap[period] || 0;
+    if (tabs[index]) {
+      tabs.forEach(b => b.classList.remove('active'));
+      tabs[index].classList.add('active');
+    }
+  }
+
+  const now = new Date();
+  let start = new Date();
+  if (period === 'day') start.setHours(0, 0, 0, 0);
+  else if (period === 'week') start.setDate(now.getDate() - 7);
+  else if (period === 'month') start.setMonth(now.getMonth() - 1);
+  else if (period === 'year') start.setFullYear(now.getFullYear() - 1);
+
+  const bookings = (window.state.bookings || []).filter(b => new Date(b.createdAt || 0) >= start);
+  const carsAdded = (window.state.cars || []).filter(c => new Date(c.createdAt || 0) >= start).length;
+  const platesAdded = (window.state.plates || []).filter(p => new Date(p.createdAt || 0) >= start).length;
+
+  const total = bookings.length;
+  const sold = bookings.filter(b => b.status === "sold" || b.status === "done").length;
+  const active = bookings.filter(b => b.status === "new" || b.status === "waiting" || b.status === "inquiry").length;
+  const rate = total > 0 ? Math.round((sold / total) * 100) : 0;
+  const soldValue = bookings.filter(b => b.status === "sold" || b.status === "done")
+    .reduce((sum, b) => {
+      const car = (window.state.cars || []).find(c => c.id === b.carId);
+      return sum + (parseFloat(car?.price || 0));
+    }, 0);
+
+  const elMap = {
+    'period-total-count': total,
+    'period-sold-count': sold,
+    'period-active-count': active,
+    'period-conv-rate': rate + "%",
+    'period-sold-value': soldValue.toLocaleString() + " ريال",
+    'period-inventory-added': (carsAdded + platesAdded)
+  };
+
+  Object.entries(elMap).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el) el.innerText = val;
+  });
 };
 
 // =========================================================================================

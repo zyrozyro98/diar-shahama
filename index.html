@@ -91,7 +91,8 @@
                 opacity: 1;
             }
         }
-        /* Supervisor Dashboard Styles */
+        /* Supervisor Dashboard Enhancements */
+        .supervisor-sections { display: flex; flex-direction: column; gap: 30px; margin-top: 25px; }
         .supervisor-export-bar {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -118,6 +119,33 @@
             border-radius: 15px;
             overflow: hidden;
             border: 1px solid var(--glass-border);
+        }
+
+        .recent-logs-list { display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; padding-left: 10px; }
+        .log-entry-lite { display: flex; gap: 15px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid var(--glass-border); transition: all 0.3s; }
+        .log-entry-lite:hover { background: rgba(255,255,255,0.05); transform: translateX(-5px); }
+        .le-icon { width: 35px; height: 35px; border-radius: 8px; background: var(--bg-alt); display: flex; align-items: center; justify-content: center; color: var(--p-copper); flex-shrink: 0; }
+        .le-body { flex-grow: 1; }
+        .le-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .le-top strong { font-size: 14px; }
+        .le-top span { font-size: 11px; opacity: 0.5; }
+        .le-body p { font-size: 12px; opacity: 0.8; margin: 0; }
+        .le-body small { font-size: 10px; opacity: 0.5; display: block; margin-top: 4px; }
+        
+        .goal-card { background: linear-gradient(135deg, rgba(184, 134, 11, 0.1), rgba(0,0,0,0.4)) !important; border: 1px solid var(--p-copper) !important; }
+        .goal-progress-wrap { margin: 15px 0; }
+        .goal-progress-wrap span { display: block; text-align: center; font-weight: 800; font-size: 1.2rem; color: var(--p-copper); margin-bottom: 5px; }
+        .goal-progress-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
+        #monthly-goal-fill { height: 100%; background: var(--p-copper); box-shadow: 0 0 10px var(--p-copper); transition: width 1s ease-in-out; }
+        
+        .live-badge { background: #e02424; color: #fff; font-size: 9px; padding: 2px 6px; border-radius: 4px; vertical-align: middle; margin-left: 8px; animation: pulse-live 2s infinite; }
+        @keyframes pulse-live { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        .staff-eval-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        
+        @media (max-width: 768px) {
+            .chat-monitor-layout { grid-template-columns: 1fr; height: auto; }
+            .staff-eval-grid { grid-template-columns: 1fr; }
         }
 
         .monitor-sidebar {
@@ -902,27 +930,27 @@
                                 مخزون السيارات</button>
                             <button class="dash-tab admin-only" data-tab="ads-mgmt"><i class="fas fa-bullhorn"></i>
                                 التسويق</button>
-                            <button class="dash-tab" data-tab="plates-mgmt"><i class="fas fa-address-card"></i>
+                            <button class="dash-tab admin-strictly hidden" data-tab="plates-mgmt"><i class="fas fa-address-card"></i>
                                 اللوحات المميزة</button>
                             <button class="dash-tab" data-tab="sales-mgmt"><i class="fas fa-clapperboard"></i>
                                 النجاحات</button>
-                            <button class="dash-tab admin-only" data-tab="partners-mgmt"><i
+                            <button class="dash-tab admin-strictly hidden" data-tab="partners-mgmt"><i
                                     class="fas fa-handshake"></i>
                                 شركاؤنا</button>
-                            <button class="dash-tab admin-only" data-tab="locations-mgmt"><i
+                            <button class="dash-tab admin-strictly hidden" data-tab="locations-mgmt"><i
                                     class="fas fa-globe-americas"></i>
                                 الدول والمدن</button>
-                            <button class="dash-tab admin-only" data-tab="brands-mgmt"><i class="fas fa-car-side"></i>
+                            <button class="dash-tab admin-strictly hidden" data-tab="brands-mgmt"><i class="fas fa-car-side"></i>
                                 العلامات التجارية</button>
-                            <button class="dash-tab admin-only" data-tab="agents-mgmt"><i class="fas fa-id-badge"></i>
+                            <button class="dash-tab admin-strictly hidden" data-tab="agents-mgmt"><i class="fas fa-id-badge"></i>
                                 الوكلاء</button>
-                            <button class="dash-tab admin-only" data-tab="specs-mgmt"><i class="fas fa-cogs"></i>
+                            <button class="dash-tab admin-strictly hidden" data-tab="specs-mgmt"><i class="fas fa-cogs"></i>
                                 المواصفات</button>
-                            <button class="dash-tab admin-only" data-tab="packages-mgmt"><i class="fas fa-gift"></i>
+                            <button class="dash-tab admin-strictly hidden" data-tab="packages-mgmt"><i class="fas fa-gift"></i>
                                 الباقات</button>
-                            <button class="dash-tab admin-only" data-tab="blogs-mgmt"><i class="fas fa-blog"></i>
+                            <button class="dash-tab admin-strictly hidden" data-tab="blogs-mgmt"><i class="fas fa-blog"></i>
                                 المدونة</button>
-                            <button class="dash-tab" data-tab="reviews-mgmt"><i class="fas fa-star"></i>
+                            <button class="dash-tab admin-strictly hidden" data-tab="reviews-mgmt"><i class="fas fa-star"></i>
                                 آراء العملاء</button>
                             <button class="dash-tab" data-tab="bookings-mgmt">
                                 <i class="fas fa-paper-plane"></i> الحجوزات
@@ -1068,25 +1096,24 @@
                                 <i class="fas fa-bell"></i> الإشعارات
                                 <span id="notifications-badge" class="badge-v2 badge-v2-nav hidden">0</span>
                             </button>
-                            <button class="dash-tab admin-only hidden" data-tab="users-mgmt"><i
+                            <button class="dash-tab admin-strictly hidden" data-tab="users-mgmt"><i
                                     class="fas fa-user-gear"></i> الموظفين</button>
                             <button class="dash-tab admin-only hidden" data-tab="analytics-mgmt"><i
                                     class="fas fa-chart-line"></i> تحليلات الزوار</button>
                             <button class="dash-tab admin-only hidden" data-tab="ai-assistant-mgmt"><i
                                     class="fas fa-brain"></i> المساعد الذكي</button>
-                            <button class="dash-tab" data-tab="whatsapp-mgmt"><i
+                            <button class="dash-tab admin-strictly hidden" data-tab="whatsapp-mgmt"><i
                                     class="fab fa-whatsapp"></i> ربط الواتساب</button>
                             <button class="dash-tab admin-only hidden" data-tab="whatsapp-monitor-mgmt"><i
                                     class="fab fa-whatsapp"></i> رقابة الرفض والدردشات</button>
-                            <button class="dash-tab admin-only hidden" data-tab="quick-replies-mgmt"><i
+                            <button class="dash-tab admin-strictly hidden" data-tab="quick-replies-mgmt"><i
                                     class="fas fa-bolt"></i> الرسائل السريعة</button>
-                            <button class="dash-tab admin-only hidden" data-tab="reports-mgmt"><i
-                                    class="fas fa-chart-bar"></i> التقارير</button>
+
                             <button class="dash-tab supervisor-only hidden" data-tab="supervisor-dash"><i
                                     class="fas fa-user-tie"></i> لوحة الإشراف</button>
-                            <button class="dash-tab admin-only hidden" data-tab="settings-mgmt"><i
+                            <button class="dash-tab admin-strictly hidden" data-tab="settings-mgmt"><i
                                     class="fas fa-sliders-h"></i> الإعدادات</button>
-                            <button class="dash-tab admin-only hidden" data-tab="logs-mgmt"><i
+                            <button class="dash-tab admin-strictly hidden" data-tab="logs-mgmt"><i
                                     class="fas fa-history"></i> سجل العمليات</button>
                         </nav>
                         <button id="logout-btn-v2" class="btn-logout-minimal" onclick="window.logout()">
@@ -1197,7 +1224,7 @@
                                         <h3>إدارة المخزون</h3>
                                         <p>إدارة وتسجيل كافة السيارات المتوفرة والواردة</p>
                                     </div>
-                                    <button id="add-car-btn-v2" class="btn-premium btn-sm admin-only hidden"
+                                    <button id="add-car-btn-v2" class="btn-premium btn-sm admin-strictly hidden"
                                         onclick="window.openCRUDModal('cars')">إضافة للمخزون</button>
                                 </div>
                                 <div class="advanced-filter-bar mb-20">
@@ -1593,7 +1620,85 @@
                                 </div>
 
                                 <div class="supervisor-sections">
-                                    <!-- Section 1: Data Export & Filters -->
+                                    <!-- Section 0: Analytics Dashboard (Merged from Reports) -->
+                                    <div class="analytics-overview-v2" style="margin-bottom: 25px;">
+                                        <div class="stat-premium-card">
+                                            <div class="sp-icon"><i class="fas fa-vault"></i></div>
+                                            <div class="sp-info">
+                                                <span class="sp-label">قيمة المخزون الإجمالية</span>
+                                                <h2 id="total-inventory-value">0 ريال</h2>
+                                                <span class="sp-trend positive"><i class="fas fa-arrow-up"></i> +12% هذا الشهر</span>
+                                            </div>
+                                        </div>
+                                        <div class="stat-premium-card">
+                                            <div class="sp-icon"><i class="fas fa-hand-holding-dollar"></i></div>
+                                            <div class="sp-info">
+                                                <span class="sp-label">معدل التحويل (Lead to Sale)</span>
+                                                <h2 id="overall-conversion-rate">0%</h2>
+                                                <div class="progress-lite-wrap">
+                                                    <div class="progress-lite-bar" id="conversion-bar" style="width: 0%"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="stat-premium-card">
+                                            <div class="sp-icon"><i class="fas fa-chart-line"></i></div>
+                                            <div class="sp-info">
+                                                <span class="sp-label">نشاط الحجوزات</span>
+                                                <h2 id="active-bookings-count">0</h2>
+                                                <span class="sp-subtext" id="bookings-trend-text">طلبات قيد المتابعة</span>
+                                            </div>
+                                        </div>
+                                        <div class="stat-premium-card goal-card">
+                                            <div class="sp-info">
+                                                <span class="sp-label">هدف المبيعات الشهري</span>
+                                                <div class="goal-progress-wrap">
+                                                    <span id="monthly-goal-percent">0%</span>
+                                                    <div class="goal-progress-bar">
+                                                        <div id="monthly-goal-fill" style="width: 0%"></div>
+                                                    </div>
+                                                </div>
+                                                <span class="sp-subtext">المستهدف: 50 عملية بيع</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Section 1: Periodical Reports (Merged from Reports) -->
+                                    <div class="report-section">
+                                        <div class="section-title-v2">
+                                            <i class="fas fa-calendar-alt"></i>
+                                            <span>تقارير الأداء الدورية</span>
+                                        </div>
+                                        <div class="period-tabs" style="margin-bottom: 15px;">
+                                            <button class="p-tab active" onclick="window.switchPeriodReport('day', this)">اليوم</button>
+                                            <button class="p-tab" onclick="window.switchPeriodReport('week', this)">الأسبوع</button>
+                                            <button class="p-tab" onclick="window.switchPeriodReport('month', this)">الشهر</button>
+                                            <button class="p-tab" onclick="window.switchPeriodReport('year', this)">السنة</button>
+                                        </div>
+                                        <div class="period-stats-grid">
+                                            <div class="p-stat-card">
+                                                <label>إجمالي الطلبات</label>
+                                                <h3 id="period-total-count">0</h3>
+                                                <div class="p-stat-icon"><i class="fas fa-file-invoice"></i></div>
+                                            </div>
+                                            <div class="p-stat-card success">
+                                                <label>عمليات مكتملة</label>
+                                                <h3 id="period-sold-count">0</h3>
+                                                <div class="p-stat-icon"><i class="fas fa-check-circle"></i></div>
+                                            </div>
+                                            <div class="p-stat-card warning">
+                                                <label>قيد المتابعة</label>
+                                                <h3 id="period-active-count">0</h3>
+                                                <div class="p-stat-icon"><i class="fas fa-clock"></i></div>
+                                            </div>
+                                            <div class="p-stat-card premium">
+                                                <label>معدل التحويل</label>
+                                                <h3 id="period-conv-rate">0%</h3>
+                                                <div class="p-stat-icon"><i class="fas fa-trophy"></i></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Section 2: Data Export & Filters -->
                                     <div class="report-section">
                                         <div class="section-title-v2">
                                             <i class="fas fa-file-export"></i>
@@ -1627,11 +1732,11 @@
                                         </div>
                                     </div>
 
-                                    <!-- Section 2: Live Chat Monitoring -->
+                                    <!-- Section 3: Live Chat Monitoring -->
                                     <div class="report-section">
                                         <div class="section-title-v2">
                                             <i class="fas fa-comments"></i>
-                                            <span>مراقبة المحادثات الحية</span>
+                                            <span>مراقبة المحادثات الحية <span class="live-badge">LIVE</span></span>
                                         </div>
                                         <div class="chat-monitor-layout">
                                             <div class="monitor-sidebar">
@@ -1639,164 +1744,40 @@
                                                 <select id="sup-monitor-staff-select" class="filter-select" onchange="window.monitorStaffChats(this.value)">
                                                     <option value="">-- اختر موظف --</option>
                                                 </select>
-                                                <div id="monitor-active-chats-list" class="monitor-list">
-                                                    <!-- List of active chats for selected staff -->
-                                                </div>
+                                                <div id="monitor-active-chats-list" class="monitor-list"></div>
                                             </div>
                                             <div class="monitor-chat-view">
                                                 <div id="monitor-chat-header" class="chat-header-v2">
                                                     <span>اختر محادثة لبدء المراقبة</span>
                                                 </div>
-                                                <div id="monitor-chat-body" class="chat-body-v2">
-                                                    <!-- Real-time chat messages -->
-                                                </div>
+                                                <div id="monitor-chat-body" class="chat-body-v2"></div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- Section 3: Staff Management & Evaluation -->
+                                    <!-- Section 4: Staff Management & Evaluation -->
                                     <div class="report-section">
                                         <div class="section-title-v2">
                                             <i class="fas fa-users-cog"></i>
                                             <span>إدارة وتقييم الموظفين</span>
                                         </div>
-                                        <div id="supervisor-staff-list" class="staff-eval-grid">
-                                            <!-- Dynamic Staff Cards with Performance Metrics -->
+                                        <div id="supervisor-staff-list" class="staff-eval-grid"></div>
+                                    </div>
+
+                                    <!-- Section 5: Recent System Activity -->
+                                    <div class="report-section">
+                                        <div class="section-title-v2">
+                                            <i class="fas fa-history"></i>
+                                            <span>سجل النشاط المباشر</span>
+                                        </div>
+                                        <div id="supervisor-recent-logs" class="recent-logs-list">
+                                            <!-- Dynamic Logs -->
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div id="reports-mgmt" class="pane hidden admin-only">
-                                <div class="pane-header-v2">
-                                    <div class="pane-title">
-                                        <h3>مركز التقارير والإحصائيات</h3>
-                                        <p>تحليل أداء النظام، مبيعات الفريق، وجرد المخزون</p>
-                                    </div>
-                                </div>
 
-                                <!-- Analytics Dashboard v2 -->
-                                <div class="analytics-overview-v2">
-                                    <div class="stat-premium-card">
-                                        <div class="sp-icon"><i class="fas fa-vault"></i></div>
-                                        <div class="sp-info">
-                                            <span class="sp-label">قيمة المخزون الإجمالية</span>
-                                            <h2 id="total-inventory-value">0 ريال</h2>
-                                            <span class="sp-trend positive"><i class="fas fa-arrow-up"></i> +12% هذا
-                                                الشهر</span>
-                                        </div>
-                                    </div>
-                                    <div class="stat-premium-card">
-                                        <div class="sp-icon"><i class="fas fa-hand-holding-dollar"></i></div>
-                                        <div class="sp-info">
-                                            <span class="sp-label">معدل التحويل (Lead to Sale)</span>
-                                            <h2 id="overall-conversion-rate">0%</h2>
-                                            <div class="progress-lite-wrap">
-                                                <div class="progress-lite-bar" id="conversion-bar" style="width: 0%">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="stat-premium-card">
-                                        <div class="sp-icon"><i class="fas fa-chart-line"></i></div>
-                                        <div class="sp-info">
-                                            <span class="sp-label">نشاط الحجوزات</span>
-                                            <h2 id="active-bookings-count">0</h2>
-                                            <span class="sp-subtext" id="bookings-trend-text">طلبات قيد
-                                                المتابعة</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Periodical Reports v2 -->
-                                <div class="periodical-reports-section">
-                                    <div class="section-title-v2">
-                                        <i class="fas fa-calendar-alt"></i>
-                                        <span>تقارير الطلبات الدورية</span>
-                                    </div>
-                                    <div class="period-tabs">
-                                        <button class="p-tab active"
-                                            onclick="window.switchPeriodReport('day', this)">اليوم</button>
-                                        <button class="p-tab"
-                                            onclick="window.switchPeriodReport('week', this)">الأسبوع</button>
-                                        <button class="p-tab"
-                                            onclick="window.switchPeriodReport('month', this)">الشهر</button>
-                                        <button class="p-tab"
-                                            onclick="window.switchPeriodReport('year', this)">السنة</button>
-                                    </div>
-
-                                    <div class="period-stats-grid">
-                                        <div class="p-stat-card">
-                                            <label>إجمالي الطلبات</label>
-                                            <h3 id="period-total-count">0</h3>
-                                            <div class="p-stat-icon"><i class="fas fa-file-invoice"></i></div>
-                                        </div>
-                                        <div class="p-stat-card success">
-                                            <label>عمليات مكتملة</label>
-                                            <h3 id="period-sold-count">0</h3>
-                                            <div class="p-stat-icon"><i class="fas fa-check-circle"></i></div>
-                                        </div>
-                                        <div class="p-stat-card warning">
-                                            <label>قيد المتابعة</label>
-                                            <h3 id="period-active-count">0</h3>
-                                            <div class="p-stat-icon"><i class="fas fa-clock"></i></div>
-                                        </div>
-                                        <div class="p-stat-card premium">
-                                            <label>معدل التحويل</label>
-                                            <h3 id="period-conv-rate">0%</h3>
-                                            <div class="p-stat-icon"><i class="fas fa-trophy"></i></div>
-                                        </div>
-                                        <div class="p-stat-card primary">
-                                            <label>مبيعات مؤكدة</label>
-                                            <h3 id="period-sold-value"
-                                                style="font-size: 1.5rem; color: var(--p-copper);">0 ريال</h3>
-                                            <div class="p-stat-icon"><i class="fas fa-money-bill-wave"></i></div>
-                                        </div>
-                                        <div class="p-stat-card info">
-                                            <label>سيارات/لوحات مضافة</label>
-                                            <h3 id="period-inventory-added">0</h3>
-                                            <div class="p-stat-icon"><i class="fas fa-car-side"></i></div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="reports-content-wrap">
-                                    <div class="report-section">
-                                        <div class="section-title-v2">
-                                            <i class="fas fa-medal"></i>
-                                            <span>أداء فريق المبيعات</span>
-                                        </div>
-                                        <div id="staff-performance-table" class="staff-perf-list">
-                                            <!-- Dynamic Staff Perf -->
-                                        </div>
-                                    </div>
-
-                                    <div class="report-section">
-                                        <div class="section-title-v2">
-                                            <i class="fas fa-file-export"></i>
-                                            <span>تصدير البيانات</span>
-                                        </div>
-                                        <div class="export-options">
-                                            <div class="export-tile" onclick="window.exportToCSV('cars')">
-                                                <div class="et-icon"><i class="fas fa-car-side"></i></div>
-                                                <div class="et-text">جرد السيارات</div>
-                                            </div>
-                                            <div class="export-tile" onclick="window.exportToCSV('bookings')">
-                                                <div class="et-icon"><i class="fas fa-file-invoice"></i></div>
-                                                <div class="et-text">سجل الحجوزات</div>
-                                            </div>
-                                            <div class="export-tile" onclick="window.exportToCSV('users')">
-                                                <div class="et-icon"><i class="fas fa-users-gear"></i></div>
-                                                <div class="et-text">بيانات الموظفين</div>
-                                            </div>
-                                            <div class="export-tile" onclick="window.exportToCSV('logs')">
-                                                <div class="et-icon"><i class="fas fa-history"></i></div>
-                                                <div class="et-text">سجل العمليات</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
 
                             <div id="analytics-mgmt" class="pane hidden admin-only">
                                 <div class="pane-header-v2">
