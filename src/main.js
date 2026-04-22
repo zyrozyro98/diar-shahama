@@ -1,4 +1,4 @@
-import { initializeApp, deleteApp } from "firebase/app";
+ï»¿import { initializeApp, deleteApp } from "firebase/app";
 import { db, auth, storage, analytics, firebaseConfig } from "./firebase-config.js";
 import {
   ref, onValue, set, push, update, remove, get, increment, runTransaction
@@ -5432,72 +5432,68 @@ window.promoteToAdmin = async function (uid) {
 
 // Export Firebase SDK for patches
 window.FirebaseSDK = { ref, db, push, set, update, remove, auth };
-
 // =========================================================================================
 // NOTIFICATION MANAGEMENT
 // =========================================================================================
 
 window.markNotificationRead = async function (id) {
   try {
-    await update(ref(db, 
-otifications/), { read: true });
-    window.showLuxuryToast(" Êã ÊÍÏíÏ ÇáÅÔÚÇÑ ßãŞÑæÁ\);
- window.syncAdminTables(\notifications\);
- } catch (e) {
- console.error(e);
- }
+    await update(ref(db, 'notifications/' + id), { read: true });
+    window.showLuxuryToast('ØªÙ… ØªØ­Ø¯ÙŠØ¯ Ø§Ù„Ø¥Ø´Ø¹Ø§Ø± ÙƒÙ…Ù‚Ø±ÙˆØ¡');
+    window.syncAdminTables('notifications');
+  } catch (e) {
+    console.error(e);
+  }
 };
 
 window.markAllNotificationsRead = async function () {
- const unread = (window.state.notifications || []).filter(n => !n.read);
- if (unread.length === 0) return;
- 
- try {
- const updates = {};
- unread.forEach(n => { updates[
-otifications//read] = true; });
- await update(ref(db), updates);
- window.showLuxuryToast(\Êã ÊÍÏíÏ ßÇİÉ ÇáÅÔÚÇÑÇÊ ßãŞÑæÁÉ\);
- window.syncAdminTables(\notifications\);
- } catch (e) {
- console.error(e);
- }
+  const unread = (window.state.notifications || []).filter(n => !n.read);
+  if (unread.length === 0) return;
+  
+  try {
+    const updates = {};
+    unread.forEach(n => { updates['notifications/' + n.id + '/read'] = true; });
+    await update(ref(db), updates);
+    window.showLuxuryToast('ØªÙ… ØªØ­Ø¯ÙŠØ¯ ÙƒØ§ÙØ© Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª ÙƒÙ…Ù‚Ø±ÙˆØ¡Ø©');
+    window.syncAdminTables('notifications');
+  } catch (e) {
+    console.error(e);
+  }
 };
 
 window.clearAllNotifications = async function () {
- if (!confirm(\åá ÃäÊ ãÊÃßÏ ãä ãÓÍ ßÇİÉ ÇáÅÔÚÇÑÇÊ¿\)) return;
- try {
- await remove(ref(db, \notifications\));
- window.showLuxuryToast(\Êã ãÓÍ ßÇİÉ ÇáÅÔÚÇÑÇÊ\);
- window.syncAdminTables(\notifications\);
- } catch (e) {
- console.error(e);
- }
+  if (!confirm('Ù‡Ù„ Ø£Ù†Øª Ù…ØªØ£ÙƒØ¯ Ù…Ù† Ù…Ø³Ø­ ÙƒØ§ÙØ© Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§ØªØŸ')) return;
+  try {
+    await remove(ref(db, 'notifications'));
+    window.showLuxuryToast('ØªÙ… Ù…Ø³Ø­ ÙƒØ§ÙØ© Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª');
+    window.syncAdminTables('notifications');
+  } catch (e) {
+    console.error(e);
+  }
 };
 
 window.handleNotificationClick = function (id, link) {
- window.markNotificationRead(id);
- if (link) {
- // Handle internal links (e.g., #booking/ID)
- if (link.startsWith(\#\)) {
- const parts = link.substring(1).split(\/\);
- if (parts[0] === \booking\ && parts[1]) {
- window.viewBookingDetails(parts[1]);
- }
- } else {
- window.open(link, \_blank\);
- }
- }
+  window.markNotificationRead(id);
+  if (link) {
+    if (link.startsWith('#')) {
+       const parts = link.substring(1).split('/');
+       if (parts[0] === 'booking' && parts[1]) {
+         window.viewBookingDetails(parts[1]);
+       }
+    } else {
+       window.open(link, '_blank');
+    }
+  }
 };
 
 window.formatDateRelative = function (ts) {
- if (!ts) return \-\;
- const date = new Date(ts);
- const now = new Date();
- const diff = Math.floor((now - date) / 1000);
- 
- if (diff < 60) return \ÇáÂä\;
- if (diff < 3600) return ãäĞ ÏŞíŞÉ;
- if (diff < 86400) return ãäĞ ÓÇÚÉ;
- return date.toLocaleDateString(\ar-SA\);
+  if (!ts) return '-';
+  const date = new Date(ts);
+  const now = new Date();
+  const diff = Math.floor((now - date) / 1000);
+  
+  if (diff < 60) return 'Ø§Ù„Ø¢Ù†';
+  if (diff < 3600) return 'Ù…Ù†Ø° ' + Math.floor(diff / 60) + ' Ø¯Ù‚ÙŠÙ‚Ø©';
+  if (diff < 86400) return 'Ù…Ù†Ø° ' + Math.floor(diff / 3600) + ' Ø³Ø§Ø¹Ø©';
+  return date.toLocaleDateString('ar-SA');
 };
