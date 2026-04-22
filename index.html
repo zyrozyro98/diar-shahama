@@ -1124,16 +1124,8 @@
                             </div>
                         </div>
 
-                        <!-- Staff Productivity Quick Stats (Staff Only) -->
-                        <div id="staff-quick-stats" class="staff-mini-stats hidden">
-                            <div class="mini-stat-item">
-                                <label for="availability-toggle">جاهزية الاستلام</label>
-                                <div class="toggle-switch" onclick="window.toggleAvailability()">
-                                    <input type="checkbox" id="availability-toggle" aria-label="تغيير جاهزية الاستلام"
-                                        title="تغيير الجاهزية">
-                                    <span class="slider round"></span>
-                                </div>
-                            </div>
+                        <!-- Global Sound Toggle -->
+                        <div style="padding:0 20px; margin-bottom:15px;">
                             <div class="mini-stat-item" style="display:flex; align-items:center; justify-content:space-between; background:var(--glass-bg); padding:10px 15px; border-radius:12px; border:1px solid var(--glass-border);">
                                 <label for="sound-toggle" style="margin:0; font-weight:600; font-size:13px;"><i class="fas fa-bell" style="color:var(--p-gold); margin-left:5px;"></i> صوت الإشعارات</label>
                                 <div class="toggle-switch" onclick="window.toggleSound()" style="transform:scale(0.9); margin:0;">
@@ -1144,6 +1136,19 @@
                                     </span>
                                 </div>
                             </div>
+                        </div>
+
+                        <!-- Staff Productivity Quick Stats (Staff Only) -->
+                        <div id="staff-quick-stats" class="staff-mini-stats hidden">
+                            <div class="mini-stat-item">
+                                <label for="availability-toggle">جاهزية الاستلام</label>
+                                <div class="toggle-switch" onclick="window.toggleAvailability()">
+                                    <input type="checkbox" id="availability-toggle" aria-label="تغيير جاهزية الاستلام"
+                                        title="تغيير الجاهزية">
+                                    <span class="slider round"></span>
+                                </div>
+                            </div>
+
                             <div class="dash-summary-stats">
                                 <div class="m-stat" title="طلبات جديدة بانتظارك">
                                     <i class="fas fa-hourglass-start"
