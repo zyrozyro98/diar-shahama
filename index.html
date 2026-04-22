@@ -227,6 +227,10 @@
             background: rgba(0, 0, 0, 0.2);
         }
 
+        /* Toggle Switch Icons */
+        .toggle-switch input:checked + .slider .fa-volume-up { opacity: 1 !important; }
+        .toggle-switch input:checked + .slider .fa-volume-mute { opacity: 0 !important; }
+
         /* Premium Notifications */
         .notification-premium-item {
             background: var(--glass-bg);
@@ -1130,12 +1134,14 @@
                                     <span class="slider round"></span>
                                 </div>
                             </div>
-                            <div class="mini-stat-item">
-                                <label for="sound-toggle">تنبيهات صوتية</label>
-                                <div class="toggle-switch" onclick="window.toggleSound()">
-                                    <input type="checkbox" id="sound-toggle" checked
-                                        aria-label="تفعيل أو تعطيل التنبيهات الصوتية" title="التنبيهات الصوتية">
-                                    <span class="slider round"></span>
+                            <div class="mini-stat-item" style="display:flex; align-items:center; justify-content:space-between; background:var(--glass-bg); padding:10px 15px; border-radius:12px; border:1px solid var(--glass-border);">
+                                <label for="sound-toggle" style="margin:0; font-weight:600; font-size:13px;"><i class="fas fa-bell" style="color:var(--p-gold); margin-left:5px;"></i> صوت الإشعارات</label>
+                                <div class="toggle-switch" onclick="window.toggleSound()" style="transform:scale(0.9); margin:0;">
+                                    <input type="checkbox" id="sound-toggle" checked aria-label="تفعيل أو تعطيل التنبيهات الصوتية" title="التنبيهات الصوتية">
+                                    <span class="slider round" style="display:flex; align-items:center; justify-content:space-between; padding:0 5px; box-sizing:border-box;">
+                                        <i class="fas fa-volume-up" style="font-size:10px; color:white; opacity:0; transition:opacity 0.3s; position:absolute; right:5px; top:5px;"></i>
+                                        <i class="fas fa-volume-mute" style="font-size:10px; color:white; position:absolute; left:5px; top:5px;"></i>
+                                    </span>
                                 </div>
                             </div>
                             <div class="dash-summary-stats">

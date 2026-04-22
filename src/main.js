@@ -531,15 +531,29 @@ async function initFirebase() {
       const data = s.val();
       if (p === "settings") {
         window.state.settings = data || {};
-        window.applySettings(data);
-      } else {
-        window.state[p] = data ? Object.entries(data).map(([id, v]) => ({ ...v, id })) : [];
+        window.applySettings(data);      } else {
+        const oldData = window.state[p] || [];
+        const newData = data ? Object.entries(data).map(([id, v]) => ({ ...v, id })) : [];
+        window.state[p] = newData;
+        
         if (p === "cars") window.applyInventoryFilters();
         if (p === "ads") window.renderAdsSlider();
         if (p === "sales") window.renderSalesVideos();
         if (p === "partners") window.renderPartners();
         if (p === "reviews") window.renderPublicReviews();
         if (p === "custom_presets") window.renderCustomPresets();
+
+        // Check for new notifications to play sound
+        if (p === "notifications" && window.state.user && window.state.firstLoadDone) {
+          const isAdmin = window.state.userProfile?.role === "admin" || window.state.userProfile?.role === "supervisor";
+          const getMyUnread = (arr) => arr.filter(n => !n.read && (isAdmin || n.userId === window.state.user.uid || n.assignedTo === window.state.user.uid));
+          const oldUnread = getMyUnread(oldData).length;
+          const newUnread = getMyUnread(newData).length;
+          
+          if (newUnread > oldUnread && window.playNotificationSound) {
+             window.playNotificationSound();
+          }
+        }
 
         // Refresh admin tables if in dashboard
         if (window.state.user) {
