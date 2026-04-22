@@ -2815,23 +2815,39 @@ function renderAdminItemRow(type, item) {
 
   if (type === "notifications") {
     const isRead = !!item.read;
+    const notifType = item.type || "system";
+    
+    const icons = {
+      wa_message: "fab fa-whatsapp",
+      booking: "fas fa-calendar-check",
+      system: "fas fa-info-circle",
+      auth: "fas fa-shield-alt"
+    };
+
     return `
-            <div class="admin-item-row" style="background:${isRead ? 'rgba(255,255,255,0.01)' : 'rgba(28, 124, 140, 0.05)'}; padding:15px; border-radius:12px; border:1px solid ${isRead ? 'var(--glass-border)' : 'var(--p-teal)'}; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-                <div class="admin-item-info">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        ${!isRead ? '<span style="width:8px; height:8px; background:var(--p-teal); border-radius:50%;"></span>' : ''}
-                        <strong style="display:block; font-size:15px;">${item.title || "ÿ™ŸÜÿ®ŸäŸá ÿ®ÿßŸÑŸÜÿ∏ÿßŸÖ"}</strong>
-                    </div>
-                    <p style="font-size:13px; opacity:0.8; margin-top:4px;">${item.text || item.message || ""}</p>
-                    <span style="font-size:11px; opacity:0.5; margin-top:5px; display:block;"><i class="far fa-clock"></i> ${new Date(item.timestamp).toLocaleString()}</span>
-                </div>
-                ${canEdit ? `
-                <div class="admin-actions">
-                    <button class="icon-btn-lite danger" onclick="window.deleteLuxuryItem('notifications', '${item.id}')" title="ÿ≠ÿ∞ŸÅ"><i class="fas fa-trash"></i></button>
-                </div>
-                ` : ""}
-            </div>
-        `;
+      <div class="notification-premium-item ${isRead ? '' : 'unread'}" onclick="window.handleNotificationClick('${item.id}', '${item.link || ''}')">
+          <div class="notif-icon-wrap">
+              <i class="${icons[notifType] || icons.system}"></i>
+          </div>
+          <div class="notif-content">
+              <div class="notif-header">
+                  <span class="notif-title">${item.title || "ÿ™ŸÜÿ®ŸäŸá ÿ®ÿßŸÑŸÜÿ∏ÿßŸÖ"}</span>
+                  <span class="notif-time">${window.formatDateRelative ? window.formatDateRelative(item.timestamp) : new Date(item.timestamp).toLocaleString('ar-SA')}</span>
+              </div>
+              <p class="notif-body">${item.text || item.message || ""}</p>
+              <div class="notif-actions" onclick="event.stopPropagation()">
+                  ${!isRead ? `
+                      <button class="btn-premium btn-xs" style="padding:4px 10px;" onclick="window.markNotificationRead('${item.id}')">
+                          <i class="fas fa-check"></i> ŸÖŸÇÿ±Ÿàÿ°
+                      </button>
+                  ` : ''}
+                  <button class="btn-premium btn-xs danger" style="padding:4px 10px;" onclick="window.deleteLuxuryItem('notifications', '${item.id}')">
+                      <i class="fas fa-trash"></i> ÿ≠ÿ∞ŸÅ
+                  </button>
+              </div>
+          </div>
+      </div>
+    `;
   }
 
   if (type === "logs") {
@@ -5416,3 +5432,72 @@ window.promoteToAdmin = async function (uid) {
 
 // Export Firebase SDK for patches
 window.FirebaseSDK = { ref, db, push, set, update, remove, auth };
+
+// =========================================================================================
+// NOTIFICATION MANAGEMENT
+// =========================================================================================
+
+window.markNotificationRead = async function (id) {
+  try {
+    await update(ref(db, 
+otifications/), { read: true });
+    window.showLuxuryToast("  „  ÕœÌœ «·≈‘⁄«— ﬂ„ﬁ—Ê¡\);
+ window.syncAdminTables(\notifications\);
+ } catch (e) {
+ console.error(e);
+ }
+};
+
+window.markAllNotificationsRead = async function () {
+ const unread = (window.state.notifications || []).filter(n => !n.read);
+ if (unread.length === 0) return;
+ 
+ try {
+ const updates = {};
+ unread.forEach(n => { updates[
+otifications//read] = true; });
+ await update(ref(db), updates);
+ window.showLuxuryToast(\ „  ÕœÌœ ﬂ«›… «·≈‘⁄«—«  ﬂ„ﬁ—Ê¡…\);
+ window.syncAdminTables(\notifications\);
+ } catch (e) {
+ console.error(e);
+ }
+};
+
+window.clearAllNotifications = async function () {
+ if (!confirm(\Â· √‰  „ √ﬂœ „‰ „”Õ ﬂ«›… «·≈‘⁄«—« ø\)) return;
+ try {
+ await remove(ref(db, \notifications\));
+ window.showLuxuryToast(\ „ „”Õ ﬂ«›… «·≈‘⁄«—« \);
+ window.syncAdminTables(\notifications\);
+ } catch (e) {
+ console.error(e);
+ }
+};
+
+window.handleNotificationClick = function (id, link) {
+ window.markNotificationRead(id);
+ if (link) {
+ // Handle internal links (e.g., #booking/ID)
+ if (link.startsWith(\#\)) {
+ const parts = link.substring(1).split(\/\);
+ if (parts[0] === \booking\ && parts[1]) {
+ window.viewBookingDetails(parts[1]);
+ }
+ } else {
+ window.open(link, \_blank\);
+ }
+ }
+};
+
+window.formatDateRelative = function (ts) {
+ if (!ts) return \-\;
+ const date = new Date(ts);
+ const now = new Date();
+ const diff = Math.floor((now - date) / 1000);
+ 
+ if (diff < 60) return \«·¬‰\;
+ if (diff < 3600) return „‰– œﬁÌﬁ…;
+ if (diff < 86400) return „‰– ”«⁄…;
+ return date.toLocaleDateString(\ar-SA\);
+};
