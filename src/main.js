@@ -4579,6 +4579,7 @@ window.initWhatsAppServer = async function () {
 };
 
 window.showWAPushNotification = async function (phone, body, assignedUserId) {
+  if (window.playNotificationSound) window.playNotificationSound();
   let container = document.getElementById('wa-push-notifications-container');
   if (!container) {
     container = document.createElement('div');
@@ -5510,4 +5511,16 @@ window.formatDateRelative = function (ts) {
   if (diff < 3600) return 'منذ ' + Math.floor(diff / 60) + ' دقيقة';
   if (diff < 86400) return 'منذ ' + Math.floor(diff / 3600) + ' ساعة';
   return date.toLocaleDateString('ar-SA');
+};
+
+
+window.playNotificationSound = function () {
+  if (window.state.soundEnabled === false) return;
+  try {
+    const audio = new Audio(" https://assets.mixkit.co/active_storage/sfx/2861/2861-preview.mp3\);
+ audio.volume = 0.5;
+ audio.play().catch(e => console.warn(\Audio play failed:\, e));
+ } catch (e) {
+ console.warn(\Audio error:\, e);
+ }
 };
