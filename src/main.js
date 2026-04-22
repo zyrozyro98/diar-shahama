@@ -765,6 +765,10 @@ window.handleSupervisorExport = async function (format) {
         const staff = window.state.users.find(u => u.id === val);
         val = staff ? (staff.name || staff.email) : val;
       }
+      if (key === 'status') {
+        const statusMap = { available: "متاح", sold: "مباع", new: "جديد", done: "تم", cancelled: "ملغى", rejected: "مرفوض" };
+        val = statusMap[val] || val;
+      }
       translated[currentLabels[key]] = val || "";
     });
     return translated;
@@ -773,71 +777,100 @@ window.handleSupervisorExport = async function (format) {
   if (format === 'xlsx') {
     const ws = XLSX.utils.json_to_sheet(exportData);
     
-    // Set RTL for the worksheet
-    if(!ws['!props']) ws['!props'] = {};
+    // Set RTL and column widths
     ws['!views'] = [{RTL: true}];
+    const wscols = Object.keys(exportData[0]).map(() => ({ wch: 20 }));
+    ws['!cols'] = wscols;
     
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "التقارير");
+    XLSX.utils.book_append_sheet(wb, ws, "التقرير");
     XLSX.writeFile(wb, `تقرير_${type}_${new Date().toLocaleDateString('ar-EG').replace(/\//g, '-')}.xlsx`);
     window.showLuxuryToast("تم تصدير ملف Excel بنجاح");
+    window.createLog("تصدير بيانات", `تصدير تقرير ${type} بصيغة Excel`, "data");
   } else if (format === 'pdf') {
-    // Show loading toast
-    window.showLuxuryToast("جاري إنشاء ملف PDF...");
+    window.showLuxuryToast("جاري معالجة ملف PDF...");
 
-    // Create a temporary HTML table for rendering
     const tempDiv = document.createElement('div');
     tempDiv.style.position = 'fixed';
     tempDiv.style.left = '-10000px';
-    tempDiv.style.top = '0';
-    tempDiv.style.width = '1000px';
+    tempDiv.style.width = '1200px';
     tempDiv.style.direction = 'rtl';
-    tempDiv.style.fontFamily = 'Cairo, sans-serif';
-    tempDiv.style.padding = '20px';
+    tempDiv.style.fontFamily = "'Cairo', sans-serif";
+    tempDiv.style.padding = '40px';
     tempDiv.style.background = '#fff';
-    tempDiv.style.color = '#333';
+    tempDiv.style.color = '#111';
+
+    // Summary calculations
+    const totalItems = data.length;
+    const dateRangeStr = (start || end) ? `الفترة من: ${start || 'البداية'} إلى: ${end || 'اليوم'}` : "كافة البيانات";
+    
+    const logoUrl = window.state.settings?.logo || 'logo.jpg';
 
     const headers = Object.keys(exportData[0]);
     let tableHtml = `
-      <div style="text-align:center; margin-bottom:20px;">
-        <h2 style="color:#c5a163;">تقرير ${type === 'cars' ? 'السيارات' : type === 'bookings' ? 'الحجوزات' : 'الموظفين'}</h2>
-        <p>تاريخ التقرير: ${new Date().toLocaleString('ar-SA')}</p>
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #a11d21; padding-bottom:20px; margin-bottom:30px;">
+        <div style="text-align:right;">
+          <h1 style="color:#a11d21; margin:0; font-size:28px;">${window.state.settings?.nameAr || 'ديار الشهامة'}</h1>
+          <p style="margin:5px 0; opacity:0.7;">تقرير إداري مفصل - ${type === 'cars' ? 'مخزون السيارات' : type === 'bookings' ? 'سجل الحجوزات' : 'قائمة الموظفين'}</p>
+          <p style="font-size:12px; font-weight:bold;">${dateRangeStr}</p>
+        </div>
+        <img src="${logoUrl}" style="height:80px; object-fit:contain;">
       </div>
-      <table border="1" style="width:100%; border-collapse:collapse; text-align:right; font-size:12px;">
-        <thead style="background:#c5a163; color:white;">
-          <tr>
-            ${headers.map(h => `<th style="padding:10px; border:1px solid #ddd;">${h}</th>`).join('')}
+
+      <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:20px; margin-bottom:30px;">
+        <div style="background:#f9fafb; padding:15px; border-radius:10px; border:1px solid #eee;">
+          <small style="color:#666;">إجمالي السجلات</small>
+          <div style="font-size:20px; font-weight:bold; color:#a11d21;">${totalItems}</div>
+        </div>
+        <div style="background:#f9fafb; padding:15px; border-radius:10px; border:1px solid #eee;">
+          <small style="color:#666;">تاريخ الاستخراج</small>
+          <div style="font-size:14px; font-weight:bold;">${new Date().toLocaleString('ar-SA')}</div>
+        </div>
+        <div style="background:#f9fafb; padding:15px; border-radius:10px; border:1px solid #eee;">
+          <small style="color:#666;">المصدر</small>
+          <div style="font-size:14px; font-weight:bold;">نظام ديار الشهامة السحابي</div>
+        </div>
+      </div>
+
+      <table style="width:100%; border-collapse:collapse; text-align:right; font-size:11px;">
+        <thead>
+          <tr style="background:#a11d21; color:white;">
+            ${headers.map(h => `<th style="padding:12px 8px; border:1px solid #a11d21;">${h}</th>`).join('')}
           </tr>
         </thead>
         <tbody>
-          ${exportData.map(row => `
-            <tr>
-              ${headers.map(h => `<td style="padding:8px; border:1px solid #ddd;">${row[h]}</td>`).join('')}
+          ${exportData.map((row, idx) => `
+            <tr style="background:${idx % 2 === 0 ? '#fff' : '#fcfcfc'};">
+              ${headers.map(h => `<td style="padding:10px 8px; border:1px solid #eee;">${row[h]}</td>`).join('')}
             </tr>
           `).join('')}
         </tbody>
       </table>
+
+      <div style="margin-top:40px; border-top:1px solid #eee; padding-top:10px; font-size:10px; color:#999; text-align:center;">
+        هذا التقرير تم توليده آلياً من لوحة تحكم المشرف. جميع الحقوق محفوظة لشركة ${window.state.settings?.nameAr || 'ديار الشهامة'}.
+      </div>
     `;
 
     tempDiv.innerHTML = tableHtml;
     document.body.appendChild(tempDiv);
 
     const opt = {
-      margin: 10,
+      margin: [10, 10],
       filename: `تقرير_${type}_${new Date().toLocaleDateString('ar-EG').replace(/\//g, '-')}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
+      image: { type: 'jpeg', quality: 1 },
       html2canvas: { scale: 2, useCORS: true, letterRendering: true },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
     };
 
-    // Use html2pdf to generate the file
     html2pdf().set(opt).from(tempDiv).save().then(() => {
       document.body.removeChild(tempDiv);
-      window.showLuxuryToast("تم تصدير ملف PDF بنجاح");
+      window.showLuxuryToast("تم استخراج التقرير بنجاح");
+      window.createLog("تصدير بيانات", `تصدير تقرير ${type} بصيغة PDF`, "data");
     }).catch(err => {
-      console.error("PDF Export Error:", err);
-      window.showLuxuryToast("فشل تصدير PDF", "error");
-      document.body.removeChild(tempDiv);
+      console.error(err);
+      window.showLuxuryToast("خطأ أثناء استخراج PDF", "error");
+      if (tempDiv.parentNode) document.body.removeChild(tempDiv);
     });
   }
 };
