@@ -1,4 +1,4 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, deleteApp } from "firebase/app";
 import { db, auth, storage, analytics, firebaseConfig } from "./firebase-config.js";
 import {
   ref, onValue, set, push, update, remove, get, increment, runTransaction
@@ -652,12 +652,27 @@ function updateAppUI() {
 
     const nameLabel = document.getElementById("user-display-name");
     const roleLabel = document.getElementById("user-role-label");
-    if (nameLabel) nameLabel.innerText = window.state.userProfile?.name || "المسؤول";
+    
+    // Set correct role-based labels
+    if (nameLabel) {
+      nameLabel.innerText = window.state.userProfile?.name || (isAdmin ? "المسؤول العام" : isSupervisor ? "المشرف العام" : "الموظف");
+    }
+    
     if (roleLabel) {
       let roleText = "قسم المبيعات والمتابعة";
-      if (isAdmin) roleText = "إدارة النظام";
-      else if (isSupervisor) roleText = "مشرف النظام";
+      if (isAdmin) roleText = "إدارة النظام (Admin)";
+      else if (isSupervisor) roleText = "إدارة الرقابة والإشراف (Supervisor)";
       roleLabel.innerText = roleText;
+    }
+
+    // Auto-switch to appropriate dashboard
+    const currentTab = document.querySelector(".dash-tab.active");
+    if (!currentTab || currentTab.classList.contains("hidden")) {
+      let targetTab = "bookings-mgmt"; // Default for Admin/Staff
+      if (isSupervisor) targetTab = "supervisor-dash";
+      
+      const tabBtn = document.querySelector(`.dash-tab[data-tab="${targetTab}"]`);
+      if (tabBtn) tabBtn.click();
     }
 
     if (isSupervisor || isAdmin) {
@@ -695,37 +710,135 @@ window.handleSupervisorExport = async function (format) {
     return;
   }
 
-  // Sanitize data for export
+  // Arabic labels mapping
+  const labelsMap = {
+    cars: {
+      make: "الماركة",
+      model: "الموديل",
+      year: "السنة",
+      price: "السعر",
+      color: "اللون الخارجى",
+      interiorColor: "اللون الداخلى",
+      mileage: "الممشى",
+      status: "الحالة",
+      condition: "حالة السيارة",
+      engine: "المحرك",
+      transmission: "ناقل الحركة",
+      fuelType: "نوع الوقود",
+      createdAt: "تاريخ الإضافة"
+    },
+    bookings: {
+      name: "اسم العميل",
+      phone: "رقم الجوال",
+      carRequested: "السيارة المطلوبة",
+      city: "المدينة",
+      nationality: "الجنسية",
+      paymentMethod: "طريقة الشراء",
+      salary: "الراتب",
+      status: "الحالة",
+      subStatus: "الحالة الفرعية",
+      createdAt: "تاريخ الطلب",
+      assignedTo: "الموظف المسؤول"
+    },
+    users: {
+      name: "الاسم",
+      email: "البريد الإلكتروني",
+      role: "الدور",
+      lastLogin: "آخر دخول",
+      createdAt: "تاريخ الإنشاء"
+    }
+  };
+
+  const currentLabels = labelsMap[type] || {};
+
+  // Sanitize and translate data for export
   const exportData = data.map(item => {
-    const cleaned = { ...item };
-    delete cleaned.id;
-    delete cleaned.images;
-    delete cleaned.poster;
-    return cleaned;
+    const translated = {};
+    Object.keys(currentLabels).forEach(key => {
+      let val = item[key];
+      // Handle special formatting
+      if (key === 'createdAt' || key === 'timestamp' || key === 'lastLogin') {
+        val = val ? new Date(val).toLocaleString('ar-SA') : "";
+      }
+      if (key === 'assignedTo' && val) {
+        const staff = window.state.users.find(u => u.id === val);
+        val = staff ? (staff.name || staff.email) : val;
+      }
+      translated[currentLabels[key]] = val || "";
+    });
+    return translated;
   });
 
   if (format === 'xlsx') {
     const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Data");
-    XLSX.writeFile(wb, `export_${type}_${new Date().toISOString().split('T')[0]}.xlsx`);
-  } else if (format === 'pdf') {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('l', 'mm', 'a4');
     
-    // Add RTL support if possible, or just standard table
-    const headers = Object.keys(exportData[0]);
-    const body = exportData.map(row => headers.map(h => String(row[h] || "")));
+    // Set RTL for the worksheet
+    if(!ws['!props']) ws['!props'] = {};
+    ws['!views'] = [{RTL: true}];
+    
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "التقارير");
+    XLSX.writeFile(wb, `تقرير_${type}_${new Date().toLocaleDateString('ar-EG').replace(/\//g, '-')}.xlsx`);
+    window.showLuxuryToast("تم تصدير ملف Excel بنجاح");
+  } else if (format === 'pdf') {
+    // Show loading toast
+    window.showLuxuryToast("جاري إنشاء ملف PDF...");
 
-    doc.autoTable({
-      head: [headers],
-      body: body,
-      styles: { fontSize: 8 },
-      margin: { top: 20 },
+    // Create a temporary HTML table for rendering
+    const tempDiv = document.createElement('div');
+    tempDiv.style.position = 'fixed';
+    tempDiv.style.left = '-10000px';
+    tempDiv.style.top = '0';
+    tempDiv.style.width = '1000px';
+    tempDiv.style.direction = 'rtl';
+    tempDiv.style.fontFamily = 'Cairo, sans-serif';
+    tempDiv.style.padding = '20px';
+    tempDiv.style.background = '#fff';
+    tempDiv.style.color = '#333';
+
+    const headers = Object.keys(exportData[0]);
+    let tableHtml = `
+      <div style="text-align:center; margin-bottom:20px;">
+        <h2 style="color:#c5a163;">تقرير ${type === 'cars' ? 'السيارات' : type === 'bookings' ? 'الحجوزات' : 'الموظفين'}</h2>
+        <p>تاريخ التقرير: ${new Date().toLocaleString('ar-SA')}</p>
+      </div>
+      <table border="1" style="width:100%; border-collapse:collapse; text-align:right; font-size:12px;">
+        <thead style="background:#c5a163; color:white;">
+          <tr>
+            ${headers.map(h => `<th style="padding:10px; border:1px solid #ddd;">${h}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${exportData.map(row => `
+            <tr>
+              ${headers.map(h => `<td style="padding:8px; border:1px solid #ddd;">${row[h]}</td>`).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+
+    tempDiv.innerHTML = tableHtml;
+    document.body.appendChild(tempDiv);
+
+    const opt = {
+      margin: 10,
+      filename: `تقرير_${type}_${new Date().toLocaleDateString('ar-EG').replace(/\//g, '-')}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    };
+
+    // Use html2pdf to generate the file
+    html2pdf().set(opt).from(tempDiv).save().then(() => {
+      document.body.removeChild(tempDiv);
+      window.showLuxuryToast("تم تصدير ملف PDF بنجاح");
+    }).catch(err => {
+      console.error("PDF Export Error:", err);
+      window.showLuxuryToast("فشل تصدير PDF", "error");
+      document.body.removeChild(tempDiv);
     });
-    doc.save(`export_${type}_${new Date().toISOString().split('T')[0]}.pdf`);
   }
-  window.showLuxuryToast("تم تصدير البيانات بنجاح");
 };
 
 window.populateStaffMonitorSelect = function () {
@@ -3292,9 +3405,9 @@ window.saveLuxuryItem = async function (e) {
         await set(userRef, data);
         
         // Clean up secondary app
-        await secondaryApp.delete();
+        await deleteApp(secondaryApp);
       } catch (authErr) {
-        await secondaryApp.delete();
+        await deleteApp(secondaryApp);
         throw authErr;
       }
     } else {
