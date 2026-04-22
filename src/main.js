@@ -692,16 +692,23 @@ window.handleSupervisorExport = async function (format) {
   const start = document.getElementById("sup-export-start").value;
   const end = document.getElementById("sup-export-end").value;
 
-  let data = window.state[type] || [];
+  let rawData = window.state[type] || [];
+  
+  if (!Array.isArray(rawData)) {
+    // If it's an object (shouldn't be, but as a fallback)
+    rawData = Object.values(rawData);
+  }
 
   // Filter by date if applicable
+  let data = rawData;
   if (start || end) {
     const startDate = start ? new Date(start) : new Date(0);
     const endDate = end ? new Date(end) : new Date();
     endDate.setHours(23, 59, 59, 999);
 
-    data = data.filter(item => {
-      const itemDate = new Date(item.createdAt || item.timestamp || 0);
+    data = rawData.filter(item => {
+      const ts = item.createdAt || item.timestamp || 0;
+      const itemDate = new Date(ts);
       return itemDate >= startDate && itemDate <= endDate;
     });
   }
@@ -711,21 +718,21 @@ window.handleSupervisorExport = async function (format) {
     return;
   }
 
-  // Arabic labels mapping
+  // Arabic labels mapping - must match database field names
   const labelsMap = {
     cars: {
       make: "الماركة",
       model: "الموديل",
       year: "السنة",
       price: "السعر",
+      monthlyInstallment: "القسط الشهري",
       color: "اللون الخارجى",
       interiorColor: "اللون الداخلى",
       mileage: "الممشى",
-      status: "الحالة",
-      condition: "حالة السيارة",
       engine: "المحرك",
-      transmission: "ناقل الحركة",
+      gearbox: "ناقل الحركة",
       fuelType: "نوع الوقود",
+      status: "الحالة",
       createdAt: "تاريخ الإضافة"
     },
     bookings: {
@@ -745,68 +752,89 @@ window.handleSupervisorExport = async function (format) {
       name: "الاسم",
       email: "البريد الإلكتروني",
       role: "الدور",
-      lastLogin: "آخر دخول",
+      isAvailable: "متاح للاستلام",
       createdAt: "تاريخ الإنشاء"
     }
   };
 
   const currentLabels = labelsMap[type] || {};
+  const labelKeys = Object.keys(currentLabels);
 
   // Sanitize and translate data for export
   const exportData = data.map(item => {
     const translated = {};
-    Object.keys(currentLabels).forEach(key => {
+    labelKeys.forEach(key => {
       let val = item[key];
+      
       // Handle special formatting
       if (key === 'createdAt' || key === 'timestamp' || key === 'lastLogin') {
         val = val ? new Date(val).toLocaleString('ar-SA') : "";
       }
-      if (key === 'assignedTo' && val) {
-        const staff = window.state.users.find(u => u.id === val);
+      else if (key === 'assignedTo' && val) {
+        const staff = (window.state.users || []).find(u => u.id === val);
         val = staff ? (staff.name || staff.email) : val;
       }
-      if (key === 'status') {
-        const statusMap = { available: "متاح", sold: "مباع", new: "جديد", done: "تم", cancelled: "ملغى", rejected: "مرفوض" };
+      else if (key === 'status') {
+        const statusMap = { 
+          available: "متاح", 
+          reserved: "محجوز", 
+          sold: "مباع", 
+          incoming: "قادم قريباً",
+          new: "جديد", 
+          done: "تم", 
+          cancelled: "ملغى", 
+          rejected: "مرفوض" 
+        };
         val = statusMap[val] || val;
       }
-      translated[currentLabels[key]] = val || "";
+      else if (key === 'isAvailable') {
+        val = val ? "نعم" : "لا";
+      }
+      
+      // Ensure we don't treat 0 as empty string
+      translated[currentLabels[key]] = (val !== undefined && val !== null) ? val : "";
     });
     return translated;
   });
 
+  if (exportData.length === 0 || Object.keys(exportData[0]).length === 0) {
+    window.showLuxuryToast("خطأ في معالجة البيانات للتصدير", "error");
+    return;
+  }
+
   if (format === 'xlsx') {
     const ws = XLSX.utils.json_to_sheet(exportData);
-    
-    // Set RTL and column widths
     ws['!views'] = [{RTL: true}];
+    
+    // Set column widths
     const wscols = Object.keys(exportData[0]).map(() => ({ wch: 20 }));
     ws['!cols'] = wscols;
     
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "التقرير");
     XLSX.writeFile(wb, `تقرير_${type}_${new Date().toLocaleDateString('ar-EG').replace(/\//g, '-')}.xlsx`);
+    
     window.showLuxuryToast("تم تصدير ملف Excel بنجاح");
     window.createLog("تصدير بيانات", `تصدير تقرير ${type} بصيغة Excel`, "data");
-  } else if (format === 'pdf') {
+  } 
+  else if (format === 'pdf') {
     window.showLuxuryToast("جاري معالجة ملف PDF...");
 
     const tempDiv = document.createElement('div');
-    tempDiv.style.position = 'fixed';
-    tempDiv.style.left = '-10000px';
-    tempDiv.style.width = '1200px';
+    tempDiv.style.position = 'absolute';
+    tempDiv.style.top = '-9999px';
+    tempDiv.style.width = '1000px';
     tempDiv.style.direction = 'rtl';
     tempDiv.style.fontFamily = "'Cairo', sans-serif";
-    tempDiv.style.padding = '40px';
+    tempDiv.style.padding = '30px';
     tempDiv.style.background = '#fff';
     tempDiv.style.color = '#111';
 
-    // Summary calculations
     const totalItems = data.length;
     const dateRangeStr = (start || end) ? `الفترة من: ${start || 'البداية'} إلى: ${end || 'اليوم'}` : "كافة البيانات";
-    
     const logoUrl = window.state.settings?.logo || 'logo.jpg';
-
     const headers = Object.keys(exportData[0]);
+
     let tableHtml = `
       <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #a11d21; padding-bottom:20px; margin-bottom:30px;">
         <div style="text-align:right;">
@@ -814,7 +842,7 @@ window.handleSupervisorExport = async function (format) {
           <p style="margin:5px 0; opacity:0.7;">تقرير إداري مفصل - ${type === 'cars' ? 'مخزون السيارات' : type === 'bookings' ? 'سجل الحجوزات' : 'قائمة الموظفين'}</p>
           <p style="font-size:12px; font-weight:bold;">${dateRangeStr}</p>
         </div>
-        <img src="${logoUrl}" style="height:80px; object-fit:contain;">
+        <img src="${logoUrl}" style="height:80px; width:auto; object-fit:contain;">
       </div>
 
       <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:20px; margin-bottom:30px;">
@@ -832,16 +860,16 @@ window.handleSupervisorExport = async function (format) {
         </div>
       </div>
 
-      <table style="width:100%; border-collapse:collapse; text-align:right; font-size:11px;">
+      <table style="width:100%; border-collapse:collapse; text-align:right; font-size:10px;">
         <thead>
           <tr style="background:#a11d21; color:white;">
-            ${headers.map(h => `<th style="padding:12px 8px; border:1px solid #a11d21;">${h}</th>`).join('')}
+            ${headers.map(h => `<th style="padding:10px 5px; border:1px solid #a11d21; white-space:nowrap;">${h}</th>`).join('')}
           </tr>
         </thead>
         <tbody>
           ${exportData.map((row, idx) => `
             <tr style="background:${idx % 2 === 0 ? '#fff' : '#fcfcfc'};">
-              ${headers.map(h => `<td style="padding:10px 8px; border:1px solid #eee;">${row[h]}</td>`).join('')}
+              ${headers.map(h => `<td style="padding:8px 5px; border:1px solid #eee;">${row[h]}</td>`).join('')}
             </tr>
           `).join('')}
         </tbody>

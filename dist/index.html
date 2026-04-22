@@ -1152,7 +1152,7 @@
                                     class="fas fa-brain"></i> المساعد الذكي</button>
                             <button class="dash-tab admin-strictly hidden" data-tab="whatsapp-mgmt"><i
                                     class="fab fa-whatsapp"></i> ربط الواتساب</button>
-                            <button class="dash-tab admin-only hidden" data-tab="whatsapp-monitor-mgmt"><i
+                            <button class="dash-tab admin-strictly hidden" data-tab="whatsapp-monitor-mgmt"><i
                                     class="fab fa-whatsapp"></i> رقابة الرفض والدردشات</button>
                             <button class="dash-tab admin-strictly hidden" data-tab="quick-replies-mgmt"><i
                                     class="fas fa-bolt"></i> الرسائل السريعة</button>
@@ -1663,7 +1663,7 @@
                                 <div class="pane-header-v2">
                                     <div class="pane-title">
                                         <h3>لوحة الإشراف والمتابعة</h3>
-                                        <p>إدارة الموظفين، تصدير البيانات، ومراقبة المحادثات الحية</p>
+                                        <p>إدارة الموظفين وتصدير تقارير البيانات</p>
                                     </div>
                                 </div>
 
@@ -1804,28 +1804,7 @@
                                         </div>
                                     </div>
 
-                                    <!-- Section 3: Live Chat Monitoring -->
-                                    <div class="report-section">
-                                        <div class="section-title-v2">
-                                            <i class="fas fa-comments"></i>
-                                            <span>مراقبة المحادثات الحية <span class="live-badge">LIVE</span></span>
-                                        </div>
-                                        <div class="chat-monitor-layout">
-                                            <div class="monitor-sidebar">
-                                                <label>اختر الموظف للمراقبة:</label>
-                                                <select id="sup-monitor-staff-select" class="filter-select" onchange="window.monitorStaffChats(this.value)">
-                                                    <option value="">-- اختر موظف --</option>
-                                                </select>
-                                                <div id="monitor-active-chats-list" class="monitor-list"></div>
-                                            </div>
-                                            <div class="monitor-chat-view">
-                                                <div id="monitor-chat-header" class="chat-header-v2">
-                                                    <span>اختر محادثة لبدء المراقبة</span>
-                                                </div>
-                                                <div id="monitor-chat-body" class="chat-body-v2"></div>
-                                            </div>
-                                        </div>
-                                    </div>
+
 
                                     <!-- Section 4: Staff Management & Evaluation -->
                                     <div class="report-section">
