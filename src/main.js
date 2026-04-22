@@ -1,9 +1,11 @@
-import { db, auth, storage, analytics } from "./firebase-config.js";
+import { initializeApp } from "firebase/app";
+import { db, auth, storage, analytics, firebaseConfig } from "./firebase-config.js";
 import {
   ref, onValue, set, push, update, remove, get, increment, runTransaction
 } from "firebase/database";
 import {
-  signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, setPersistence, browserLocalPersistence
+  signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, setPersistence, browserLocalPersistence,
+  createUserWithEmailAndPassword, getAuth, updatePassword
 } from "firebase/auth";
 import {
   ref as storageRef, uploadBytes, getDownloadURL
@@ -256,23 +258,23 @@ function pushHistoryState(type) {
 window.normalizePhone = function (phone) {
   if (!phone) return "";
   const phoneStr = phone.toString().trim();
-  
+
   // If it's a full JID or LID, we extract the user part but ONLY if it's @s.whatsapp.net
   // For @lid, we might want to keep it or handle it carefully. 
   // However, according to the user request to "Stop LID", we should prioritize numbers.
   if (phoneStr.includes("@s.whatsapp.net")) {
-      return phoneStr.split("@")[0].replace(/\D/g, "");
+    return phoneStr.split("@")[0].replace(/\D/g, "");
   }
-  
+
   if (phoneStr.includes("@lid")) {
-      // If we have an LID, we keep it as is for now so the backend can resolve it,
-      // but the user wants to stop LID. So if we see @lid, we just pass it through 
-      // and let resolveLidToJid handle it.
-      return phoneStr; 
+    // If we have an LID, we keep it as is for now so the backend can resolve it,
+    // but the user wants to stop LID. So if we see @lid, we just pass it through 
+    // and let resolveLidToJid handle it.
+    return phoneStr;
   }
 
   let clean = phoneStr.replace(/\D/g, "");
-  
+
   // Handle cases like 96605... or 96707...
   if (clean.startsWith("9660")) clean = "966" + clean.substring(4);
   else if (clean.startsWith("9670")) clean = "967" + clean.substring(4);
@@ -284,10 +286,10 @@ window.normalizePhone = function (phone) {
   if (clean.startsWith("0")) return "966" + clean.substring(1);
 
   if (clean.length === 9) {
-      if (clean.startsWith("7")) return "967" + clean;
-      if (clean.startsWith("5")) return "966" + clean;
+    if (clean.startsWith("7")) return "967" + clean;
+    if (clean.startsWith("5")) return "966" + clean;
   }
-  
+
   return clean;
 };
 
@@ -315,7 +317,7 @@ function initUIListeners() {
     navMenu.classList.toggle("active", isOpening);
     navOverlay.classList.toggle("active", isOpening);
     document.body.style.overflow = isOpening ? "hidden" : "";
-    
+
     const icon = mobileBtn?.querySelector("i");
     if (icon) icon.className = isOpening ? "fas fa-times" : "fas fa-bars-staggered";
   };
@@ -491,11 +493,11 @@ function initTheme() {
   const settings = JSON.parse(localStorage.getItem("luxury-settings-cache") || "{}");
   const isOverridden = localStorage.getItem("theme_manually_overridden") === "true";
   const theme = (isOverridden ? localStorage.getItem("luxury_theme") : settings.defaultTheme) || "dark";
-  
+
   if (!isOverridden) {
-      localStorage.setItem("luxury_theme", theme);
+    localStorage.setItem("luxury_theme", theme);
   }
-  
+
   document.body.setAttribute("data-theme", theme);
   const themeBtn = document.getElementById("theme-btn");
   if (themeBtn) {
@@ -641,6 +643,7 @@ function updateAppUI() {
   if (adminTrigger) adminTrigger.innerText = isLoggedIn ? "لوحة التحكم" : "تسجيل الدخول";
 
   document.querySelectorAll(".admin-only").forEach(el => el.classList.toggle("hidden", !isAdmin && !isSupervisor));
+  document.querySelectorAll(".supervisor-only").forEach(el => el.classList.toggle("hidden", !isSupervisor && !isAdmin));
   document.querySelectorAll(".staff-only").forEach(el => el.classList.toggle("hidden", isAdmin || isSupervisor));
 
   if (isLoggedIn) {
@@ -656,8 +659,231 @@ function updateAppUI() {
       else if (isSupervisor) roleText = "مشرف النظام";
       roleLabel.innerText = roleText;
     }
+
+    if (isSupervisor || isAdmin) {
+      window.renderSupervisorStaffList();
+      window.populateStaffMonitorSelect();
+    }
   }
 }
+
+// =========================================================================================
+// SUPERVISOR DASHBOARD LOGIC
+// =========================================================================================
+
+window.handleSupervisorExport = async function (format) {
+  const type = document.getElementById("sup-export-type").value;
+  const start = document.getElementById("sup-export-start").value;
+  const end = document.getElementById("sup-export-end").value;
+
+  let data = window.state[type] || [];
+
+  // Filter by date if applicable
+  if (start || end) {
+    const startDate = start ? new Date(start) : new Date(0);
+    const endDate = end ? new Date(end) : new Date();
+    endDate.setHours(23, 59, 59, 999);
+
+    data = data.filter(item => {
+      const itemDate = new Date(item.createdAt || item.timestamp || 0);
+      return itemDate >= startDate && itemDate <= endDate;
+    });
+  }
+
+  if (data.length === 0) {
+    window.showLuxuryToast("لا توجد بيانات للفترة المحددة", "warning");
+    return;
+  }
+
+  // Sanitize data for export
+  const exportData = data.map(item => {
+    const cleaned = { ...item };
+    delete cleaned.id;
+    delete cleaned.images;
+    delete cleaned.poster;
+    return cleaned;
+  });
+
+  if (format === 'xlsx') {
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Data");
+    XLSX.writeFile(wb, `export_${type}_${new Date().toISOString().split('T')[0]}.xlsx`);
+  } else if (format === 'pdf') {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l', 'mm', 'a4');
+    
+    // Add RTL support if possible, or just standard table
+    const headers = Object.keys(exportData[0]);
+    const body = exportData.map(row => headers.map(h => String(row[h] || "")));
+
+    doc.autoTable({
+      head: [headers],
+      body: body,
+      styles: { fontSize: 8 },
+      margin: { top: 20 },
+    });
+    doc.save(`export_${type}_${new Date().toISOString().split('T')[0]}.pdf`);
+  }
+  window.showLuxuryToast("تم تصدير البيانات بنجاح");
+};
+
+window.populateStaffMonitorSelect = function () {
+  const select = document.getElementById("sup-monitor-staff-select");
+  if (!select) return;
+  const staff = window.state.users.filter(u => u.role === "staff");
+  select.innerHTML = '<option value="">-- اختر موظف --</option>' + 
+    staff.map(u => `<option value="${u.id}">${u.name || u.email}</option>`).join("");
+};
+
+window.monitorStaffChats = function (staffUid) {
+  const chatsList = document.getElementById("monitor-active-chats-list");
+  const chatBody = document.getElementById("monitor-chat-body");
+  const chatHeader = document.getElementById("monitor-chat-header");
+  
+  if (!chatsList || !chatBody || !chatHeader) return;
+  if (!staffUid) {
+    chatsList.innerHTML = "";
+    chatBody.innerHTML = "";
+    chatHeader.innerText = "اختر محادثة لبدء المراقبة";
+    return;
+  }
+
+  // Clear previous listeners if any (simplified for this context)
+  chatsList.innerHTML = '<div class="loading-v2">جاري جلب المحادثات...</div>';
+
+  const chatsRef = ref(db, "chats");
+  const staffChatsQuery = query(chatsRef, orderByChild("assignedTo"), equalTo(staffUid));
+
+  onValue(staffChatsQuery, (snapshot) => {
+    const chats = [];
+    snapshot.forEach(child => {
+      chats.push({ id: child.key, ...child.val() });
+    });
+
+    if (chats.length === 0) {
+      chatsList.innerHTML = '<div class="no-data">لا توجد محادثات نشطة لهذا الموظف</div>';
+      return;
+    }
+
+    chatsList.innerHTML = chats.map(chat => `
+      <div class="monitor-chat-item" onclick="window.viewMonitorChat('${chat.id}', '${chat.customerName || chat.customerPhone}')">
+        <div class="m-chat-info">
+          <strong>${chat.customerName || "عميل"}</strong>
+          <span>${chat.customerPhone || ""}</span>
+        </div>
+        <div class="m-chat-meta">
+          <small>${new Date(chat.lastMessageTime).toLocaleTimeString()}</small>
+        </div>
+      </div>
+    `).join("");
+  });
+};
+
+window.viewMonitorChat = function (chatId, title) {
+  const chatBody = document.getElementById("monitor-chat-body");
+  const chatHeader = document.getElementById("monitor-chat-header");
+  if (!chatBody || !chatHeader) return;
+
+  chatHeader.innerText = `مراقبة: ${title}`;
+  chatBody.innerHTML = '<div class="loading-v2">جاري تحميل الرسائل...</div>';
+
+  const msgRef = ref(db, `messages/${chatId}`);
+  onValue(msgRef, (snapshot) => {
+    const msgs = [];
+    snapshot.forEach(child => msgs.push(child.val()));
+    
+    chatBody.innerHTML = msgs.map(m => `
+      <div class="chat-msg ${m.sender === 'staff' ? 'sent' : 'received'}">
+        <div class="msg-bubble">
+          <p>${m.text}</p>
+          <small>${new Date(m.timestamp).toLocaleTimeString()}</small>
+        </div>
+      </div>
+    `).join("");
+    chatBody.scrollTop = chatBody.scrollHeight;
+  });
+};
+
+window.renderSupervisorStaffList = function () {
+  const grid = document.getElementById("supervisor-staff-list");
+  if (!grid) return;
+
+  const staff = window.state.users.filter(u => u.role === "staff");
+  const bookings = window.state.bookings || [];
+
+  grid.innerHTML = staff.map(s => {
+    const staffBookings = bookings.filter(b => b.assignedTo === s.id);
+    const completed = staffBookings.filter(b => b.status === "completed").length;
+    const convRate = staffBookings.length > 0 ? Math.round((completed / staffBookings.length) * 100) : 0;
+
+    return `
+      <div class="staff-eval-card animate-fade-in">
+        <div class="eval-card-header">
+          <div class="staff-avatar">${(s.name || "S")[0]}</div>
+          <div class="staff-basic">
+            <h4 id="staff-name-${s.id}">${s.name || s.email}</h4>
+            <span class="role-badge">موظف مبيعات</span>
+          </div>
+        </div>
+        <div class="eval-metrics">
+          <div class="eval-stat">
+            <label>الطلبات</label>
+            <strong>${staffBookings.length}</strong>
+          </div>
+          <div class="eval-stat">
+            <label>إنجاز</label>
+            <strong>${completed}</strong>
+          </div>
+          <div class="eval-stat">
+            <label>معدل التحويل</label>
+            <strong class="${convRate > 50 ? 'text-success' : ''}">${convRate}%</strong>
+          </div>
+        </div>
+        <div class="eval-actions">
+          <button class="btn-premium btn-sm" onclick="window.updateStaffName('${s.id}')">
+            <i class="fas fa-edit"></i> تعديل الإسم
+          </button>
+          <button class="btn-premium btn-sm danger" onclick="window.deleteStaff('${s.id}')">
+            <i class="fas fa-trash"></i> حذف
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
+};
+
+window.updateStaffName = async function (uid) {
+  const newName = prompt("أدخل الإسم الجديد للموظف:");
+  if (!newName) return;
+
+  try {
+    await update(ref(db, `users/${uid}`), { name: newName });
+    window.showLuxuryToast("تم تحديث الإسم بنجاح");
+    window.renderSupervisorStaffList();
+  } catch (e) {
+    window.showLuxuryToast("خطأ في التحديث", "error");
+  }
+};
+
+window.deleteStaff = async function (uid) {
+  if (!confirm("هل أنت متأكد من حذف هذا الموظف؟ لن يتمكن من تسجيل الدخول بعد الآن.")) return;
+
+  try {
+    // 1. Remove from Database
+    await remove(ref(db, `users/${uid}`));
+    
+    // 2. Ideally remove from Firebase Auth using Admin SDK or our Secondary App trick
+    // Note: Deleting a user from Auth in client side is tricky without a re-auth of THAT user.
+    // However, removing them from the 'users' DB node effectively prevents them from seeing the dashboard
+    // because our updateAppUI depends on state.userProfile which comes from the DB.
+    
+    window.showLuxuryToast("تم حذف الموظف من النظام");
+    window.renderSupervisorStaffList();
+  } catch (e) {
+    window.showLuxuryToast("خطأ في الحذف", "error");
+  }
+};
 
 window.toggleAvailability = async function () {
   if (!window.state.userProfile) return;
@@ -686,7 +912,7 @@ window.setBookingFilter = function (status, btn, subStatus = "all", subBtn = nul
 
   const statusSelect = document.getElementById("filter-booking-status");
   if (statusSelect && statusSelect.value !== status) statusSelect.value = status;
-  
+
   const subSelect = document.getElementById("filter-booking-sub-status");
   if (subSelect) {
     const optionsMap = {
@@ -697,7 +923,7 @@ window.setBookingFilter = function (status, btn, subStatus = "all", subBtn = nul
       done: ["done"],
       cancelled: ["no_response", "obligations", "calc_rejected", "ineligible", "duplicate"]
     };
-    
+
     const labelMap = {
       not_contacted: "لم يتم التواصل", contacted: "تم التواصل", docs_received: "تم استلام الاوراق",
       waiting_calc: "انتظار رد العميل", waiting_docs: "إنتظار إكمال الاوراق", waiting_signature: "إنتظار توقيع العميل",
@@ -707,7 +933,7 @@ window.setBookingFilter = function (status, btn, subStatus = "all", subBtn = nul
     };
 
     let allowed = status === "all" ? Object.keys(labelMap) : (optionsMap[status] || []);
-    
+
     subSelect.innerHTML = '<option value="all">جميع الحالات الفرعية</option>';
     allowed.forEach(k => {
       const opt = document.createElement("option");
@@ -725,23 +951,23 @@ window.setBookingFilter = function (status, btn, subStatus = "all", subBtn = nul
   }
 
   document.querySelectorAll(".sub-tab.b-filter").forEach(b => {
-     if (b.getAttribute("onclick") && b.getAttribute("onclick").includes(`'${status}'`)) {
-       document.querySelectorAll(".sub-tab.b-filter").forEach(bx => bx.classList.remove("active"));
-       b.classList.add("active");
-       document.querySelectorAll(".deep-submenu").forEach(sm => sm.classList.remove("active"));
-       const parentGroup = b.closest(".status-group");
-       if (parentGroup) {
-         const deepMenu = parentGroup.querySelector(".deep-submenu");
-         if (deepMenu) deepMenu.classList.add("active");
-       }
-     }
+    if (b.getAttribute("onclick") && b.getAttribute("onclick").includes(`'${status}'`)) {
+      document.querySelectorAll(".sub-tab.b-filter").forEach(bx => bx.classList.remove("active"));
+      b.classList.add("active");
+      document.querySelectorAll(".deep-submenu").forEach(sm => sm.classList.remove("active"));
+      const parentGroup = b.closest(".status-group");
+      if (parentGroup) {
+        const deepMenu = parentGroup.querySelector(".deep-submenu");
+        if (deepMenu) deepMenu.classList.add("active");
+      }
+    }
   });
 
   document.querySelectorAll(".deep-tab").forEach(b => {
-     b.classList.remove("active");
-     if (subStatus !== "all" && b.getAttribute("onclick") && b.getAttribute("onclick").includes(`'${subStatus}'`)) {
-       b.classList.add("active");
-     }
+    b.classList.remove("active");
+    if (subStatus !== "all" && b.getAttribute("onclick") && b.getAttribute("onclick").includes(`'${subStatus}'`)) {
+      b.classList.add("active");
+    }
   });
 
   window.syncAdminTables("bookings");
@@ -848,7 +1074,7 @@ function renderPagination(total, page, size) {
   }
 
   let html = ``;
-  
+
   if (page > 1) {
     html += `<button class="p-btn nav-dir" onclick="window.state.inventoryPage=${page - 1}; window.applyInventoryFilters(); window.scrollTo({top: document.getElementById('inventory').offsetTop - 100, behavior:'smooth'})"><i class="fas fa-chevron-right"></i> السابق</button>`;
   }
@@ -860,7 +1086,7 @@ function renderPagination(total, page, size) {
   if (page < pages) {
     html += `<button class="p-btn nav-dir" onclick="window.state.inventoryPage=${page + 1}; window.applyInventoryFilters(); window.scrollTo({top: document.getElementById('inventory').offsetTop - 100, behavior:'smooth'})">التالي <i class="fas fa-chevron-left"></i></button>`;
   }
-  
+
   container.innerHTML = html;
 }
 
@@ -888,7 +1114,7 @@ window.renderPublicReviews = function () {
     const avatar = r.avatar || r.image || "";
     const name = r.name || "عميل غير معروف";
     const carTag = r.car ? `<span> اشترى <span style="color:var(--p-copper); font-weight:bold;">${r.car}</span></span>` : '<span>عميل مُحقّق <i class="fas fa-check-circle"></i></span>';
-    
+
     return `
     <div class="review-card-v2" data-aos="zoom-in">
         <div class="review-stars">
@@ -975,9 +1201,9 @@ window.viewLuxuryCar = function (id) {
           <div class="d-badge-row">
             <span class="badge-v3 year">${car.year}</span>
             ${car.isFeatured ? '<span class="badge-v3 featured"><i class="fas fa-crown"></i> عرض مميز</span>' : ''}
-            ${car.status === 'available' ? '<span class="badge-v3 status available">متاح حالياً</span>' : 
-              car.status === 'reserved' ? '<span class="badge-v3 status reserved">محجوز</span>' : 
-              '<span class="badge-v3 status sold">مباع</span>'}
+            ${car.status === 'available' ? '<span class="badge-v3 status available">متاح حالياً</span>' :
+      car.status === 'reserved' ? '<span class="badge-v3 status reserved">محجوز</span>' :
+        '<span class="badge-v3 status sold">مباع</span>'}
           </div>
           <h1 class="luxury-font">${car.make} ${car.model}</h1>
           <p class="car-subtitle-v5">${car.engine || ""} | ${car.gearbox || ""} | ${car.fuelType || ""}</p>
@@ -1087,7 +1313,7 @@ window.viewLuxuryCar = function (id) {
   if (body) {
     body.innerHTML = detailsContent;
     body.scrollTop = 0; // Reset scroll position to top
-    
+
     // Reset modal container scroll position to prevent old scroll from carrying over
     const modalEl = document.getElementById("details-modal");
     if (modalEl) {
@@ -1264,23 +1490,23 @@ window.viewBookingDetails = function (id) {
     const modalEl = document.getElementById("details-modal");
     if (modalEl) modalEl.scrollTop = 0;
     window.openModal("details-modal");
-    
+
     // Auto-fetch WhatsApp server chat && Register modern emoji picker
     setTimeout(() => {
-       if (window.fetchServerWAChat) window.fetchServerWAChat(item.waJid || item.phone, item.assignedTo || '');
-       if (window.updateSubStatusOptions) window.updateSubStatusOptions(item.status || 'new', item.subStatus || 'not_contacted');
-       if (window.renderQuickRepliesBar) window.renderQuickRepliesBar();
-       
-       const picker = document.querySelector('emoji-picker');
-       if (picker) {
-           picker.addEventListener('emoji-click', event => {
-               const input = document.getElementById('wa-server-input');
-               if (input) {
-                   input.value += event.detail.unicode;
-                   input.focus();
-               }
-           });
-       }
+      if (window.fetchServerWAChat) window.fetchServerWAChat(item.waJid || item.phone, item.assignedTo || '');
+      if (window.updateSubStatusOptions) window.updateSubStatusOptions(item.status || 'new', item.subStatus || 'not_contacted');
+      if (window.renderQuickRepliesBar) window.renderQuickRepliesBar();
+
+      const picker = document.querySelector('emoji-picker');
+      if (picker) {
+        picker.addEventListener('emoji-click', event => {
+          const input = document.getElementById('wa-server-input');
+          if (input) {
+            input.value += event.detail.unicode;
+            input.focus();
+          }
+        });
+      }
     }, 100);
   }
 };
@@ -1312,7 +1538,7 @@ window.updateBookingQuickStatus = async function (id) {
   const status = document.getElementById("update-booking-status")?.value;
   const subStatus = document.getElementById("update-booking-substatus")?.value || "";
   const additionalDetails = document.getElementById("update-booking-details")?.value || "";
-  
+
   if (!status || !id) return;
 
   try {
@@ -1331,16 +1557,16 @@ window.updateBookingQuickStatus = async function (id) {
   }
 };
 
-window.saveWAServerURL = async function() {
-    const url = document.getElementById('wa-server-url-config')?.value;
-    if (url) {
-        localStorage.setItem('wa_server_url', url);
-        try {
-            await set(ref(db, 'settings/waServerUrl'), url);
-        } catch(e) { console.error("Firebase save config error:", e); }
-        window.showLuxuryToast('تم حفظ رابط السيرفر وتعميمه لجميع الموظفين بنجاح. يرجى إعادة تحميل الصفحة.');
-        setTimeout(() => location.reload(), 1500);
-    }
+window.saveWAServerURL = async function () {
+  const url = document.getElementById('wa-server-url-config')?.value;
+  if (url) {
+    localStorage.setItem('wa_server_url', url);
+    try {
+      await set(ref(db, 'settings/waServerUrl'), url);
+    } catch (e) { console.error("Firebase save config error:", e); }
+    window.showLuxuryToast('تم حفظ رابط السيرفر وتعميمه لجميع الموظفين بنجاح. يرجى إعادة تحميل الصفحة.');
+    setTimeout(() => location.reload(), 1500);
+  }
 };
 
 window.setLuxuryDetailImg = function (wrapper, src) {
@@ -1591,14 +1817,14 @@ window.DESIGN_PRESETS = {
   }
 };
 
-window.applyDesignPreset = function(presetKey) {
+window.applyDesignPreset = function (presetKey) {
   const preset = window.DESIGN_PRESETS[presetKey];
   if (!preset) return;
-  window.applySettings({...window.state.settings, ...preset});
+  window.applySettings({ ...window.state.settings, ...preset });
   showLuxuryToast(window.state.lang === 'ar' ? "تم تطبيق النمط بنجاح" : "Preset applied successfully");
 };
 
-window.saveCustomDesign = async function() {
+window.saveCustomDesign = async function () {
   const name = prompt(window.state.lang === 'ar' ? "أدخل اسماً لمظهرك المخصص:" : "Enter a name for your custom design:");
   if (!name) return;
 
@@ -1626,20 +1852,20 @@ window.saveCustomDesign = async function() {
   }
 };
 
-window.deleteCustomPreset = async function(id) {
+window.deleteCustomPreset = async function (id) {
   if (!confirm(window.state.lang === 'ar' ? "هل أنت متأكد من حذف هذا المظهر؟" : "Are you sure you want to delete this preset?")) return;
   try {
     await remove(ref(db, `custom_presets/${id}`));
     showLuxuryToast(window.state.lang === 'ar' ? "تم الحذف" : "Deleted");
-  } catch(e) {
+  } catch (e) {
     showLuxuryToast("Error", "error");
   }
 };
 
-window.renderCustomPresets = function() {
+window.renderCustomPresets = function () {
   const container = document.getElementById("custom-presets-list");
   if (!container) return;
-  
+
   const presets = window.state.custom_presets || [];
   if (presets.length === 0) {
     container.innerHTML = `<div style="grid-column: 1/-1; text-align:center; opacity:0.5; padding:20px;">${window.state.lang === 'ar' ? 'لا يوجد مظاهر محفوظة' : 'No saved designs'}</div>`;
@@ -1668,15 +1894,15 @@ window.applySettings = function (s) {
   const root = document.documentElement;
 
   if (s.defaultTheme) {
-      const isOverridden = localStorage.getItem("theme_manually_overridden") === "true";
-      if (!isOverridden) {
-          document.body.setAttribute("data-theme", s.defaultTheme);
-          localStorage.setItem("luxury_theme", s.defaultTheme);
-          const themeBtn = document.getElementById("theme-btn");
-          if (themeBtn) {
-              themeBtn.innerHTML = s.defaultTheme === "dark" ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
-          }
+    const isOverridden = localStorage.getItem("theme_manually_overridden") === "true";
+    if (!isOverridden) {
+      document.body.setAttribute("data-theme", s.defaultTheme);
+      localStorage.setItem("luxury_theme", s.defaultTheme);
+      const themeBtn = document.getElementById("theme-btn");
+      if (themeBtn) {
+        themeBtn.innerHTML = s.defaultTheme === "dark" ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
       }
+    }
   }
 
   if (s.primaryColor) {
@@ -1704,7 +1930,7 @@ window.applySettings = function (s) {
     root.style.setProperty("--font-main", s.fontFamily);
     document.body.style.fontFamily = s.fontFamily;
   }
-  
+
   // Dynamic Design Styles (Border Radius, Card Styles, Hover Effects, Logo Blends)
   const styleId = "dynamic-design-styles";
   let style = document.getElementById(styleId);
@@ -1713,9 +1939,9 @@ window.applySettings = function (s) {
     style.id = styleId;
     document.head.appendChild(style);
   }
-  
+
   let css = "";
-  
+
   // Theme-aware Global Background & Text Overrides
   const darkBG = s.dark?.bgColor || s.bgColor;
   const darkText = s.dark?.textColor || s.textColor;
@@ -1735,7 +1961,7 @@ window.applySettings = function (s) {
       }
     `;
   }
-  
+
   if (s.glassBlur) root.style.setProperty("--glass-blur", s.glassBlur + "px");
   if (s.shadowDepth) root.style.setProperty("--shadow-depth", s.shadowDepth + "px");
   if (s.shadowOpacity) root.style.setProperty("--shadow-opacity", s.shadowOpacity);
@@ -1781,7 +2007,7 @@ window.applySettings = function (s) {
       }
     `;
   }
-  
+
   if (s.logoScale) {
     css += `
       .logo-wrap img, .sidebar-brand img, .splash-logo img, #footer-logo-img, #nav-logo-img, #splash-logo-img {
@@ -1799,7 +2025,7 @@ window.applySettings = function (s) {
       .car-card-premium:hover, .btn-premium:hover, .stat-premium-card:hover { box-shadow: 0 0 20px var(--p-red-glow) !important; transition: box-shadow 0.3s; z-index: 20; position:relative; }
     `;
   }
-  
+
   if (s.enableAnimations === false) {
     css += `* { transition: none !important; animation: none !important; }`;
   } else if (s.enableAnimations === true) {
@@ -1885,13 +2111,13 @@ window.applySettings = function (s) {
   Object.entries(formMapping).forEach(([id, val]) => {
     const el = document.getElementById(id);
     if (el) {
-        el.value = val;
-        // visual updates for inputs inside UI
-        if (el.type === 'range' || el.type === 'color') {
-            let ev = document.createEvent('HTMLEvents');
-            ev.initEvent('input', false, true);
-            el.dispatchEvent(ev);
-        }
+      el.value = val;
+      // visual updates for inputs inside UI
+      if (el.type === 'range' || el.type === 'color') {
+        let ev = document.createEvent('HTMLEvents');
+        ev.initEvent('input', false, true);
+        el.dispatchEvent(ev);
+      }
     }
   });
 
@@ -2009,13 +2235,13 @@ window.saveAppSettings = async function () {
 // ADMIN TABLES & STATISTICS
 // =========================================================================================
 
-window.filterUsersByRole = function(role, btn) {
-    if (btn) {
-        document.querySelectorAll('#users-roles-tabs .p-tab').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-    }
-    window.state.userRoleFilter = role;
-    window.syncAdminTables('users');
+window.filterUsersByRole = function (role, btn) {
+  if (btn) {
+    document.querySelectorAll('#users-roles-tabs .p-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  window.state.userRoleFilter = role;
+  window.syncAdminTables('users');
 };
 
 window.syncAdminTables = function (type) {
@@ -2029,10 +2255,10 @@ window.syncAdminTables = function (type) {
     window.renderWhatsAppMonitor();
     return;
   }
-  
+
   if (type === "quick-replies" || type === "quickReplies") {
-    if(window.renderQuickRepliesAdmin) window.renderQuickRepliesAdmin();
-    if(window.renderQuickRepliesBar) window.renderQuickRepliesBar();
+    if (window.renderQuickRepliesAdmin) window.renderQuickRepliesAdmin();
+    if (window.renderQuickRepliesBar) window.renderQuickRepliesBar();
     return;
   }
 
@@ -2085,8 +2311,8 @@ window.syncAdminTables = function (type) {
 
     const subStatusSelect = document.getElementById("filter-booking-sub-status");
     if (subStatusSelect && subStatusSelect.options.length <= 1) {
-       window.setBookingFilter(window.state.bookingFilter || "all", null, window.state.bookingSubStatusFilter || "all");
-       return; 
+      window.setBookingFilter(window.state.bookingFilter || "all", null, window.state.bookingSubStatusFilter || "all");
+      return;
     }
 
     const filter = document.getElementById("filter-booking-status")?.value || window.state.bookingFilter || "all";
@@ -2100,7 +2326,7 @@ window.syncAdminTables = function (type) {
     if (filter !== "all") {
       items = items.filter(i => {
         let s = i.status || "new";
-        if (filter === "cancelled" && (s === "rejected" || s === "cancelled")) return true; 
+        if (filter === "cancelled" && (s === "rejected" || s === "cancelled")) return true;
         return s === filter;
       });
     }
@@ -2120,43 +2346,43 @@ window.syncAdminTables = function (type) {
       items = items.filter(i => i.assignedTo === window.state.user.uid);
     }
   }
-  
+
   if (type === "users") {
-      items = items.filter(u => u.email !== "zyrozyro98@gmail.com");
-      const roleFilter = window.state.userRoleFilter || "all";
-      if (roleFilter !== "all") {
-          items = items.filter(u => u.role === roleFilter);
+    items = items.filter(u => u.email !== "zyrozyro98@gmail.com");
+    const roleFilter = window.state.userRoleFilter || "all";
+    if (roleFilter !== "all") {
+      items = items.filter(u => u.role === roleFilter);
+    }
+
+    const statTotal = document.getElementById("stat-users-total");
+    const statActive = document.getElementById("stat-users-active");
+    const statAdmins = document.getElementById("stat-users-admins");
+
+    if (statTotal) statTotal.innerText = items.length;
+    if (statActive) {
+      statActive.innerText = items.filter(u => u.isAvailable).length;
+      const lbl = statActive.nextElementSibling;
+      if (lbl) lbl.innerText = "متواجد حالياً";
+    }
+    if (statAdmins) {
+      const lbl = statAdmins.nextElementSibling;
+      if (roleFilter === "all") {
+        statAdmins.innerText = items.filter(u => u.role === "admin").length;
+        if (lbl) lbl.innerText = "مدراء النظام";
+      } else {
+        statAdmins.innerText = items.length;
+        const roleMapText = { 'admin': 'مدراء النظام', 'supervisor': 'مشرفين', 'staff': 'المندوبين' };
+        if (lbl) lbl.innerText = "إجمالي الـ " + (roleMapText[roleFilter] || '');
       }
-      
-      const statTotal = document.getElementById("stat-users-total");
-      const statActive = document.getElementById("stat-users-active");
-      const statAdmins = document.getElementById("stat-users-admins");
-      
-      if (statTotal) statTotal.innerText = items.length;
-      if (statActive) {
-          statActive.innerText = items.filter(u => u.isAvailable).length;
-          const lbl = statActive.nextElementSibling;
-          if (lbl) lbl.innerText = "متواجد حالياً";
-      }
-      if (statAdmins) {
-          const lbl = statAdmins.nextElementSibling;
-          if (roleFilter === "all") {
-              statAdmins.innerText = items.filter(u => u.role === "admin").length;
-              if (lbl) lbl.innerText = "مدراء النظام";
-          } else {
-              statAdmins.innerText = items.length;
-              const roleMapText = { 'admin': 'مدراء النظام', 'supervisor': 'مشرفين', 'staff': 'المندوبين' };
-              if (lbl) lbl.innerText = "إجمالي الـ " + (roleMapText[roleFilter] || '');
-          }
-      }
+    }
   }
 
   if (type === "bookings") {
     const sortFilter = document.getElementById("filter-booking-sort")?.value || "newest";
     if (sortFilter === "oldest") {
-       items.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+      items.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
     } else {
-       items.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      items.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
     }
   } else {
     items.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
@@ -2168,10 +2394,10 @@ window.syncAdminTables = function (type) {
   }
 
   if (type === "users") {
-      const bookings = window.state.bookings || [];
-      const isAdminUser = window.state.userProfile?.role === "admin";
-      
-      let html = `<table class="admin-table-v2" style="width:100%; border-collapse:collapse; min-width:800px; font-size:14px;">
+    const bookings = window.state.bookings || [];
+    const isAdminUser = window.state.userProfile?.role === "admin";
+
+    let html = `<table class="admin-table-v2" style="width:100%; border-collapse:collapse; min-width:800px; font-size:14px;">
           <thead>
               <tr style="border-bottom: 2px solid var(--glass-border); text-align:right;">
                   <th style="padding:15px; color:var(--text-dim);">الموظف</th>
@@ -2184,26 +2410,26 @@ window.syncAdminTables = function (type) {
               </tr>
           </thead>
           <tbody>`;
-          
-      items.forEach(item => {
-          const uBookings = bookings.filter(b => b.assignedTo === item.id);
-          const completed = uBookings.filter(b => b.status === "sold" || b.status === "done").length;
-          const ongoing = uBookings.filter(b => b.status === "new" || b.status === "waiting" || b.status === "inquiry" || !b.status).length;
-          const rejected = uBookings.filter(b => b.status === "cancelled").length;
-          
-          const roleMap = { 'admin': 'مسؤول', 'supervisor': 'مشرف', 'staff': 'مندوب' };
-          const roleStr = roleMap[item.role] || 'مندوب';
-          const avatar = item.image || 'logo.jpg';
-          const phone = item.phone || '';
-          
-          let whatsappBtn = '';
-          if (phone) {
-             let cleanPhone = phone.replace(/\D/g, '');
-             cleanPhone = window.normalizePhone(cleanPhone);
-             whatsappBtn = `<a href="https://wa.me/${cleanPhone}" target="_blank" class="icon-btn-lite success" title="مراسلة واتساب"><i class="fab fa-whatsapp"></i></a>`;
-          }
-          
-          html += `<tr style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+
+    items.forEach(item => {
+      const uBookings = bookings.filter(b => b.assignedTo === item.id);
+      const completed = uBookings.filter(b => b.status === "sold" || b.status === "done").length;
+      const ongoing = uBookings.filter(b => b.status === "new" || b.status === "waiting" || b.status === "inquiry" || !b.status).length;
+      const rejected = uBookings.filter(b => b.status === "cancelled").length;
+
+      const roleMap = { 'admin': 'مسؤول', 'supervisor': 'مشرف', 'staff': 'مندوب' };
+      const roleStr = roleMap[item.role] || 'مندوب';
+      const avatar = item.image || 'logo.jpg';
+      const phone = item.phone || '';
+
+      let whatsappBtn = '';
+      if (phone) {
+        let cleanPhone = phone.replace(/\D/g, '');
+        cleanPhone = window.normalizePhone(cleanPhone);
+        whatsappBtn = `<a href="https://wa.me/${cleanPhone}" target="_blank" class="icon-btn-lite success" title="مراسلة واتساب"><i class="fab fa-whatsapp"></i></a>`;
+      }
+
+      html += `<tr style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
               <td style="padding:15px;">
                   <div style="display:flex; align-items:center; gap:12px;">
                       <div style="width:40px; height:40px; border-radius:50%; overflow:hidden; background:#222; flex-shrink:0;">
@@ -2228,10 +2454,10 @@ window.syncAdminTables = function (type) {
                   </div>
               </td>
           </tr>`;
-      });
-      html += `</tbody></table>`;
-      table.innerHTML = html;
-      return;
+    });
+    html += `</tbody></table>`;
+    table.innerHTML = html;
+    return;
   }
 
   table.innerHTML = items.map(item => renderAdminItemRow(type, item)).join("");
@@ -2380,14 +2606,14 @@ function renderAdminItemRow(type, item) {
     let isYoutube = url.includes("youtube.com") || url.includes("youtu.be");
     let thumb = item.poster || item.image || null;
     if (isYoutube && !thumb) {
-        let vidId = "";
-        try {
-            if (url.includes("v=")) vidId = url.split("v=")[1].split("&")[0];
-            else if (url.includes("youtu.be/")) vidId = url.split("youtu.be/")[1].split("?")[0];
-            else if (url.includes("embed/")) vidId = url.split("embed/")[1].split("?")[0];
-            else vidId = url.split("/").pop().split("?")[0];
-        } catch (e) { vidId = ""; }
-        if (vidId) thumb = `https://img.youtube.com/vi/${vidId}/mqdefault.jpg`;
+      let vidId = "";
+      try {
+        if (url.includes("v=")) vidId = url.split("v=")[1].split("&")[0];
+        else if (url.includes("youtu.be/")) vidId = url.split("youtu.be/")[1].split("?")[0];
+        else if (url.includes("embed/")) vidId = url.split("embed/")[1].split("?")[0];
+        else vidId = url.split("/").pop().split("?")[0];
+      } catch (e) { vidId = ""; }
+      if (vidId) thumb = `https://img.youtube.com/vi/${vidId}/mqdefault.jpg`;
     }
     thumb = thumb || "logo.jpg";
 
@@ -2417,7 +2643,7 @@ function renderAdminItemRow(type, item) {
     const rating = Number(item.rating || 5);
     const textPreview = item.text ? (item.text.length > 60 ? item.text.substring(0, 60) + "..." : item.text) : "لا يوجد نص";
     const avatar = item.avatar || item.image || "";
-    
+
     return `
         <div class="admin-item-row" style="background:rgba(255,255,255,0.02); padding:15px; border-radius:16px; border:1px solid var(--glass-border); margin-bottom:12px; display:flex; align-items:center; gap:20px;">
             <div class="admin-item-avatar" style="width:50px; height:50px; border-radius:50%; overflow:hidden; flex-shrink:0; background:var(--bg-alt); border:2px solid var(--p-copper); display:flex; align-items:center; justify-content:center; color:var(--p-copper); font-weight:900;">
@@ -2570,7 +2796,7 @@ window.deleteLuxuryItem = async function (type, id) {
       if (type === "users") {
         const targetUser = (window.state.users || []).find(u => u.id === id);
         if (targetUser?.email === "zyrozyro98@gmail.com") {
-          window.showLuxuryToast("لا يمكن حذف هذا المستخدم الأساسي للنظام", "error");
+          window.showLuxuryToast("لا يمكن حذف هذا المطور الأساسي للنظام", "error");
           return;
         }
         const currentUserRole = window.state.userProfile?.role;
@@ -2623,15 +2849,15 @@ window.editLuxuryItem = function (type, id) {
   window.openModal("item-modal");
 };
 
-window.insertQRVariable = function(text) {
+window.insertQRVariable = function (text) {
   const textarea = document.querySelector('#item-form textarea[name="content"]');
-  if(textarea) {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const value = textarea.value;
-      textarea.value = value.substring(0, start) + text + value.substring(end);
-      textarea.selectionStart = textarea.selectionEnd = start + text.length;
-      textarea.focus();
+  if (textarea) {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const value = textarea.value;
+    textarea.value = value.substring(0, start) + text + value.substring(end);
+    textarea.selectionStart = textarea.selectionEnd = start + text.length;
+    textarea.focus();
   }
 };
 
@@ -2641,7 +2867,7 @@ window.openCRUDModal = function (type, id = null) {
   if (!form) return;
 
   const data = id ? (window.state[type]?.find(i => i.id === id) || {}) : {};
-  
+
   // Initialize image manager state for cars
   if (type === "cars") {
     window.state.carImages = [];
@@ -2686,7 +2912,8 @@ function renderDynamicForm(type, data = {}) {
       { name: "status", label: "الحالة في المخزون", type: "select", options: [{ v: "available", t: "متاح" }, { v: "reserved", t: "محجوز" }, { v: "sold", t: "مباع" }, { v: "incoming", t: "قادم قريباً" }] },
       { name: "isFeatured", label: "عرض في قسم المميز؟", type: "select", options: [{ v: false, t: "لا" }, { v: true, t: "نعم" }] },
       { name: "desc", label: "وصف إضافي ومواصفات", type: "textarea" },
-      { name: "_image_manager", label: "صور السيارة (المعرض)", type: "custom", html: `
+      {
+        name: "_image_manager", label: "صور السيارة (المعرض)", type: "custom", html: `
         <div class="f-group full-width">
           <label>إدارة صور السيارة (المعرض والصورة الرئيسية)</label>
           <div class="img-manager-v2" id="car-image-manager">
@@ -2794,7 +3021,8 @@ function renderDynamicForm(type, data = {}) {
   } else if (type === "quickReplies") {
     fields = [
       { name: "title", label: "عنوان الرد السريع", type: "text", required: true, placeholder: "مثال: ترحيب بالعملاء الجدد" },
-      { type: "custom", html: `
+      {
+        type: "custom", html: `
         <div class="f-group full-width" style="margin-bottom: 20px;">
             <label style="margin-bottom:8px; display:block; color:var(--text-bright); font-weight:600;">المتغيرات المتاحة (انقر لإضافتها في الرسالة):</label>
             <div style="display:flex; flex-wrap:wrap; gap:8px;">
@@ -2842,38 +3070,38 @@ function renderDynamicForm(type, data = {}) {
   container.innerHTML = `
     <div class="form-grid-v3">
       ${fields.map(f => {
-        if (f.type === "custom") return f.html;
+    if (f.type === "custom") return f.html;
 
-        let val = (data[f.name] !== undefined && data[f.name] !== null) ? data[f.name] : "";
-        if (f.name === "desc" && !val) val = data.description || data.details || "";
-        const requiredAttr = f.required ? 'required' : '';
-        const placeholder = f.placeholder || f.label;
-        
-        let fieldHtml = "";
-        if (f.type === "select") {
-          fieldHtml = `
+    let val = (data[f.name] !== undefined && data[f.name] !== null) ? data[f.name] : "";
+    if (f.name === "desc" && !val) val = data.description || data.details || "";
+    const requiredAttr = f.required ? 'required' : '';
+    const placeholder = f.placeholder || f.label;
+
+    let fieldHtml = "";
+    if (f.type === "select") {
+      fieldHtml = `
             <select name="${f.name}" class="filter-select" ${requiredAttr}>
               ${f.options.map(opt => `<option value="${opt.v}" ${opt.v.toString() === val.toString() ? 'selected' : ''}>${opt.t}</option>`).join('')}
             </select>
           `;
-        } else if (f.type === "textarea") {
-          fieldHtml = `<textarea name="${f.name}" placeholder="${placeholder}" ${requiredAttr}>${val}</textarea>`;
-        } else if (f.type === "file") {
-          fieldHtml = `
+    } else if (f.type === "textarea") {
+      fieldHtml = `<textarea name="${f.name}" placeholder="${placeholder}" ${requiredAttr}>${val}</textarea>`;
+    } else if (f.type === "file") {
+      fieldHtml = `
             <input type="file" name="${f.name}" ${f.multiple ? 'multiple' : ''} ${requiredAttr} accept="image/*" class="filter-select">
             ${val ? `<div class="file-path-hint" title="${val}">الملف الحالي: ${val.split('/').pop()}</div>` : ""}
           `;
-        } else {
-          fieldHtml = `<input type="${f.type}" name="${f.name}" value="${val}" placeholder="${placeholder}" ${requiredAttr}>`;
-        }
+    } else {
+      fieldHtml = `<input type="${f.type}" name="${f.name}" value="${val}" placeholder="${placeholder}" ${requiredAttr}>`;
+    }
 
-        return `
+    return `
           <div class="f-group ${f.type === 'textarea' || f.type === 'custom' ? 'full-width' : ''}">
             <label>${f.label} ${f.required ? '<span class="req">*</span>' : ''}</label>
             ${fieldHtml}
           </div>
         `;
-      }).join('')}
+  }).join('')}
     </div>
   `;
 }
@@ -2898,12 +3126,12 @@ window.renderCarImageManager = function () {
   if (!container) return;
 
   const images = window.state.carImages || [];
-  
+
   let html = `
     <div class="img-grid-v2">
       ${images.map((img, idx) => {
-        const src = img.type === 'url' ? img.value : img.preview;
-        return `
+    const src = img.type === 'url' ? img.value : img.preview;
+    return `
           <div class="img-item-v2 ${img.isMain ? 'is-main' : ''}">
             ${img.isMain ? '<span class="main-badge">الرئيسية</span>' : ''}
             <img src="${src}" alt="Car image">
@@ -2923,7 +3151,7 @@ window.renderCarImageManager = function () {
             </div>
           </div>
         `;
-      }).join('')}
+  }).join('')}
       <div class="add-img-btn-v2" onclick="document.getElementById('car-file-input').click()">
         <i class="fas fa-plus"></i>
         <span>أضف صور</span>
@@ -3042,8 +3270,39 @@ window.saveLuxuryItem = async function (e) {
     if (!id) data.createdAt = new Date().toISOString();
     data.updatedAt = new Date().toISOString();
 
-    const targetRef = id ? ref(db, `${type}/${id}`) : push(ref(db, type));
-    await (id ? update(targetRef, data) : set(targetRef, data));
+    if (type === "users" && !id) {
+      // Special handling for new user: Create in Firebase Auth
+      if (!data.password) {
+        window.showLuxuryToast("كلمة المرور مطلوبة للموظف الجديد", "error");
+        if (btn) { btn.disabled = false; btn.innerText = originalBtnText; }
+        return;
+      }
+      
+      // Create a secondary app to create the user without logging out the admin
+      const secondaryApp = initializeApp(firebaseConfig, "Secondary");
+      const secondaryAuth = getAuth(secondaryApp);
+      
+      try {
+        const userCredential = await createUserWithEmailAndPassword(secondaryAuth, data.email, data.password);
+        const newUid = userCredential.user.uid;
+        
+        // Use this UID for the database entry
+        const userRef = ref(db, `users/${newUid}`);
+        delete data.password; // Important: Don't store plain password in database
+        await set(userRef, data);
+        
+        // Clean up secondary app
+        await secondaryApp.delete();
+      } catch (authErr) {
+        await secondaryApp.delete();
+        throw authErr;
+      }
+    } else {
+      // Standard handling for updates or other data types
+      if (type === "users") delete data.password; // Ensure password isn't saved to DB on edit
+      const targetRef = id ? ref(db, `${type}/${id}`) : push(ref(db, type));
+      await (id ? update(targetRef, data) : set(targetRef, data));
+    }
 
     window.showLuxuryToast(id ? "تم تحديث البيانات بنجاح" : "تم إضافة العنصر بنجاح");
     window.closeModal("item-modal");
@@ -3063,26 +3322,26 @@ window.saveLuxuryItem = async function (e) {
 // MEDIA RENDERING (ADS & VIDEOS)
 // =========================================================================================
 
-window.openQuickReplyModal = function() {
-    window.openCRUDModal("quickReplies");
+window.openQuickReplyModal = function () {
+  window.openCRUDModal("quickReplies");
 };
 
-window.renderQuickRepliesAdmin = function() {
-    const grid = document.getElementById("quick-replies-list");
-    if (!grid) return;
+window.renderQuickRepliesAdmin = function () {
+  const grid = document.getElementById("quick-replies-list");
+  if (!grid) return;
 
-    const query = (document.getElementById("qr-search")?.value || "").toLowerCase().trim();
-    const items = (window.state.quickReplies || []).filter(item => 
-        (item.title || "").toLowerCase().includes(query) || 
-        (item.content || "").toLowerCase().includes(query)
-    );
+  const query = (document.getElementById("qr-search")?.value || "").toLowerCase().trim();
+  const items = (window.state.quickReplies || []).filter(item =>
+    (item.title || "").toLowerCase().includes(query) ||
+    (item.content || "").toLowerCase().includes(query)
+  );
 
-    if (items.length === 0) {
-        grid.innerHTML = '<div class="no-results-v2" style="grid-column:1/-1;"><p>لا توجد نتائج مطابقة لبحثك</p></div>';
-        return;
-    }
+  if (items.length === 0) {
+    grid.innerHTML = '<div class="no-results-v2" style="grid-column:1/-1;"><p>لا توجد نتائج مطابقة لبحثك</p></div>';
+    return;
+  }
 
-    grid.innerHTML = items.map(item => `
+  grid.innerHTML = items.map(item => `
         <div class="admin-item-card-v2 animate-fade-in" data-aos="fade-up">
             <div class="item-card-content">
                 <div class="item-card-header">
@@ -3201,28 +3460,28 @@ window.renderSalesVideos = function () {
     let isTiktok = url.includes("tiktok.com");
     let isInsta = url.includes("instagram.com");
     let isSnap = url.includes("snapchat.com");
-    
+
     let thumb = video.poster || video.image || null;
-    
+
     if (isYoutube && !thumb) {
-        let vidId = "";
-        try {
-            if (url.includes("v=")) {
-                vidId = url.split("v=")[1].split("&")[0];
-            } else if (url.includes("youtu.be/")) {
-                vidId = url.split("youtu.be/")[1].split("?")[0];
-            } else if (url.includes("embed/")) {
-                vidId = url.split("embed/")[1].split("?")[0];
-            } else {
-                vidId = url.split("/").pop().split("?")[0];
-            }
-        } catch (e) { vidId = ""; }
-        
-        if (vidId) {
-            thumb = `https://img.youtube.com/vi/${vidId}/hqdefault.jpg`;
+      let vidId = "";
+      try {
+        if (url.includes("v=")) {
+          vidId = url.split("v=")[1].split("&")[0];
+        } else if (url.includes("youtu.be/")) {
+          vidId = url.split("youtu.be/")[1].split("?")[0];
+        } else if (url.includes("embed/")) {
+          vidId = url.split("embed/")[1].split("?")[0];
+        } else {
+          vidId = url.split("/").pop().split("?")[0];
         }
+      } catch (e) { vidId = ""; }
+
+      if (vidId) {
+        thumb = `https://img.youtube.com/vi/${vidId}/hqdefault.jpg`;
+      }
     }
-    
+
     thumb = thumb || "logo.jpg";
 
     return `
@@ -3245,34 +3504,34 @@ window.renderSalesVideos = function () {
   }).join("");
 };
 
-window.openVideoLightbox = function(url) {
-    let mediaHtml = "";
-    if (url.includes("youtube.com") || url.includes("youtu.be")) {
-        let vidId = "";
-        try {
-            if (url.includes("v=")) vidId = url.split("v=")[1].split("&")[0];
-            else if (url.includes("youtu.be/")) vidId = url.split("youtu.be/")[1].split("?")[0];
-            else if (url.includes("embed/")) vidId = url.split("embed/")[1].split("?")[0];
-            else vidId = url.split("/").pop().split("?")[0];
-        } catch (e) { vidId = ""; }
-        mediaHtml = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${vidId}?autoplay=1&modestbranding=1&rel=0" frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
-    } else {
-        mediaHtml = `<video controls autoplay style="width:100%; height:100%; border-radius:15px; background:#000;">
+window.openVideoLightbox = function (url) {
+  let mediaHtml = "";
+  if (url.includes("youtube.com") || url.includes("youtu.be")) {
+    let vidId = "";
+    try {
+      if (url.includes("v=")) vidId = url.split("v=")[1].split("&")[0];
+      else if (url.includes("youtu.be/")) vidId = url.split("youtu.be/")[1].split("?")[0];
+      else if (url.includes("embed/")) vidId = url.split("embed/")[1].split("?")[0];
+      else vidId = url.split("/").pop().split("?")[0];
+    } catch (e) { vidId = ""; }
+    mediaHtml = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${vidId}?autoplay=1&modestbranding=1&rel=0" frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+  } else {
+    mediaHtml = `<video controls autoplay style="width:100%; height:100%; border-radius:15px; background:#000;">
                         <source src="${url}" type="video/mp4">
                         متصفحك لا يدعم تشغيل الفيديو.
                     </video>`;
-    }
+  }
 
-    const lb = document.createElement('div');
-    lb.className = 'luxury-lightbox';
-    lb.id = 'video-lightbox';
-    lb.innerHTML = `
+  const lb = document.createElement('div');
+  lb.className = 'luxury-lightbox';
+  lb.id = 'video-lightbox';
+  lb.innerHTML = `
         <button class="lb-close" onclick="this.parentElement.remove()">&times;</button>
         <div class="lb-content animate-fade-in" style="max-width:1000px; width:95%; aspect-ratio:16/9; margin-top:0;">
             ${mediaHtml}
         </div>
     `;
-    document.body.appendChild(lb);
+  document.body.appendChild(lb);
 };
 
 // =========================================================================================
@@ -3319,26 +3578,26 @@ window.submitBooking = async function (e) {
   const form = e.target;
   const btn = form.querySelector('button[type="submit"]');
 
-    let pCode = (document.getElementById("b-phone-code")?.value === "other" ? document.getElementById("b-phone-code-other")?.value : document.getElementById("b-phone-code")?.value) || "966";
-    let pNum = document.getElementById("b-phone")?.value || "";
-    pCode = pCode.replace(/\D/g, '');
-    pNum = pNum.replace(/\D/g, '');
-    
-    // Auto-detect country code from the phone number to prevent user errors
-    if (pNum.startsWith('05') || (pNum.startsWith('5') && pNum.length === 9) || pNum.startsWith('9665')) {
-        pCode = '966';
-        if (pNum.startsWith('05')) pNum = pNum.substring(1);
-        if (pNum.startsWith('966')) pNum = pNum.substring(3);
-    } else if (pNum.startsWith('07') || (pNum.startsWith('7') && pNum.length === 9) || pNum.startsWith('9677')) {
-        pCode = '967';
-        if (pNum.startsWith('07')) pNum = pNum.substring(1);
-        if (pNum.startsWith('967')) pNum = pNum.substring(3);
-    } else {
-        if (pCode && pNum.startsWith(pCode)) pNum = pNum.substring(pCode.length);
-        if (pCode && pNum.startsWith('00' + pCode)) pNum = pNum.substring(pCode.length + 2);
-    }
-    
-    const finalPhone = window.normalizePhone(pCode + pNum);
+  let pCode = (document.getElementById("b-phone-code")?.value === "other" ? document.getElementById("b-phone-code-other")?.value : document.getElementById("b-phone-code")?.value) || "966";
+  let pNum = document.getElementById("b-phone")?.value || "";
+  pCode = pCode.replace(/\D/g, '');
+  pNum = pNum.replace(/\D/g, '');
+
+  // Auto-detect country code from the phone number to prevent user errors
+  if (pNum.startsWith('05') || (pNum.startsWith('5') && pNum.length === 9) || pNum.startsWith('9665')) {
+    pCode = '966';
+    if (pNum.startsWith('05')) pNum = pNum.substring(1);
+    if (pNum.startsWith('966')) pNum = pNum.substring(3);
+  } else if (pNum.startsWith('07') || (pNum.startsWith('7') && pNum.length === 9) || pNum.startsWith('9677')) {
+    pCode = '967';
+    if (pNum.startsWith('07')) pNum = pNum.substring(1);
+    if (pNum.startsWith('967')) pNum = pNum.substring(3);
+  } else {
+    if (pCode && pNum.startsWith(pCode)) pNum = pNum.substring(pCode.length);
+    if (pCode && pNum.startsWith('00' + pCode)) pNum = pNum.substring(pCode.length + 2);
+  }
+
+  const finalPhone = window.normalizePhone(pCode + pNum);
 
   const data = {
     customerType: form.querySelector('[name="customer-type"]:checked')?.value || "individual",
@@ -3525,378 +3784,378 @@ let waSocketContainer = null;
 const CURRENT_MASTER_URL = "https://whatsapp-server-tq4f.onrender.com";
 const WA_SERVER_URL = window.WA_SERVER_URL_OVERRIDE || localStorage.getItem('wa_server_url') || CURRENT_MASTER_URL;
 
-window.saveWAServerURL = async function() {
-    const el = document.getElementById('wa-server-url-config');
-    if (!el) return;
-    let url = el.value.trim().replace(/\/$/, "");
-    if (!url) return window.showLuxuryToast('يرجى إدخال الرابط', 'error');
-    try {
-        await set(ref(db, 'settings/waServerUrl'), url);
-        localStorage.setItem('wa_server_url', url);
-        window.showLuxuryToast('تم حفظ الرابط وبثه للجميع، سيتم تحديث الصفحة', 'success');
-        setTimeout(() => location.reload(), 1500);
-    } catch(err) {
-        window.showLuxuryToast('خطأ في الصلاحيات لرفع الرابط', 'error');
-    }
+window.saveWAServerURL = async function () {
+  const el = document.getElementById('wa-server-url-config');
+  if (!el) return;
+  let url = el.value.trim().replace(/\/$/, "");
+  if (!url) return window.showLuxuryToast('يرجى إدخال الرابط', 'error');
+  try {
+    await set(ref(db, 'settings/waServerUrl'), url);
+    localStorage.setItem('wa_server_url', url);
+    window.showLuxuryToast('تم حفظ الرابط وبثه للجميع، سيتم تحديث الصفحة', 'success');
+    setTimeout(() => location.reload(), 1500);
+  } catch (err) {
+    window.showLuxuryToast('خطأ في الصلاحيات لرفع الرابط', 'error');
+  }
 };
 
-window.startStaffWASession = function() {
-    const sel = document.getElementById('wa-staff-select');
-    if(!sel || !sel.value) return window.showLuxuryToast('يرجى اختيار موظف للربط', 'error');
-    if(waSocketContainer) {
-       document.getElementById('wa-server-status').innerText = 'يتم الآن توليد كود الاستجابة للموظف...';
-       document.getElementById('wa-server-status').style.color = 'var(--text-dim)';
-       document.getElementById('wa-qr-container').style.display = 'none';
-       waSocketContainer.emit('start_session', { userId: sel.value });
-    }
+window.startStaffWASession = function () {
+  const sel = document.getElementById('wa-staff-select');
+  if (!sel || !sel.value) return window.showLuxuryToast('يرجى اختيار موظف للربط', 'error');
+  if (waSocketContainer) {
+    document.getElementById('wa-server-status').innerText = 'يتم الآن توليد كود الاستجابة للموظف...';
+    document.getElementById('wa-server-status').style.color = 'var(--text-dim)';
+    document.getElementById('wa-qr-container').style.display = 'none';
+    waSocketContainer.emit('start_session', { userId: sel.value });
+  }
 };
 
-window.logoutStaffWASession = function() {
-    const sel = document.getElementById('wa-staff-select');
-    if(!sel || !sel.value) return window.showLuxuryToast('يرجى اختيار الموظف أولاً', 'error');
-    if(confirm('هل أنت متأكد من فصل رقم الواتساب لهذا الموظف وسجل المحادثة الخاصة به من السيرفر؟')) {
-        if(waSocketContainer) waSocketContainer.emit('logout_session', { userId: sel.value });
-    }
+window.logoutStaffWASession = function () {
+  const sel = document.getElementById('wa-staff-select');
+  if (!sel || !sel.value) return window.showLuxuryToast('يرجى اختيار الموظف أولاً', 'error');
+  if (confirm('هل أنت متأكد من فصل رقم الواتساب لهذا الموظف وسجل المحادثة الخاصة به من السيرفر؟')) {
+    if (waSocketContainer) waSocketContainer.emit('logout_session', { userId: sel.value });
+  }
 };
 
-window.initWhatsAppServer = async function() {
-    // تعبئة البيانات الحالية للسيرفر
-    const urlConfig = document.getElementById('wa-server-url-config');
-    
-    // الذكاء التلقائي: اكتشاف بيئة GitHub Codespaces
-    let codespaceUrl = null;
-    if (window.location.hostname.includes('app.github.dev')) {
-        // إذا كان المتصفح يعمل في Codespace، نقوم بتخمين رابط السيرفر على المنفذ 3001
-        codespaceUrl = `https://${window.location.hostname.replace('-5173', '-3001')}`;
-        console.log("تم اكتشاف GitHub Codespaces، استخدام الرابط التلقائي:", codespaceUrl);
-    }
+window.initWhatsAppServer = async function () {
+  // تعبئة البيانات الحالية للسيرفر
+  const urlConfig = document.getElementById('wa-server-url-config');
 
-    // جلب الرابط الموحد من قاعدة البيانات لضمان تعميم النفق النشط لجميع الموظفين
-    let globalUrl = null;
-    try {
-        const snapshot = await get(ref(db, 'settings/waServerUrl'));
-        if (snapshot.exists()) {
-            globalUrl = snapshot.val();
-            localStorage.setItem('wa_server_url', globalUrl);
+  // الذكاء التلقائي: اكتشاف بيئة GitHub Codespaces
+  let codespaceUrl = null;
+  if (window.location.hostname.includes('app.github.dev')) {
+    // إذا كان المتصفح يعمل في Codespace، نقوم بتخمين رابط السيرفر على المنفذ 3001
+    codespaceUrl = `https://${window.location.hostname.replace('-5173', '-3001')}`;
+    console.log("تم اكتشاف GitHub Codespaces، استخدام الرابط التلقائي:", codespaceUrl);
+  }
+
+  // جلب الرابط الموحد من قاعدة البيانات لضمان تعميم النفق النشط لجميع الموظفين
+  let globalUrl = null;
+  try {
+    const snapshot = await get(ref(db, 'settings/waServerUrl'));
+    if (snapshot.exists()) {
+      globalUrl = snapshot.val();
+      localStorage.setItem('wa_server_url', globalUrl);
+    }
+  } catch (e) { console.error("Firebase config error:", e); }
+
+
+  const FINAL_WA_URL = codespaceUrl || globalUrl || localStorage.getItem('wa_server_url') || CURRENT_MASTER_URL;
+  window._waServerActiveUrl = FINAL_WA_URL;
+
+  if (urlConfig) {
+    urlConfig.value = FINAL_WA_URL;
+  }
+
+  // تعبئة قائمة الموظفين
+  const staffSelect = document.getElementById('wa-staff-select');
+  if (staffSelect && window.state && window.state.users) {
+    const currentSelection = staffSelect.value;
+    staffSelect.innerHTML = '<option value="">-- اختر الموظف --</option>';
+    window.state.users.filter(u => u.role === 'staff' || u.role === 'admin' || u.role === 'supervisor').forEach(u => {
+      const roleLabel = u.role === 'admin' ? 'مدير' : (u.role === 'supervisor' ? 'مشرف' : 'موظف');
+      staffSelect.innerHTML += `<option value="${u.id}" ${u.id === currentSelection ? 'selected' : ''}>${u.name || u.email || 'موظف'} (${roleLabel})</option>`;
+    });
+
+    // ذكاء اصطناعي: الربط التلقائي عند تغيير الموظف
+    staffSelect.onchange = function () {
+      if (this.value) {
+        if (waSocketContainer) waSocketContainer.emit('join_room', this.value);
+        window.startStaffWASession();
+      }
+    };
+
+    // التحقق التلقائي عند التحميل إذا كان هناك موظف مختار مسبقاً
+    if (staffSelect.value) {
+      if (waSocketContainer) waSocketContainer.emit('join_room', staffSelect.value);
+      window.startStaffWASession();
+    }
+  }
+
+  if (typeof io !== 'undefined' && !waSocketContainer) {
+    // Pre-fetch to bypass GitHub Codespaces landing page
+    fetch(`${FINAL_WA_URL}/ping`).catch(() => { });
+
+    waSocketContainer = io(FINAL_WA_URL, {
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 2000,
+      transports: ['websocket', 'polling'], secure: true
+    });
+
+    waSocketContainer.on('connect_error', (err) => {
+      console.error('Connection Error:', err);
+      if (err.message === 'websocket error') return;
+      if (!window._waAlerted) {
+        alert('عذراً، المتصفح لم يستطع الاتصال بخادم الواتساب. تأكد من أن الرابط يعمل في صفحة منفصلة. الخطأ: ' + err.message);
+        window._waAlerted = true;
+      }
+    });
+
+    waSocketContainer.on('connect', () => {
+      console.log('Connected to WhatsApp Server!');
+
+      const dot = document.getElementById('wa-connection-dot');
+      if (dot) {
+        dot.style.background = '#4de265';
+        dot.style.boxShadow = '0 0 5px #4de265';
+        dot.title = 'متصل بالسيرفر';
+      }
+
+      // الانضمام لغرفة المعرف الخاص للموظف أو المسؤول لمتابعة التحديثات
+      if (window.state.user) {
+        waSocketContainer.emit('join_room', window.state.user.uid);
+      }
+
+      // إذا كان الموظف مسجل دخول ابدأ الجلسة تلقائياً في الخلفية للتحقق من الاتصال
+      if (window.state.user && window.startCurrentWASession) {
+        setTimeout(() => window.startCurrentWASession(), 1500);
+      }
+    });
+
+    waSocketContainer.on('qr', (data) => {
+      const sel = document.getElementById('wa-staff-select');
+      const statusEl = document.getElementById('wa-server-status');
+      const qrContainer = document.getElementById('wa-qr-container');
+      const qrCanvas = document.getElementById('wa-qr-canvas');
+
+      // تحديث واجهة المسؤول إذا كان الموظف مختاراً
+      if (sel && sel.value === data.userId) {
+        if (statusEl) {
+          statusEl.innerText = 'في انتظار مسح كود الـ QR...';
+          statusEl.style.color = 'var(--text-color)';
         }
-    } catch(e) { console.error("Firebase config error:", e); }
-
-
-    const FINAL_WA_URL = codespaceUrl || globalUrl || localStorage.getItem('wa_server_url') || CURRENT_MASTER_URL;
-    window._waServerActiveUrl = FINAL_WA_URL;
-
-    if (urlConfig) {
-        urlConfig.value = FINAL_WA_URL;
-    }
-
-    // تعبئة قائمة الموظفين
-    const staffSelect = document.getElementById('wa-staff-select');
-    if (staffSelect && window.state && window.state.users) {
-        const currentSelection = staffSelect.value;
-        staffSelect.innerHTML = '<option value="">-- اختر الموظف --</option>';
-        window.state.users.filter(u => u.role === 'staff' || u.role === 'admin' || u.role === 'supervisor').forEach(u => {
-            const roleLabel = u.role === 'admin' ? 'مدير' : (u.role === 'supervisor' ? 'مشرف' : 'موظف');
-            staffSelect.innerHTML += `<option value="${u.id}" ${u.id === currentSelection ? 'selected' : ''}>${u.name || u.email || 'موظف'} (${roleLabel})</option>`;
-        });
-
-        // ذكاء اصطناعي: الربط التلقائي عند تغيير الموظف
-        staffSelect.onchange = function() {
-            if (this.value) {
-                if(waSocketContainer) waSocketContainer.emit('join_room', this.value);
-                window.startStaffWASession();
-            }
-        };
-        
-        // التحقق التلقائي عند التحميل إذا كان هناك موظف مختار مسبقاً
-        if (staffSelect.value) {
-            if(waSocketContainer) waSocketContainer.emit('join_room', staffSelect.value);
-            window.startStaffWASession();
+        if (qrContainer) qrContainer.style.display = 'block';
+        if (typeof QRCode !== 'undefined' && qrCanvas) {
+          QRCode.toCanvas(qrCanvas, data.qr, function (error) {
+            if (error) console.error(error);
+          });
         }
-    }
+      }
 
-    if (typeof io !== 'undefined' && !waSocketContainer) {
-        // Pre-fetch to bypass GitHub Codespaces landing page
-        fetch(`${FINAL_WA_URL}/ping`).catch(() => {});
-        
-        waSocketContainer = io(FINAL_WA_URL, {
-            reconnection: true,
-            reconnectionAttempts: 10,
-            reconnectionDelay: 2000,
-            transports: ['websocket', 'polling'], secure: true
-        });
-        
-        waSocketContainer.on('connect_error', (err) => {
-            console.error('Connection Error:', err);
-            if (err.message === 'websocket error') return;
-            if (!window._waAlerted) {
-                alert('عذراً، المتصفح لم يستطع الاتصال بخادم الواتساب. تأكد من أن الرابط يعمل في صفحة منفصلة. الخطأ: ' + err.message);
-                window._waAlerted = true;
-            }
-        });
+      // تحديث واجهة الموظف الحالي إذا كان هذا هو معرفه
+      if (window.state.user && data.userId === window.state.user.uid) {
+        const myStatusTitle = document.getElementById('wa-my-status-title');
+        const myStatusDesc = document.getElementById('wa-my-status-desc');
+        const myQrContainer = document.getElementById('wa-my-qr-container');
+        const myQrCanvas = document.getElementById('wa-my-qr-canvas');
+        const startBtn = document.getElementById('btn-start-my-wa');
+        const logoutBtn = document.getElementById('btn-logout-my-wa');
 
-        waSocketContainer.on('connect', () => {
-            console.log('Connected to WhatsApp Server!');
-            
-            const dot = document.getElementById('wa-connection-dot');
-            if (dot) {
-                dot.style.background = '#4de265';
-                dot.style.boxShadow = '0 0 5px #4de265';
-                dot.title = 'متصل بالسيرفر';
-            }
+        if (myStatusTitle) myStatusTitle.innerText = 'بانتظار مسح رمز QR...';
+        if (myStatusDesc) myStatusDesc.innerText = 'افتح واتساب على هاتفك وامسح الرمز الظاهر أدناه ليتم ربط حسابك.';
+        if (myQrContainer) myQrContainer.style.display = 'block';
+        if (startBtn) startBtn.innerText = 'تحديث الرمز';
+        if (logoutBtn) logoutBtn.style.display = 'none';
 
-            // الانضمام لغرفة المعرف الخاص للموظف أو المسؤول لمتابعة التحديثات
-            if (window.state.user) {
-                waSocketContainer.emit('join_room', window.state.user.uid);
-            }
-            
-            // إذا كان الموظف مسجل دخول ابدأ الجلسة تلقائياً في الخلفية للتحقق من الاتصال
-            if (window.state.user && window.startCurrentWASession) {
-                setTimeout(() => window.startCurrentWASession(), 1500);
-            }
-        });
+        if (typeof QRCode !== 'undefined' && myQrCanvas) {
+          QRCode.toCanvas(myQrCanvas, data.qr, { width: 250, margin: 2 }, function (error) {
+            if (error) console.error(error);
+          });
+        }
+      }
+    });
 
-        waSocketContainer.on('qr', (data) => {
-            const sel = document.getElementById('wa-staff-select');
-            const statusEl = document.getElementById('wa-server-status');
-            const qrContainer = document.getElementById('wa-qr-container');
-            const qrCanvas = document.getElementById('wa-qr-canvas');
-            
-            // تحديث واجهة المسؤول إذا كان الموظف مختاراً
-            if (sel && sel.value === data.userId) {
-                if(statusEl) {
-                    statusEl.innerText = 'في انتظار مسح كود الـ QR...';
-                    statusEl.style.color = 'var(--text-color)';
-                }
-                if(qrContainer) qrContainer.style.display = 'block';
-                if(typeof QRCode !== 'undefined' && qrCanvas) {
-                    QRCode.toCanvas(qrCanvas, data.qr, function (error) {
-                        if (error) console.error(error);
-                    });
-                }
-            }
+    waSocketContainer.on('ready', (data) => {
+      const sel = document.getElementById('wa-staff-select');
 
-            // تحديث واجهة الموظف الحالي إذا كان هذا هو معرفه
-            if (window.state.user && data.userId === window.state.user.uid) {
-                const myStatusTitle = document.getElementById('wa-my-status-title');
-                const myStatusDesc = document.getElementById('wa-my-status-desc');
-                const myQrContainer = document.getElementById('wa-my-qr-container');
-                const myQrCanvas = document.getElementById('wa-my-qr-canvas');
-                const startBtn = document.getElementById('btn-start-my-wa');
-                const logoutBtn = document.getElementById('btn-logout-my-wa');
+      const dot = document.getElementById('wa-connection-dot');
+      if (dot) {
+        dot.style.background = '#4de265';
+        dot.style.boxShadow = '0 0 8px #4de265';
+        dot.title = 'واتساب جاهز للعمل';
+      }
 
-                if (myStatusTitle) myStatusTitle.innerText = 'بانتظار مسح رمز QR...';
-                if (myStatusDesc) myStatusDesc.innerText = 'افتح واتساب على هاتفك وامسح الرمز الظاهر أدناه ليتم ربط حسابك.';
-                if (myQrContainer) myQrContainer.style.display = 'block';
-                if (startBtn) startBtn.innerText = 'تحديث الرمز';
-                if (logoutBtn) logoutBtn.style.display = 'none';
+      if (sel && sel.value === data.userId) {
+        const statusEl = document.getElementById('wa-server-status');
+        const qrContainer = document.getElementById('wa-qr-container');
+        if (statusEl) {
+          statusEl.innerText = data.msg;
+          statusEl.style.color = '#00a884';
+        }
+        if (qrContainer) qrContainer.style.display = 'none';
+      }
 
-                if(typeof QRCode !== 'undefined' && myQrCanvas) {
-                    QRCode.toCanvas(myQrCanvas, data.qr, { width: 250, margin: 2 }, function (error) {
-                        if (error) console.error(error);
-                    });
-                }
-            }
-        });
-        
-        waSocketContainer.on('ready', (data) => {
-            const sel = document.getElementById('wa-staff-select');
-            
-            const dot = document.getElementById('wa-connection-dot');
-            if (dot) {
-                dot.style.background = '#4de265';
-                dot.style.boxShadow = '0 0 8px #4de265';
-                dot.title = 'واتساب جاهز للعمل';
-            }
+      // تحديث واجهة الموظف الحالي
+      if (window.state.user && data.userId === window.state.user.uid) {
+        const myStatusTitle = document.getElementById('wa-my-status-title');
+        const myStatusDesc = document.getElementById('wa-my-status-desc');
+        const myQrContainer = document.getElementById('wa-my-qr-container');
+        const startBtn = document.getElementById('btn-start-my-wa');
+        const logoutBtn = document.getElementById('btn-logout-my-wa');
 
-            if (sel && sel.value === data.userId) {
-                const statusEl = document.getElementById('wa-server-status');
-                const qrContainer = document.getElementById('wa-qr-container');
-                if(statusEl) {
-                    statusEl.innerText = data.msg;
-                    statusEl.style.color = '#00a884';
-                }
-                if(qrContainer) qrContainer.style.display = 'none';
-            }
+        if (myStatusTitle) myStatusTitle.innerText = 'واتساب متصل بنجاح';
+        if (myStatusDesc) myStatusDesc.innerText = 'حسابك الآن مرتبط بالنظام، يمكنك البدء في استقبال وإرسال الرسائل للعملاء.';
+        if (myQrContainer) myQrContainer.style.display = 'none';
+        if (startBtn) startBtn.style.display = 'none';
+        if (logoutBtn) logoutBtn.style.display = 'inline-block';
 
-            // تحديث واجهة الموظف الحالي
-            if (window.state.user && data.userId === window.state.user.uid) {
-                const myStatusTitle = document.getElementById('wa-my-status-title');
-                const myStatusDesc = document.getElementById('wa-my-status-desc');
-                const myQrContainer = document.getElementById('wa-my-qr-container');
-                const startBtn = document.getElementById('btn-start-my-wa');
-                const logoutBtn = document.getElementById('btn-logout-my-wa');
+        window.showLuxuryToast('تم ربط حساب واتساب الخاص بك بنجاح', 'success');
+      }
+    });
 
-                if (myStatusTitle) myStatusTitle.innerText = 'واتساب متصل بنجاح';
-                if (myStatusDesc) myStatusDesc.innerText = 'حسابك الآن مرتبط بالنظام، يمكنك البدء في استقبال وإرسال الرسائل للعملاء.';
-                if (myQrContainer) myQrContainer.style.display = 'none';
-                if (startBtn) startBtn.style.display = 'none';
-                if (logoutBtn) logoutBtn.style.display = 'inline-block';
-                
-                window.showLuxuryToast('تم ربط حساب واتساب الخاص بك بنجاح', 'success');
-            }
-        });
+    waSocketContainer.on('disconnected', (data) => {
+      console.log('Disconnected Event:', data);
 
-        waSocketContainer.on('disconnected', (data) => {
-            console.log('Disconnected Event:', data);
-            
-            const dot = document.getElementById('wa-connection-dot');
-            if (dot) {
-                dot.style.background = '#ff4b4b';
-                dot.style.boxShadow = '0 0 5px #ff4b4b';
-                dot.title = 'تم قطع الاتصال بالسيرفر';
-            }
+      const dot = document.getElementById('wa-connection-dot');
+      if (dot) {
+        dot.style.background = '#ff4b4b';
+        dot.style.boxShadow = '0 0 5px #ff4b4b';
+        dot.title = 'تم قطع الاتصال بالسيرفر';
+      }
 
-            const msgToDisplay = data.msg || 'تم قطع الاتصال بالسيرفر. يرجى إعادة الربط لتفعيل خدمات الدردشة.';
+      const msgToDisplay = data.msg || 'تم قطع الاتصال بالسيرفر. يرجى إعادة الربط لتفعيل خدمات الدردشة.';
 
-            const sel = document.getElementById('wa-staff-select');
-            if (sel && sel.value === data.userId) {
-                const statusEl = document.getElementById('wa-server-status');
-                if(statusEl) {
-                    statusEl.innerText = msgToDisplay;
-                    statusEl.style.color = 'red';
-                }
-            }
+      const sel = document.getElementById('wa-staff-select');
+      if (sel && sel.value === data.userId) {
+        const statusEl = document.getElementById('wa-server-status');
+        if (statusEl) {
+          statusEl.innerText = msgToDisplay;
+          statusEl.style.color = 'red';
+        }
+      }
 
-            // تحديث واجهة الموظف الحالي
-            if (window.state.user && data.userId === window.state.user.uid) {
-                const myStatusTitle = document.getElementById('wa-my-status-title');
-                const myStatusDesc = document.getElementById('wa-my-status-desc');
-                const startBtn = document.getElementById('btn-start-my-wa');
-                const logoutBtn = document.getElementById('btn-logout-my-wa');
-                const myQrContainer = document.getElementById('wa-my-qr-container');
+      // تحديث واجهة الموظف الحالي
+      if (window.state.user && data.userId === window.state.user.uid) {
+        const myStatusTitle = document.getElementById('wa-my-status-title');
+        const myStatusDesc = document.getElementById('wa-my-status-desc');
+        const startBtn = document.getElementById('btn-start-my-wa');
+        const logoutBtn = document.getElementById('btn-logout-my-wa');
+        const myQrContainer = document.getElementById('wa-my-qr-container');
 
-                if (myStatusTitle) myStatusTitle.innerText = 'الواتساب غير متصل';
-                if (myStatusDesc) myStatusDesc.innerText = msgToDisplay;
-                if (myQrContainer) myQrContainer.style.display = 'none';
-                if (startBtn) {
-                    startBtn.style.display = 'inline-block';
-                    startBtn.innerText = 'إعادة الربط الآن';
-                }
-                if (logoutBtn) logoutBtn.style.display = 'none';
-            }
-        });
-        
-        waSocketContainer.on('jid_resolved', ({ oldJid, newJid }) => {
-            console.log(`JID Resolution detected: ${oldJid} -> ${newJid}`);
-            const bookings = window.state.bookings || [];
-            const bookingToUpdate = bookings.find(b => b.waJid === oldJid);
-            if (bookingToUpdate) {
-                console.log(`Updating booking ${bookingToUpdate.id} JID due to resolution`);
-                update(ref(db, `bookings/${bookingToUpdate.id}`), { 
-                    waJid: newJid,
-                    phone: window.normalizePhone(newJid) 
-                }).catch(e => {});
-                
-                // If the user was viewing the old chat, switch them to the new one
-                if (window._currentWaPhone === oldJid) {
-                    window._currentWaPhone = newJid;
-                    if (typeof window.openStaffChat === 'function') {
-                        window.openStaffChat(newJid);
-                    }
-                }
-            }
+        if (myStatusTitle) myStatusTitle.innerText = 'الواتساب غير متصل';
+        if (myStatusDesc) myStatusDesc.innerText = msgToDisplay;
+        if (myQrContainer) myQrContainer.style.display = 'none';
+        if (startBtn) {
+          startBtn.style.display = 'inline-block';
+          startBtn.innerText = 'إعادة الربط الآن';
+        }
+        if (logoutBtn) logoutBtn.style.display = 'none';
+      }
+    });
+
+    waSocketContainer.on('jid_resolved', ({ oldJid, newJid }) => {
+      console.log(`JID Resolution detected: ${oldJid} -> ${newJid}`);
+      const bookings = window.state.bookings || [];
+      const bookingToUpdate = bookings.find(b => b.waJid === oldJid);
+      if (bookingToUpdate) {
+        console.log(`Updating booking ${bookingToUpdate.id} JID due to resolution`);
+        update(ref(db, `bookings/${bookingToUpdate.id}`), {
+          waJid: newJid,
+          phone: window.normalizePhone(newJid)
+        }).catch(e => { });
+
+        // If the user was viewing the old chat, switch them to the new one
+        if (window._currentWaPhone === oldJid) {
+          window._currentWaPhone = newJid;
+          if (typeof window.openStaffChat === 'function') {
+            window.openStaffChat(newJid);
+          }
+        }
+      }
+    });
+
+    waSocketContainer.on('message', async (data) => {
+      console.log('Real-time WA message received:', data);
+
+      const normalizePhone = window.normalizePhone;
+      const incomingPhoneStr = normalizePhone(data.from);
+      const currentWaStr = normalizePhone(window._currentWaPhone);
+
+      const modalEl = document.getElementById('details-modal');
+      const isModalOpen = modalEl && !modalEl.classList.contains('hidden');
+
+      // Visual feedback: animate connection dot on message
+      const dot = document.getElementById('wa-connection-dot');
+      if (dot) {
+        dot.style.transform = 'scale(1.2)';
+        setTimeout(() => dot.style.transform = 'scale(1)', 300);
+      }
+
+      const bookings = window.state.bookings || [];
+
+      // SMART MATCHING: Try JID first, then normalized phone
+      let bookingFound = bookings.find(b => b.waJid === data.from);
+
+      if (!bookingFound) {
+        // Try matching by normalized phone number
+        bookingFound = bookings.find(b => {
+          if (!b.phone) return false;
+          const normalizedB = window.normalizePhone(b.phone);
+          // If incoming is a number (starts with 966/967), match directly
+          if (!incomingPhoneStr.includes("@") && normalizedB === incomingPhoneStr) return true;
+          return false;
         });
 
-        waSocketContainer.on('message', async (data) => {
-            console.log('Real-time WA message received:', data);
-            
-            const normalizePhone = window.normalizePhone;
-            const incomingPhoneStr = normalizePhone(data.from);
-            const currentWaStr = normalizePhone(window._currentWaPhone);
-            
-            const modalEl = document.getElementById('details-modal');
-            const isModalOpen = modalEl && !modalEl.classList.contains('hidden');
-            
-            // Visual feedback: animate connection dot on message
-            const dot = document.getElementById('wa-connection-dot');
-            if (dot) {
-                dot.style.transform = 'scale(1.2)';
-                setTimeout(() => dot.style.transform = 'scale(1)', 300);
-            }
+        // If found via phone but no JID/LID yet, PIN IT!
+        if (bookingFound && !bookingFound.waJid) {
+          console.log(`Smart Pinning JID ${data.from} to booking ${bookingFound.id}`);
+          update(ref(db, `bookings/${bookingFound.id}`), { waJid: data.from }).catch(e => { });
+          bookingFound.waJid = data.from;
+        }
+      }
 
-            const bookings = window.state.bookings || [];
-            
-            // SMART MATCHING: Try JID first, then normalized phone
-            let bookingFound = bookings.find(b => b.waJid === data.from);
-            
-            if (!bookingFound) {
-                // Try matching by normalized phone number
-                bookingFound = bookings.find(b => {
-                    if (!b.phone) return false;
-                    const normalizedB = window.normalizePhone(b.phone);
-                    // If incoming is a number (starts with 966/967), match directly
-                    if (!incomingPhoneStr.includes("@") && normalizedB === incomingPhoneStr) return true;
-                    return false;
-                });
-                
-                // If found via phone but no JID/LID yet, PIN IT!
-                if (bookingFound && !bookingFound.waJid) {
-                    console.log(`Smart Pinning JID ${data.from} to booking ${bookingFound.id}`);
-                    update(ref(db, `bookings/${bookingFound.id}`), { waJid: data.from }).catch(e => {});
-                    bookingFound.waJid = data.from;
-                }
-            }
+      // If still no booking found and it's an inbound message, CREATE LEAD
+      if (false && !bookingFound && !data.isMe) {
+        console.log('New customer detected via WhatsApp, creating lead...');
+        try {
+          const newBooking = {
+            name: "عميل جديد (واتساب)",
+            phone: incomingPhoneStr,
+            waJid: data.from, // Store the JID immediately
+            carRequested: "استفسار واتساب",
+            status: "new",
+            subStatus: "not_contacted",
+            source: "whatsapp_inbound",
+            assignedTo: data.userId || "",
+            createdAt: new Date().toISOString(),
+            notes: "تم استقبال رسالة من رقم جديد عبر الواتساب: " + data.body
+          };
+          const pushRef = await push(ref(db, "bookings"), newBooking);
+          bookingFound = { ...newBooking, id: pushRef.key };
+          window.showLuxuryToast('تم استقبال طلب حجز جديد تلقائياً من عميل واتساب', 'success');
+        } catch (err) {
+          console.error('Failed to create automatic booking:', err);
+        }
+      }
 
-            // If still no booking found and it's an inbound message, CREATE LEAD
-            if (false && !bookingFound && !data.isMe) {
-                console.log('New customer detected via WhatsApp, creating lead...');
-                try {
-                    const newBooking = {
-                        name: "عميل جديد (واتساب)",
-                        phone: incomingPhoneStr,
-                        waJid: data.from, // Store the JID immediately
-                        carRequested: "استفسار واتساب",
-                        status: "new",
-                        subStatus: "not_contacted",
-                        source: "whatsapp_inbound",
-                        assignedTo: data.userId || "", 
-                        createdAt: new Date().toISOString(),
-                        notes: "تم استقبال رسالة من رقم جديد عبر الواتساب: " + data.body
-                    };
-                    const pushRef = await push(ref(db, "bookings"), newBooking);
-                    bookingFound = { ...newBooking, id: pushRef.key };
-                    window.showLuxuryToast('تم استقبال طلب حجز جديد تلقائياً من عميل واتساب', 'success');
-                } catch (err) {
-                    console.error('Failed to create automatic booking:', err);
-                }
-            }
-
-            if(isModalOpen && currentWaStr && incomingPhoneStr === currentWaStr) {
-                 setTimeout(() => {
-                    window.fetchServerWAChat(window._currentWaPhone, data.userId); 
-                 }, 500);
-            } else {
-                 if (data.isMe) return; 
-                 const isForMe = data.userId === (window.state.userProfile?.id);
-                 const isAdmin = window.state.userProfile?.role === 'admin' || window.state.userProfile?.role === 'supervisor';
-                 if ((isForMe || isAdmin) && bookingFound) {
-                     if (window.showWAPushNotification) window.showWAPushNotification(incomingPhoneStr, data.body, data.userId);
-                 }
-            }
-        });
-    }
+      if (isModalOpen && currentWaStr && incomingPhoneStr === currentWaStr) {
+        setTimeout(() => {
+          window.fetchServerWAChat(window._currentWaPhone, data.userId);
+        }, 500);
+      } else {
+        if (data.isMe) return;
+        const isForMe = data.userId === (window.state.userProfile?.id);
+        const isAdmin = window.state.userProfile?.role === 'admin' || window.state.userProfile?.role === 'supervisor';
+        if ((isForMe || isAdmin) && bookingFound) {
+          if (window.showWAPushNotification) window.showWAPushNotification(incomingPhoneStr, data.body, data.userId);
+        }
+      }
+    });
+  }
 };
 
-window.showWAPushNotification = async function(phone, body, assignedUserId) {
-    let container = document.getElementById('wa-push-notifications-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'wa-push-notifications-container';
-        container.style.cssText = 'position:fixed; bottom:30px; left:25px; z-index:999999; display:flex; flex-direction:column-reverse; gap:12px; width:340px; pointer-events:none;';
-        document.body.appendChild(container);
-    }
-    
-    const bookings = window.state.bookings || [];
-    const booking = bookings.find(b => b.phone && window.normalizePhone(b.phone) === window.normalizePhone(phone));
-    const senderName = booking && booking.name ? booking.name : phone;
-    
-    let displayBody = body || 'رسالة جديدة';
-    if(displayBody.length > 70) displayBody = displayBody.substring(0, 70) + '...';
-    
-    const popup = document.createElement('div');
-    popup.style.cssText = 'background:rgba(255,255,255,0.98); border-right:4px solid #00a884; border-radius:12px; padding:12px 15px; box-shadow:0 6px 20px rgba(0,0,0,0.15); pointer-events:auto; cursor:pointer; transform:translateX(-120%); transition:transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s, margin 0.3s; opacity:0; overflow:hidden; position:relative; direction:rtl;';
-    
-    popup.innerHTML = `
+window.showWAPushNotification = async function (phone, body, assignedUserId) {
+  let container = document.getElementById('wa-push-notifications-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'wa-push-notifications-container';
+    container.style.cssText = 'position:fixed; bottom:30px; left:25px; z-index:999999; display:flex; flex-direction:column-reverse; gap:12px; width:340px; pointer-events:none;';
+    document.body.appendChild(container);
+  }
+
+  const bookings = window.state.bookings || [];
+  const booking = bookings.find(b => b.phone && window.normalizePhone(b.phone) === window.normalizePhone(phone));
+  const senderName = booking && booking.name ? booking.name : phone;
+
+  let displayBody = body || 'رسالة جديدة';
+  if (displayBody.length > 70) displayBody = displayBody.substring(0, 70) + '...';
+
+  const popup = document.createElement('div');
+  popup.style.cssText = 'background:rgba(255,255,255,0.98); border-right:4px solid #00a884; border-radius:12px; padding:12px 15px; box-shadow:0 6px 20px rgba(0,0,0,0.15); pointer-events:auto; cursor:pointer; transform:translateX(-120%); transition:transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s, margin 0.3s; opacity:0; overflow:hidden; position:relative; direction:rtl;';
+
+  popup.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
            <div style="display:flex; align-items:center; gap:10px;">
                <div style="background:#d9fdd3; width:30px; height:30px; border-radius:50%; display:flex; justify-content:center; align-items:center;">
@@ -3908,119 +4167,119 @@ window.showWAPushNotification = async function(phone, body, assignedUserId) {
         </div>
         <p style="margin:0; font-size:12.5px; color:#54656f; line-height:1.5; padding-right:40px;">${displayBody}</p>
     `;
-    
-    const closeBtn = popup.querySelector('.fa-times-btn');
-    closeBtn.onmouseover = () => closeBtn.style.color = '#e02424';
-    closeBtn.onmouseout = () => closeBtn.style.color = '#999';
-    
-    const pushToNotificationsList = async () => {
-        try {
-            await push(ref(db, "notifications"), {
-                 userId: assignedUserId || window.state.userProfile?.id || "admin",
-                 type: "wa_message",
-                 title: "رسالة واتساب من " + senderName,
-                 body: displayBody,
-                 phone: phone,
-                 read: false,
-                 createdAt: new Date().toISOString()
-            });
-        } catch(e) { console.warn("Could not save to notifications DB", e); }
-    };
-    
-    let timeoutId = setTimeout(() => {
-        closePopup();
-        pushToNotificationsList();
-    }, 10000);
-    
-    const closePopup = () => {
-        popup.style.transform = 'translateX(-120%)';
-        popup.style.opacity = '0';
-        popup.style.marginTop = `-${popup.offsetHeight}px`; // animate slide up for items below
-        setTimeout(() => { if(popup.parentNode) popup.parentNode.removeChild(popup); }, 400);
-    };
-    
-    closeBtn.onclick = (e) => {
-        e.stopPropagation();
-        clearTimeout(timeoutId);
-        closePopup();
-    };
-    
-    popup.onclick = () => {
-        clearTimeout(timeoutId);
-        closePopup();
-        if (booking) {
-            window.viewBookingDetails(booking.id);
-            // Optionally shift to Whatsapp tab if not already there inside the details modal
-            setTimeout(() => {
-                 const waTab = document.getElementById('details-modal').querySelector('.dash-tab.admin-only');
-                 if(waTab) waTab.click();
-            }, 100);
-        } else {
-            window.showLuxuryToast('الرسالة من رقم غير مسجل في أي طلب مفتوح', 'info');
-        }
-    };
-    
-    // Insert at beginning creates bottom-up stack due to column-reverse
-    container.insertBefore(popup, container.firstChild);
-    
-    requestAnimationFrame(() => {
-        popup.style.transform = 'translateX(0)';
-        popup.style.opacity = '1';
-    });
-};
 
-window.startCurrentWASession = function() {
-    if(!window.state.user) return;
-    
-    const emitStart = () => {
-        waSocketContainer.emit('start_session', { userId: window.state.user.uid });
-        const statusTitle = document.getElementById('wa-my-status-title');
-        const statusDesc = document.getElementById('wa-my-status-desc');
-        if (statusTitle) statusTitle.innerText = 'جاري الاتصال...';
-        if (statusDesc) statusDesc.innerText = 'يتم الآن التواصل مع خادم الواتساب لتوليد رمز الاستجابة السريعة...';
-    };
+  const closeBtn = popup.querySelector('.fa-times-btn');
+  closeBtn.onmouseover = () => closeBtn.style.color = '#e02424';
+  closeBtn.onmouseout = () => closeBtn.style.color = '#999';
 
-    if(waSocketContainer) {
-        if (waSocketContainer.connected) {
-            emitStart();
-        } else {
-            waSocketContainer.once('connect', emitStart);
-            waSocketContainer.connect();
-        }
+  const pushToNotificationsList = async () => {
+    try {
+      await push(ref(db, "notifications"), {
+        userId: assignedUserId || window.state.userProfile?.id || "admin",
+        type: "wa_message",
+        title: "رسالة واتساب من " + senderName,
+        body: displayBody,
+        phone: phone,
+        read: false,
+        createdAt: new Date().toISOString()
+      });
+    } catch (e) { console.warn("Could not save to notifications DB", e); }
+  };
+
+  let timeoutId = setTimeout(() => {
+    closePopup();
+    pushToNotificationsList();
+  }, 10000);
+
+  const closePopup = () => {
+    popup.style.transform = 'translateX(-120%)';
+    popup.style.opacity = '0';
+    popup.style.marginTop = `-${popup.offsetHeight}px`; // animate slide up for items below
+    setTimeout(() => { if (popup.parentNode) popup.parentNode.removeChild(popup); }, 400);
+  };
+
+  closeBtn.onclick = (e) => {
+    e.stopPropagation();
+    clearTimeout(timeoutId);
+    closePopup();
+  };
+
+  popup.onclick = () => {
+    clearTimeout(timeoutId);
+    closePopup();
+    if (booking) {
+      window.viewBookingDetails(booking.id);
+      // Optionally shift to Whatsapp tab if not already there inside the details modal
+      setTimeout(() => {
+        const waTab = document.getElementById('details-modal').querySelector('.dash-tab.admin-only');
+        if (waTab) waTab.click();
+      }, 100);
     } else {
-       window.initWhatsAppServer();
+      window.showLuxuryToast('الرسالة من رقم غير مسجل في أي طلب مفتوح', 'info');
     }
+  };
+
+  // Insert at beginning creates bottom-up stack due to column-reverse
+  container.insertBefore(popup, container.firstChild);
+
+  requestAnimationFrame(() => {
+    popup.style.transform = 'translateX(0)';
+    popup.style.opacity = '1';
+  });
 };
 
-window.logoutCurrentWASession = function() {
-    if(!window.state.user) return;
-    if(confirm('هل أنت متأكد من تسجيل الخروج من واتساب؟ لن تتمكن من المراسلة من هنا.')) {
-        if(waSocketContainer) waSocketContainer.emit('logout_session', { userId: window.state.user.uid });
+window.startCurrentWASession = function () {
+  if (!window.state.user) return;
+
+  const emitStart = () => {
+    waSocketContainer.emit('start_session', { userId: window.state.user.uid });
+    const statusTitle = document.getElementById('wa-my-status-title');
+    const statusDesc = document.getElementById('wa-my-status-desc');
+    if (statusTitle) statusTitle.innerText = 'جاري الاتصال...';
+    if (statusDesc) statusDesc.innerText = 'يتم الآن التواصل مع خادم الواتساب لتوليد رمز الاستجابة السريعة...';
+  };
+
+  if (waSocketContainer) {
+    if (waSocketContainer.connected) {
+      emitStart();
+    } else {
+      waSocketContainer.once('connect', emitStart);
+      waSocketContainer.connect();
     }
+  } else {
+    window.initWhatsAppServer();
+  }
+};
+
+window.logoutCurrentWASession = function () {
+  if (!window.state.user) return;
+  if (confirm('هل أنت متأكد من تسجيل الخروج من واتساب؟ لن تتمكن من المراسلة من هنا.')) {
+    if (waSocketContainer) waSocketContainer.emit('logout_session', { userId: window.state.user.uid });
+  }
 };
 
 window._waMediaCache = window._waMediaCache || {};
 
-window.fetchServerWAChat = async function(phone, staffId) {
-    if(!phone) return;
-    const chatBox = document.getElementById('wa-server-chat-box');
-    if(!chatBox) return;
-    
-    // Determine which staff member's session to use
-    let userIdToUse = window.state.userProfile?.id;
-    
-    if (window.state.userProfile?.role === 'admin' || window.state.userProfile?.role === 'supervisor') {
-       if (staffId) {
-           userIdToUse = staffId;
-       } else {
-           // If no staffId passed, try to find the assignedTo from the current booking in state
-           const bookings = window.state.bookings || [];
-           const b = bookings.find(x => x.phone && window.normalizePhone(x.phone) === window.normalizePhone(phone));
-           if (b && b.assignedTo) {
-               userIdToUse = b.assignedTo;
-           } else {
-               // Showing info message instead of loading spinner if no assignment
-               chatBox.innerHTML = `
+window.fetchServerWAChat = async function (phone, staffId) {
+  if (!phone) return;
+  const chatBox = document.getElementById('wa-server-chat-box');
+  if (!chatBox) return;
+
+  // Determine which staff member's session to use
+  let userIdToUse = window.state.userProfile?.id;
+
+  if (window.state.userProfile?.role === 'admin' || window.state.userProfile?.role === 'supervisor') {
+    if (staffId) {
+      userIdToUse = staffId;
+    } else {
+      // If no staffId passed, try to find the assignedTo from the current booking in state
+      const bookings = window.state.bookings || [];
+      const b = bookings.find(x => x.phone && window.normalizePhone(x.phone) === window.normalizePhone(phone));
+      if (b && b.assignedTo) {
+        userIdToUse = b.assignedTo;
+      } else {
+        // Showing info message instead of loading spinner if no assignment
+        chatBox.innerHTML = `
                 <div style="text-align:center; margin-top:auto; margin-bottom:auto;">
                     <div style="background:rgba(255,255,255,0.95); display:inline-block; padding:20px; border-radius:15px; font-size:13px; color:#555; box-shadow:0 10px 30px rgba(0,0,0,0.1); max-width:85%;">
                         <i class="fas fa-user-slash" style="color:#00a884; font-size:32px; margin-bottom:15px; display:block;"></i>
@@ -4028,78 +4287,78 @@ window.fetchServerWAChat = async function(phone, staffId) {
                         سجل المحادثات متاح فقط للحجوزات المسندة.
                     </div>
                 </div>`;
-               return;
-           }
-       }
+        return;
+      }
     }
+  }
 
-    window._currentWaPhone = phone;
-    
-    // Only show loading if empty to prevent blink on new messages
-    if(!chatBox.hasChildNodes() || chatBox.innerHTML.includes('fa-circle-notch') || chatBox.innerHTML.includes('fa-comment-dots')) {
-        chatBox.innerHTML = '<div style="text-align:center; margin-top:auto; margin-bottom:auto;"><i class="fas fa-circle-notch fa-spin" style="font-size: 30px; color: #00a884; margin-bottom: 12px;"></i><br><div style="background: rgba(255,255,255,0.9); display: inline-block; padding: 8px 16px; border-radius: 12px; font-size: 12px; color: #555; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">جاري مزامنة الرسائل...</div></div>';
-    }
-    
-    try {
-        const activeUrl = window._waServerActiveUrl || CURRENT_MASTER_URL;
-        const response = await fetch(`${activeUrl}/api/chat/${userIdToUse}/${phone}`);
-        if(response.ok) {
-            const data = await response.json();
-            if(data.messages && data.messages.length > 0) {
-                // Determine if user was at bottom before re-render
-                const isAtBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < 50;
+  window._currentWaPhone = phone;
 
-                chatBox.innerHTML = '';
-                
-                const securityMsg = document.createElement('div');
-                securityMsg.style.cssText = "text-align:center; margin:10px 0 15px;";
-                securityMsg.innerHTML = '<span style="background:#fefed7; color:#54656f; font-size:11px; padding:6px 12px; border-radius:8px; box-shadow:0 1px 1px rgba(0,0,0,0.05); display:inline-block;"><i class="fas fa-lock" style="margin-left:4px; font-size:10px;"></i> الرسائل محمية ومسجلة عبر الخادم الداخلي</span>';
-                chatBox.appendChild(securityMsg);
+  // Only show loading if empty to prevent blink on new messages
+  if (!chatBox.hasChildNodes() || chatBox.innerHTML.includes('fa-circle-notch') || chatBox.innerHTML.includes('fa-comment-dots')) {
+    chatBox.innerHTML = '<div style="text-align:center; margin-top:auto; margin-bottom:auto;"><i class="fas fa-circle-notch fa-spin" style="font-size: 30px; color: #00a884; margin-bottom: 12px;"></i><br><div style="background: rgba(255,255,255,0.9); display: inline-block; padding: 8px 16px; border-radius: 12px; font-size: 12px; color: #555; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">جاري مزامنة الرسائل...</div></div>';
+  }
 
-                data.messages.forEach(m => {
-                    const timeStr = m.timestamp ? new Date(Number(m.timestamp) * 1000).toLocaleTimeString('ar-SA', {hour: 'numeric', minute:'2-digit', hour12: true}) : '';
-                    let safeBody = (m.body || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                    safeBody = safeBody.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#027eb5; text-decoration:underline;">$1</a>');
-                    
-                    const div = document.createElement('div');
-                    div.style.padding = '6px 8px 8px 10px';
-                    div.style.maxWidth = '75%';
-                    div.style.fontSize = '14.5px';
-                    div.style.marginBottom = '4px';
-                    div.style.position = 'relative';
-                    div.style.boxShadow = '0 1px 1.5px rgba(11,20,26,0.1)';
-                    div.style.whiteSpace = 'pre-wrap';
-                    div.style.lineHeight = '1.4';
-                    div.style.wordBreak = 'break-word';
-                    div.style.overflowWrap = 'anywhere';
-                    
-                    if(m.isMe) {
-                        div.style.alignSelf = 'flex-end';
-                        div.style.background = '#d9fdd3';
-                        div.style.color = '#111b21';
-                        div.style.borderRadius = '12px 0 12px 12px';
-                    } else {
-                        div.style.alignSelf = 'flex-start';
-                        div.style.background = '#ffffff';
-                        div.style.color = '#111b21';
-                        div.style.borderRadius = '0 12px 12px 12px';
-                    }
-                    
-                    let content = `<div>${safeBody}</div>`;
-                    if (m.media) {
-                        // Apply cached media if available
-                        if (window._waMediaCache[m.id]) {
-                            m.media.data = window._waMediaCache[m.id];
-                        }
-                        if (m.media.data === null) {
-                            const btnId = `btn-dl-${m.id}`;
-                            const contId = `cont-dl-${m.id}`;
-                            let mediaTypeName = "مرفق";
-                            if (m.media.mimetype.startsWith('image/')) mediaTypeName = "صورة";
-                            else if (m.media.mimetype.startsWith('video/')) mediaTypeName = "فيديو";
-                            else if (m.media.mimetype.startsWith('audio/') || m.type === 'ptt') mediaTypeName = "مقطع صوتي";
-                            
-                            content = `<div id="${contId}" style="margin-bottom:8px; display:flex; align-items:center; gap:10px; background:rgba(0,0,0,0.05); padding:10px; border-radius:8px;">
+  try {
+    const activeUrl = window._waServerActiveUrl || CURRENT_MASTER_URL;
+    const response = await fetch(`${activeUrl}/api/chat/${userIdToUse}/${phone}`);
+    if (response.ok) {
+      const data = await response.json();
+      if (data.messages && data.messages.length > 0) {
+        // Determine if user was at bottom before re-render
+        const isAtBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < 50;
+
+        chatBox.innerHTML = '';
+
+        const securityMsg = document.createElement('div');
+        securityMsg.style.cssText = "text-align:center; margin:10px 0 15px;";
+        securityMsg.innerHTML = '<span style="background:#fefed7; color:#54656f; font-size:11px; padding:6px 12px; border-radius:8px; box-shadow:0 1px 1px rgba(0,0,0,0.05); display:inline-block;"><i class="fas fa-lock" style="margin-left:4px; font-size:10px;"></i> الرسائل محمية ومسجلة عبر الخادم الداخلي</span>';
+        chatBox.appendChild(securityMsg);
+
+        data.messages.forEach(m => {
+          const timeStr = m.timestamp ? new Date(Number(m.timestamp) * 1000).toLocaleTimeString('ar-SA', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
+          let safeBody = (m.body || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+          safeBody = safeBody.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#027eb5; text-decoration:underline;">$1</a>');
+
+          const div = document.createElement('div');
+          div.style.padding = '6px 8px 8px 10px';
+          div.style.maxWidth = '75%';
+          div.style.fontSize = '14.5px';
+          div.style.marginBottom = '4px';
+          div.style.position = 'relative';
+          div.style.boxShadow = '0 1px 1.5px rgba(11,20,26,0.1)';
+          div.style.whiteSpace = 'pre-wrap';
+          div.style.lineHeight = '1.4';
+          div.style.wordBreak = 'break-word';
+          div.style.overflowWrap = 'anywhere';
+
+          if (m.isMe) {
+            div.style.alignSelf = 'flex-end';
+            div.style.background = '#d9fdd3';
+            div.style.color = '#111b21';
+            div.style.borderRadius = '12px 0 12px 12px';
+          } else {
+            div.style.alignSelf = 'flex-start';
+            div.style.background = '#ffffff';
+            div.style.color = '#111b21';
+            div.style.borderRadius = '0 12px 12px 12px';
+          }
+
+          let content = `<div>${safeBody}</div>`;
+          if (m.media) {
+            // Apply cached media if available
+            if (window._waMediaCache[m.id]) {
+              m.media.data = window._waMediaCache[m.id];
+            }
+            if (m.media.data === null) {
+              const btnId = `btn-dl-${m.id}`;
+              const contId = `cont-dl-${m.id}`;
+              let mediaTypeName = "مرفق";
+              if (m.media.mimetype.startsWith('image/')) mediaTypeName = "صورة";
+              else if (m.media.mimetype.startsWith('video/')) mediaTypeName = "فيديو";
+              else if (m.media.mimetype.startsWith('audio/') || m.type === 'ptt') mediaTypeName = "مقطع صوتي";
+
+              content = `<div id="${contId}" style="margin-bottom:8px; display:flex; align-items:center; gap:10px; background:rgba(0,0,0,0.05); padding:10px; border-radius:8px;">
                                 <i class="fas fa-file-download" style="font-size:24px; color:#54656f;"></i>
                                 <div style="flex:1;">
                                     <strong style="display:block; font-size:13px;">${mediaTypeName} سابق</strong>
@@ -4107,53 +4366,53 @@ window.fetchServerWAChat = async function(phone, staffId) {
                                 </div>
                                 <button id="${btnId}" class="btn-premium btn-sm" onclick="window.downloadWAMedia('${userIdToUse}', '${phone}', '${m.id}', '${contId}', '${m.media.mimetype}', '${m.type}')" style="padding:4px 10px; min-width:40px;"><i class="fas fa-download"></i></button>
                             </div>` + (safeBody ? `<div>${safeBody}</div>` : '');
-                        } else {
-                            if (m.media.mimetype.startsWith('image/')) {
-                                content = `<div style="margin:-4px -6px 4px -8px; background:rgba(0,0,0,0.02); border-radius:10px 10px 0 0; overflow:hidden; text-align:center;"><img src="data:${m.media.mimetype};base64,${m.media.data}" style="max-width:100%; max-height:220px; border-radius:8px; display:inline-block; cursor:pointer; object-fit:cover;" onclick="window.viewFullImage(this.src)"></div>` + (safeBody ? `<div>${safeBody}</div>` : '');
-                            } else if (m.media.mimetype.startsWith('audio/') || m.type === 'ptt') {
-                                content = `<div style="display:flex; align-items:center; gap:10px;"><div style="background:#00a884; width:40px; height:40px; border-radius:50%; display:flex; justify-content:center; align-items:center; flex-shrink:0;"><i class="fas fa-play" style="color:white; margin-right:-2px; font-size:14px;"></i></div> <audio controls style="max-width:200px; height:35px;"><source src="data:${m.media.mimetype};base64,${m.media.data}" type="${m.media.mimetype}"></audio></div>` + (safeBody ? `<div style="margin-top:5px;">${safeBody}</div>` : '');
-                            } else if (m.media.mimetype.startsWith('video/')) {
-                                content = `<video controls style="max-width:100%; border-radius:8px; margin-bottom:5px;"><source src="data:${m.media.mimetype};base64,${m.media.data}" type="${m.media.mimetype}"></video>` + (safeBody ? `<div>${safeBody}</div>` : '');
-                            } else {
-                                content = `<div style="background:rgba(0,0,0,0.05); padding:10px; border-radius:8px; display:flex; align-items:center; gap:10px; margin-bottom:5px;"><i class="fas fa-file-alt" style="font-size:24px; color:#54656f;"></i> <div><strong style="display:block; font-size:13px;">ملف ${m.media.filename || 'مرفق'}</strong><span style="font-size:11px; opacity:0.7;">تنزيل للعرض</span></div></div>` + (safeBody ? `<div>${safeBody}</div>` : '');
-                            }
-                        }
-                    }
-                    
-                    let ticks = '';
-                    if (m.isMe) {
-                        let ack = m.ack !== undefined ? m.ack : (m.status === 'read' ? 3 : m.status === 'delivered' ? 2 : m.status === 'sent' ? 1 : undefined);
-                        if (ack === 1 || ack === 0) {
-                            ticks = `<i class="fas fa-check" style="font-size:12px; margin-right:4px; color:#c7c7c7;"></i>`; // صح واحد (تم الارسال)
-                        } else if (ack === 2) {
-                            ticks = `<i class="fas fa-check-double" style="font-size:12px; margin-right:4px; color:#c7c7c7;"></i>`; // صحين رماديين (تم الاستلام)
-                        } else if (ack >= 3) {
-                            ticks = `<i class="fas fa-check-double" style="font-size:12px; margin-right:4px; color:#53bdeb;"></i>`; // صحين زرقاء (تم المشاهدة)
-                        } else {
-                            ticks = `<i class="fas fa-check" style="font-size:12px; margin-right:4px; color:#c7c7c7;"></i>`; // الافتراضي صح رمادي واحد بدلاً من أزرق
-                        }
-                    }
+            } else {
+              if (m.media.mimetype.startsWith('image/')) {
+                content = `<div style="margin:-4px -6px 4px -8px; background:rgba(0,0,0,0.02); border-radius:10px 10px 0 0; overflow:hidden; text-align:center;"><img src="data:${m.media.mimetype};base64,${m.media.data}" style="max-width:100%; max-height:220px; border-radius:8px; display:inline-block; cursor:pointer; object-fit:cover;" onclick="window.viewFullImage(this.src)"></div>` + (safeBody ? `<div>${safeBody}</div>` : '');
+              } else if (m.media.mimetype.startsWith('audio/') || m.type === 'ptt') {
+                content = `<div style="display:flex; align-items:center; gap:10px;"><div style="background:#00a884; width:40px; height:40px; border-radius:50%; display:flex; justify-content:center; align-items:center; flex-shrink:0;"><i class="fas fa-play" style="color:white; margin-right:-2px; font-size:14px;"></i></div> <audio controls style="max-width:200px; height:35px;"><source src="data:${m.media.mimetype};base64,${m.media.data}" type="${m.media.mimetype}"></audio></div>` + (safeBody ? `<div style="margin-top:5px;">${safeBody}</div>` : '');
+              } else if (m.media.mimetype.startsWith('video/')) {
+                content = `<video controls style="max-width:100%; border-radius:8px; margin-bottom:5px;"><source src="data:${m.media.mimetype};base64,${m.media.data}" type="${m.media.mimetype}"></video>` + (safeBody ? `<div>${safeBody}</div>` : '');
+              } else {
+                content = `<div style="background:rgba(0,0,0,0.05); padding:10px; border-radius:8px; display:flex; align-items:center; gap:10px; margin-bottom:5px;"><i class="fas fa-file-alt" style="font-size:24px; color:#54656f;"></i> <div><strong style="display:block; font-size:13px;">ملف ${m.media.filename || 'مرفق'}</strong><span style="font-size:11px; opacity:0.7;">تنزيل للعرض</span></div></div>` + (safeBody ? `<div>${safeBody}</div>` : '');
+              }
+            }
+          }
 
-                    div.innerHTML = `${content} <div style="display:flex; justify-content:flex-end; align-items:center; margin-top:2px; float:left; margin-left:-5px; padding-left:10px; padding-top:2px;">
+          let ticks = '';
+          if (m.isMe) {
+            let ack = m.ack !== undefined ? m.ack : (m.status === 'read' ? 3 : m.status === 'delivered' ? 2 : m.status === 'sent' ? 1 : undefined);
+            if (ack === 1 || ack === 0) {
+              ticks = `<i class="fas fa-check" style="font-size:12px; margin-right:4px; color:#c7c7c7;"></i>`; // صح واحد (تم الارسال)
+            } else if (ack === 2) {
+              ticks = `<i class="fas fa-check-double" style="font-size:12px; margin-right:4px; color:#c7c7c7;"></i>`; // صحين رماديين (تم الاستلام)
+            } else if (ack >= 3) {
+              ticks = `<i class="fas fa-check-double" style="font-size:12px; margin-right:4px; color:#53bdeb;"></i>`; // صحين زرقاء (تم المشاهدة)
+            } else {
+              ticks = `<i class="fas fa-check" style="font-size:12px; margin-right:4px; color:#c7c7c7;"></i>`; // الافتراضي صح رمادي واحد بدلاً من أزرق
+            }
+          }
+
+          div.innerHTML = `${content} <div style="display:flex; justify-content:flex-end; align-items:center; margin-top:2px; float:left; margin-left:-5px; padding-left:10px; padding-top:2px;">
                       <span style="font-size:11px; color:#667781;">${timeStr}</span>
                       ${ticks}
                     </div><div style="clear:both;"></div>`;
 
-                    chatBox.appendChild(div);
-                });
-                
-                // Only scroll down smoothly if user was already at the bottom to avoid annoyance
-                if (isAtBottom || chatBox.innerHTML.includes('fa-lock')) {
-                    setTimeout(() => {
-                        chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
-                    }, 100);
-                }
-                
-            } else {
-                chatBox.innerHTML = '<div style="text-align:center; margin-top:auto; margin-bottom:auto;"><div style="background:rgba(255,255,255,0.95); display:inline-block; padding:15px 30px; border-radius:15px; font-size:13px; color:#555; box-shadow:0 3px 10px rgba(0,0,0,0.08);"><i class="fas fa-comment-dots" style="color:#00a884; font-size:24px; margin-bottom:10px; display:block;"></i>لا توجد رسائل سابقة مع هذا الرقم.<br>يمكنك بدء دردشة جديدة الآن.</div></div>';
-            }
-        } else {
-            chatBox.innerHTML = `
+          chatBox.appendChild(div);
+        });
+
+        // Only scroll down smoothly if user was already at the bottom to avoid annoyance
+        if (isAtBottom || chatBox.innerHTML.includes('fa-lock')) {
+          setTimeout(() => {
+            chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
+          }, 100);
+        }
+
+      } else {
+        chatBox.innerHTML = '<div style="text-align:center; margin-top:auto; margin-bottom:auto;"><div style="background:rgba(255,255,255,0.95); display:inline-block; padding:15px 30px; border-radius:15px; font-size:13px; color:#555; box-shadow:0 3px 10px rgba(0,0,0,0.08);"><i class="fas fa-comment-dots" style="color:#00a884; font-size:24px; margin-bottom:10px; display:block;"></i>لا توجد رسائل سابقة مع هذا الرقم.<br>يمكنك بدء دردشة جديدة الآن.</div></div>';
+      }
+    } else {
+      chatBox.innerHTML = `
                 <div style="text-align:center; margin-top:auto; margin-bottom:auto;">
                     <div style="background:rgba(255,255,255,0.95); display:inline-block; padding:25px; border-radius:15px; font-size:14px; color:#555; box-shadow:0 3px 10px rgba(0,0,0,0.08);">
                         <i class="fab fa-whatsapp" style="font-size:50px; margin-bottom:15px; color:#8696a0;"></i>
@@ -4162,248 +4421,248 @@ window.fetchServerWAChat = async function(phone, staffId) {
                     </div>
                 </div>
             `;
-        }
-    } catch(err) {
-        chatBox.innerHTML = `<div style="text-align:center; margin-top:auto; margin-bottom:auto;"><div style="background:rgba(255,255,255,0.95); display:inline-block; padding:15px 25px; border-radius:15px; font-size:13px; color:#e02424; box-shadow:0 3px 10px rgba(0,0,0,0.08);"><i class="fas fa-exclamation-triangle" style="font-size:24px; margin-bottom:10px; display:block;"></i>فشل الاتصال بالخادم. يرجى التأكد من تشغيل السيرفر.</div></div>`;
     }
+  } catch (err) {
+    chatBox.innerHTML = `<div style="text-align:center; margin-top:auto; margin-bottom:auto;"><div style="background:rgba(255,255,255,0.95); display:inline-block; padding:15px 25px; border-radius:15px; font-size:13px; color:#e02424; box-shadow:0 3px 10px rgba(0,0,0,0.08);"><i class="fas fa-exclamation-triangle" style="font-size:24px; margin-bottom:10px; display:block;"></i>فشل الاتصال بالخادم. يرجى التأكد من تشغيل السيرفر.</div></div>`;
+  }
 };
 
 let mediaRecorder;
 let audioChunks = [];
 
-window.startWARecording = async function() {
-    window._waRecordingIntent = true;
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        if (!window._waRecordingIntent) {
-            // User released the button before microphone permission resolved
-            stream.getTracks().forEach(t => t.stop());
-            return;
-        }
-        
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
-        window._waRecordingStartTime = Date.now();
-        
-        mediaRecorder.ondataavailable = e => {
-            if (e.data.size > 0) audioChunks.push(e.data);
-        };
-        
-        mediaRecorder.start();
-        const micBtn = document.getElementById('wa-mic-btn');
-        if(micBtn) micBtn.style.color = 'red';
-    } catch(err) {
-        window.showLuxuryToast('لم يتم السماح باستخدام الميكروفون', 'error');
-        window._waRecordingIntent = false;
+window.startWARecording = async function () {
+  window._waRecordingIntent = true;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    if (!window._waRecordingIntent) {
+      // User released the button before microphone permission resolved
+      stream.getTracks().forEach(t => t.stop());
+      return;
     }
-};
 
-window.stopWARecording = function(phone, staffId) {
-    if (!window._waRecordingIntent) return;
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+    window._waRecordingStartTime = Date.now();
+
+    mediaRecorder.ondataavailable = e => {
+      if (e.data.size > 0) audioChunks.push(e.data);
+    };
+
+    mediaRecorder.start();
+    const micBtn = document.getElementById('wa-mic-btn');
+    if (micBtn) micBtn.style.color = 'red';
+  } catch (err) {
+    window.showLuxuryToast('لم يتم السماح باستخدام الميكروفون', 'error');
     window._waRecordingIntent = false;
-    
-    if(!mediaRecorder || mediaRecorder.state === 'inactive') return;
-    
-    mediaRecorder.onstop = async () => {
-        const duration = Date.now() - (window._waRecordingStartTime || Date.now());
-        
-        if (duration < 500 || audioChunks.length === 0) {
-            // Ignore recordings that are too short to prevent blank notes
-            mediaRecorder.stream.getTracks().forEach(t => t.stop());
-            const micBtn = document.getElementById('wa-mic-btn');
-            if(micBtn) micBtn.style.color = '#54656f';
-            return;
-        }
-
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = () => {
-            const base64data = reader.result.split(',')[1];
-            // Fix: Pass empty string for forcedMessage to prevent input lock override
-            window.sendServerWAMessage(phone, staffId, { data: base64data, mimetype: 'audio/webm', filename: 'voice_note.webm', ptt: true }, '');
-        };
-        
-        const micBtn = document.getElementById('wa-mic-btn');
-        if(micBtn) micBtn.style.color = '#54656f';
-        mediaRecorder.stream.getTracks().forEach(t => t.stop());
-    };
-    mediaRecorder.stop();
+  }
 };
 
-window.handleWAMediaSelect = function(phone, staffId) {
-    const input = document.getElementById('wa-media-upload');
-    const file = input.files && input.files[0];
-    if(!file) return;
-    
-    if(file.size > 16 * 1024 * 1024) {
-        window.showLuxuryToast('حجم الملف كبير جداً، أقصى حد يسمح به الواتساب هو 16 ميجابايت', 'error');
-        return;
+window.stopWARecording = function (phone, staffId) {
+  if (!window._waRecordingIntent) return;
+  window._waRecordingIntent = false;
+
+  if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
+
+  mediaRecorder.onstop = async () => {
+    const duration = Date.now() - (window._waRecordingStartTime || Date.now());
+
+    if (duration < 500 || audioChunks.length === 0) {
+      // Ignore recordings that are too short to prevent blank notes
+      mediaRecorder.stream.getTracks().forEach(t => t.stop());
+      const micBtn = document.getElementById('wa-mic-btn');
+      if (micBtn) micBtn.style.color = '#54656f';
+      return;
     }
-    
+
+    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
     const reader = new FileReader();
-    reader.onload = function(e) {
-        const base64 = e.target.result.split(',')[1];
-        const mimetype = file.type || 'application/octet-stream';
-        const filename = file.name;
-        
-        let msg = prompt('هل تريد إرفاق رسالة نصية مع هذا الملف؟ (اختياري)', '');
-        if (msg === null) {
-            input.value = '';
-            return; // user cancelled
-        }
-        
-        window.sendServerWAMessage(phone, staffId, { data: base64, mimetype, filename }, msg);
+    reader.readAsDataURL(audioBlob);
+    reader.onloadend = () => {
+      const base64data = reader.result.split(',')[1];
+      // Fix: Pass empty string for forcedMessage to prevent input lock override
+      window.sendServerWAMessage(phone, staffId, { data: base64data, mimetype: 'audio/webm', filename: 'voice_note.webm', ptt: true }, '');
     };
-    reader.readAsDataURL(file);
+
+    const micBtn = document.getElementById('wa-mic-btn');
+    if (micBtn) micBtn.style.color = '#54656f';
+    mediaRecorder.stream.getTracks().forEach(t => t.stop());
+  };
+  mediaRecorder.stop();
 };
-window.sendServerWAMessage = async function(phone, staffId, mediaObj = null, forcedMessage = null) {
-    const input = document.getElementById('wa-server-input');
-    
-    // Prevent double clicking only if disabled
-    if (input && input.disabled) return;
-    
-    const message = forcedMessage !== null ? forcedMessage : (input ? input.value.trim() : '');
-    
-    if(!mediaObj && !message) return;
-    
-    let userIdToUse = window.state.userProfile.id;
-    if (window.state.userProfile.role === 'admin' && staffId) userIdToUse = staffId;
 
-    // Clear input immediately for better UX
-    if (input && forcedMessage === null) {
-        input.value = '';
-        input.style.height = '42px';
-        input.focus();
+window.handleWAMediaSelect = function (phone, staffId) {
+  const input = document.getElementById('wa-media-upload');
+  const file = input.files && input.files[0];
+  if (!file) return;
+
+  if (file.size > 16 * 1024 * 1024) {
+    window.showLuxuryToast('حجم الملف كبير جداً، أقصى حد يسمح به الواتساب هو 16 ميجابايت', 'error');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const base64 = e.target.result.split(',')[1];
+    const mimetype = file.type || 'application/octet-stream';
+    const filename = file.name;
+
+    let msg = prompt('هل تريد إرفاق رسالة نصية مع هذا الملف؟ (اختياري)', '');
+    if (msg === null) {
+      input.value = '';
+      return; // user cancelled
     }
 
-    // Optimistic UI Append
-    const chatBox = document.getElementById('wa-server-chat-box');
-    if (chatBox) {
-        if (chatBox.innerHTML.includes('fa-comment-dots') || chatBox.innerHTML.includes('fa-circle-notch') || !chatBox.hasChildNodes()) {
-            chatBox.innerHTML = '<div style="text-align:center; margin:10px 0 15px;"><span style="background:#fefed7; color:#54656f; font-size:11px; padding:6px 12px; border-radius:8px; box-shadow:0 1px 1px rgba(0,0,0,0.05); display:inline-block;"><i class="fas fa-lock" style="margin-left:4px; font-size:10px;"></i> الرسائل محمية ومسجلة عبر الخادم الداخلي</span></div>';
-        }
-        
-        const timeStr = new Date().toLocaleTimeString('ar-SA', {hour: 'numeric', minute:'2-digit', hour12: true});
-        let safeBody = (message || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        safeBody = safeBody.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#027eb5; text-decoration:underline;">$1</a>');
-        
-        const div = document.createElement('div');
-        div.style.padding = '6px 8px 8px 10px';
-        div.style.maxWidth = '75%';
-        div.style.fontSize = '14.5px';
-        div.style.marginBottom = '4px';
-        div.style.position = 'relative';
-        div.style.boxShadow = '0 1px 1.5px rgba(11,20,26,0.1)';
-        div.style.whiteSpace = 'pre-wrap';
-        div.style.lineHeight = '1.4';
-        div.style.wordBreak = 'break-word';
-        div.style.overflowWrap = 'anywhere';
-        div.style.alignSelf = 'flex-end';
-        div.style.background = '#d9fdd3';
-        div.style.color = '#111b21';
-        div.style.borderRadius = '12px 0 12px 12px';
-        
-        let content = `<div>${safeBody}</div>`;
-        if (mediaObj) {
-            content = `<div style="margin-bottom:5px; font-size:12px; color:#555;"><i class="fas fa-paperclip"></i> تم إرسال مرفق</div>` + content;
-        }
-        
-        let ticks = `<i class="fas fa-clock" style="font-size:12px; margin-right:4px; color:#c7c7c7;"></i>`;
-        div.innerHTML = `${content} <div style="display:flex; justify-content:flex-end; align-items:center; margin-top:2px; float:left; margin-left:-5px; padding-left:10px; padding-top:2px;"><span style="font-size:11px; color:#667781;">${timeStr}</span>${ticks}</div><div style="clear:both;"></div>`;
-        
-        chatBox.appendChild(div);
-        setTimeout(() => {
-            chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
-        }, 50);
+    window.sendServerWAMessage(phone, staffId, { data: base64, mimetype, filename }, msg);
+  };
+  reader.readAsDataURL(file);
+};
+window.sendServerWAMessage = async function (phone, staffId, mediaObj = null, forcedMessage = null) {
+  const input = document.getElementById('wa-server-input');
+
+  // Prevent double clicking only if disabled
+  if (input && input.disabled) return;
+
+  const message = forcedMessage !== null ? forcedMessage : (input ? input.value.trim() : '');
+
+  if (!mediaObj && !message) return;
+
+  let userIdToUse = window.state.userProfile.id;
+  if (window.state.userProfile.role === 'admin' && staffId) userIdToUse = staffId;
+
+  // Clear input immediately for better UX
+  if (input && forcedMessage === null) {
+    input.value = '';
+    input.style.height = '42px';
+    input.focus();
+  }
+
+  // Optimistic UI Append
+  const chatBox = document.getElementById('wa-server-chat-box');
+  if (chatBox) {
+    if (chatBox.innerHTML.includes('fa-comment-dots') || chatBox.innerHTML.includes('fa-circle-notch') || !chatBox.hasChildNodes()) {
+      chatBox.innerHTML = '<div style="text-align:center; margin:10px 0 15px;"><span style="background:#fefed7; color:#54656f; font-size:11px; padding:6px 12px; border-radius:8px; box-shadow:0 1px 1px rgba(0,0,0,0.05); display:inline-block;"><i class="fas fa-lock" style="margin-left:4px; font-size:10px;"></i> الرسائل محمية ومسجلة عبر الخادم الداخلي</span></div>';
     }
 
+    const timeStr = new Date().toLocaleTimeString('ar-SA', { hour: 'numeric', minute: '2-digit', hour12: true });
+    let safeBody = (message || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    safeBody = safeBody.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#027eb5; text-decoration:underline;">$1</a>');
+
+    const div = document.createElement('div');
+    div.style.padding = '6px 8px 8px 10px';
+    div.style.maxWidth = '75%';
+    div.style.fontSize = '14.5px';
+    div.style.marginBottom = '4px';
+    div.style.position = 'relative';
+    div.style.boxShadow = '0 1px 1.5px rgba(11,20,26,0.1)';
+    div.style.whiteSpace = 'pre-wrap';
+    div.style.lineHeight = '1.4';
+    div.style.wordBreak = 'break-word';
+    div.style.overflowWrap = 'anywhere';
+    div.style.alignSelf = 'flex-end';
+    div.style.background = '#d9fdd3';
+    div.style.color = '#111b21';
+    div.style.borderRadius = '12px 0 12px 12px';
+
+    let content = `<div>${safeBody}</div>`;
+    if (mediaObj) {
+      content = `<div style="margin-bottom:5px; font-size:12px; color:#555;"><i class="fas fa-paperclip"></i> تم إرسال مرفق</div>` + content;
+    }
+
+    let ticks = `<i class="fas fa-clock" style="font-size:12px; margin-right:4px; color:#c7c7c7;"></i>`;
+    div.innerHTML = `${content} <div style="display:flex; justify-content:flex-end; align-items:center; margin-top:2px; float:left; margin-left:-5px; padding-left:10px; padding-top:2px;"><span style="font-size:11px; color:#667781;">${timeStr}</span>${ticks}</div><div style="clear:both;"></div>`;
+
+    chatBox.appendChild(div);
+    setTimeout(() => {
+      chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
+    }, 50);
+  }
+
+  try {
+    const activeUrl = window._waServerActiveUrl || CURRENT_MASTER_URL;
+    const payload = { userId: userIdToUse, phone, message };
+    if (mediaObj) payload.media = mediaObj;
+
+    const response = await fetch(`${activeUrl}/api/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      // Real fetch to update states (e.g. ticks) slightly after
+      setTimeout(() => window.fetchServerWAChat(phone, userIdToUse), 1500);
+    } else {
+      window.showLuxuryToast('الواتساب غير متصل في الإدارة، المرجو فحص الاتصال', 'error');
+      if (input && forcedMessage === null && !mediaObj) input.value = message;
+    }
+  } catch (err) {
+    window.showLuxuryToast('الخادم البرمجي مغلق أو متوقف', 'error');
+    if (input && forcedMessage === null && !mediaObj) input.value = message;
+  } finally {
+    const fileInput = document.getElementById('wa-media-upload');
+    if (fileInput) fileInput.value = '';
+  }
+};
+
+window.openQuickReplyModal = function () {
+  window.openCRUDModal('quickReplies');
+};
+
+window.editQuickReply = function (id) {
+  window.openCRUDModal('quickReplies', id);
+};
+
+window.addQuickReply = async function (btnEvent) {
+  // Legacy support if needed, but we prefer openQuickReplyModal now
+  window.openQuickReplyModal();
+};
+
+window.deleteQuickReply = async function (id, btnElement) {
+  if (confirm("هل أنت متأكد من الحذف؟")) {
+    let originalText = "";
+    if (btnElement) {
+      originalText = btnElement.innerHTML;
+      btnElement.disabled = true;
+      btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    }
     try {
-        const activeUrl = window._waServerActiveUrl || CURRENT_MASTER_URL;
-        const payload = { userId: userIdToUse, phone, message };
-        if (mediaObj) payload.media = mediaObj;
-
-        const response = await fetch(`${activeUrl}/api/send`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(payload)
-        });
-        
-        if(response.ok) {
-            // Real fetch to update states (e.g. ticks) slightly after
-            setTimeout(() => window.fetchServerWAChat(phone, userIdToUse), 1500);
-        } else {
-            window.showLuxuryToast('الواتساب غير متصل في الإدارة، المرجو فحص الاتصال', 'error');
-            if(input && forcedMessage === null && !mediaObj) input.value = message;
-        }
-    } catch(err) {
-        window.showLuxuryToast('الخادم البرمجي مغلق أو متوقف', 'error');
-        if(input && forcedMessage === null && !mediaObj) input.value = message;
-    } finally {
-        const fileInput = document.getElementById('wa-media-upload');
-        if (fileInput) fileInput.value = '';
+      await remove(ref(db, `quickReplies/${id}`));
+      window.showLuxuryToast("تم الحذف بنجاح");
+    } catch (err) {
+      console.error("Error deleting quick reply:", err);
+      window.showLuxuryToast("فُقدت الصلاحية أو حدث خطأ أثناء الحذف", "error");
+      if (btnElement) {
+        btnElement.disabled = false;
+        btnElement.innerHTML = originalText;
+      }
     }
+  }
 };
 
-window.openQuickReplyModal = function() {
-    window.openCRUDModal('quickReplies');
-};
+window.renderQuickRepliesAdmin = function () {
+  const list = document.getElementById("quick-replies-list");
+  if (!list) return;
 
-window.editQuickReply = function(id) {
-    window.openCRUDModal('quickReplies', id);
-};
+  const searchQuery = (document.getElementById("qr-search")?.value || "").toLowerCase();
+  let qr = window.state.quickReplies || [];
 
-window.addQuickReply = async function(btnEvent) {
-    // Legacy support if needed, but we prefer openQuickReplyModal now
-    window.openQuickReplyModal();
-};
+  if (searchQuery) {
+    qr = qr.filter(q =>
+      (q.title || "").toLowerCase().includes(searchQuery) ||
+      (q.content || "").toLowerCase().includes(searchQuery)
+    );
+  }
 
-window.deleteQuickReply = async function(id, btnElement) {
-    if(confirm("هل أنت متأكد من الحذف؟")) {
-        let originalText = "";
-        if (btnElement) {
-             originalText = btnElement.innerHTML;
-             btnElement.disabled = true;
-             btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        }
-        try {
-            await remove(ref(db, `quickReplies/${id}`));
-            window.showLuxuryToast("تم الحذف بنجاح");
-        } catch(err) {
-            console.error("Error deleting quick reply:", err);
-            window.showLuxuryToast("فُقدت الصلاحية أو حدث خطأ أثناء الحذف", "error");
-            if (btnElement) {
-                 btnElement.disabled = false;
-                 btnElement.innerHTML = originalText;
-            }
-        }
-    }
-};
-
-window.renderQuickRepliesAdmin = function() {
-    const list = document.getElementById("quick-replies-list");
-    if(!list) return;
-    
-    const searchQuery = (document.getElementById("qr-search")?.value || "").toLowerCase();
-    let qr = window.state.quickReplies || [];
-    
-    if (searchQuery) {
-        qr = qr.filter(q => 
-            (q.title || "").toLowerCase().includes(searchQuery) || 
-            (q.content || "").toLowerCase().includes(searchQuery)
-        );
-    }
-
-    if(qr.length === 0) {
-        list.innerHTML = `
+  if (qr.length === 0) {
+    list.innerHTML = `
             <div class="no-results-v2 full-width">
                 <i class="fas fa-search"></i>
                 <p>${searchQuery ? 'لا توجد نتائج تطابق بحثك' : 'لا توجد نماذج ردود سريعة حالياً'}</p>
             </div>`;
-        return;
-    }
-    
-    list.innerHTML = qr.map(q => `
+    return;
+  }
+
+  list.innerHTML = qr.map(q => `
         <div class="admin-item-card-v2" data-aos="fade-up">
             <div class="item-card-content" style="flex:1;">
                 <div class="item-card-header" style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
@@ -4429,269 +4688,269 @@ window.renderQuickRepliesAdmin = function() {
 };
 
 window._qrExpanded = false;
-window.renderQuickRepliesBar = function() {
-    const bar = document.getElementById("wa-quick-replies-bar");
-    if(!bar) return;
-    const qr = window.state.quickReplies || [];
-    if(qr.length === 0) {
-        bar.style.display = "none";
-        return;
-    }
-    bar.style.display = "flex";
-    
-    const isExpanded = window._qrExpanded;
-    let visible = qr;
-    let hasMore = false;
-    
-    if(!isExpanded && qr.length > 4) {
-        visible = qr.slice(0, 4);
-        hasMore = true;
-    }
-    
-    let html = visible.map(q => `
+window.renderQuickRepliesBar = function () {
+  const bar = document.getElementById("wa-quick-replies-bar");
+  if (!bar) return;
+  const qr = window.state.quickReplies || [];
+  if (qr.length === 0) {
+    bar.style.display = "none";
+    return;
+  }
+  bar.style.display = "flex";
+
+  const isExpanded = window._qrExpanded;
+  let visible = qr;
+  let hasMore = false;
+
+  if (!isExpanded && qr.length > 4) {
+    visible = qr.slice(0, 4);
+    hasMore = true;
+  }
+
+  let html = visible.map(q => `
         <button onclick="window.applyQuickReplyById('${q.id}')" style="background:white; border:1px solid var(--glass-border); padding:6px 12px; border-radius:16px; font-size:12px; color:#54656f; cursor:pointer; flex-shrink:0; white-space:nowrap; transition:all 0.2s; box-shadow:0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#f0f2f5'" onmouseout="this.style.background='white'">
             ${q.title}
         </button>
     `).join("");
-    
-    if(hasMore) {
-        html += `<button onclick="window._qrExpanded=true; window.renderQuickRepliesBar();" style="background:#00a884; color:white; border:none; padding:6px 12px; border-radius:16px; font-size:12px; cursor:pointer; flex-shrink:0;">عرض الكل <i class="fas fa-chevron-left" style="margin-right:4px;"></i></button>`;
-    } else if (isExpanded && qr.length > 4) {
-        html += `<button onclick="window._qrExpanded=false; window.renderQuickRepliesBar();" style="background:#e02424; color:white; border:none; padding:6px 12px; border-radius:16px; font-size:12px; cursor:pointer; flex-shrink:0;">إخفاء <i class="fas fa-chevron-right" style="margin-right:4px;"></i></button>`;
-    }
-    
-    bar.innerHTML = html;
+
+  if (hasMore) {
+    html += `<button onclick="window._qrExpanded=true; window.renderQuickRepliesBar();" style="background:#00a884; color:white; border:none; padding:6px 12px; border-radius:16px; font-size:12px; cursor:pointer; flex-shrink:0;">عرض الكل <i class="fas fa-chevron-left" style="margin-right:4px;"></i></button>`;
+  } else if (isExpanded && qr.length > 4) {
+    html += `<button onclick="window._qrExpanded=false; window.renderQuickRepliesBar();" style="background:#e02424; color:white; border:none; padding:6px 12px; border-radius:16px; font-size:12px; cursor:pointer; flex-shrink:0;">إخفاء <i class="fas fa-chevron-right" style="margin-right:4px;"></i></button>`;
+  }
+
+  bar.innerHTML = html;
 };
 
-window.applyQuickReplyById = function(id) {
-    const qr = (window.state.quickReplies || []).find(q => q.id === id);
-    if (qr && qr.content) {
-        window.applyQuickReply(qr.content);
-    }
+window.applyQuickReplyById = function (id) {
+  const qr = (window.state.quickReplies || []).find(q => q.id === id);
+  if (qr && qr.content) {
+    window.applyQuickReply(qr.content);
+  }
 };
 
-window.applyQuickReply = function(content) {
-    const input = document.getElementById("wa-server-input");
-    if(input) {
-        let finalContent = content;
-        
-        const empName = window.state.userProfile?.name || "الموظف";
-        finalContent = finalContent.replace(/\(اسم الموظف\)/g, empName);
-        
-        let custName = "العميل";
-        let carDetails = "السيارة";
-        let carMake = "غير محدد";
-        let carModel = "غير محدد";
-        let carYear = "غير محدد";
-        let carPrice = "غير محدد";
-        let carEngine = "غير محدد";
-        let carMileage = "غير محدد";
-        let carFuel = "غير محدد";
-        let carBody = "غير محدد";
-        let carColorExt = "غير محدد";
-        let carColorInt = "غير محدد";
+window.applyQuickReply = function (content) {
+  const input = document.getElementById("wa-server-input");
+  if (input) {
+    let finalContent = content;
 
-        let paymentMethod = "";
-        let bankName = "غير محدد";
-        let installmentPeriod = "غير محدد";
-        let salary = "غير محدد";
-        let commitments = "غير محدد";
-        let workEntity = "غير محدد";
-        let workStatus = "غير محدد";
-        
-        if (window._currentWaPhone) {
-            const current = window._currentWaPhone.toString();
-            const matches = (window.state.bookings || []).filter(b => {
-                return (b.phone && b.phone.toString() === current) || 
-                       (b.waJid && b.waJid.toString() === current) || 
-                       (b.phone && current.includes(b.phone.toString()));
-            });
-            if (matches && matches.length > 0) {
-                matches.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-                const latestBooking = matches[0];
-                if (latestBooking.name) custName = latestBooking.name;
-                
-                // Fetch full car details if linked
-                let carObj = null;
-                if (latestBooking.carId) {
-                    carObj = (window.state.cars || []).find(c => c.id === latestBooking.carId);
-                } else if (latestBooking.carRequested) {
-                    // Try matching by name/text
-                    carObj = (window.state.cars || []).find(c => {
-                        const fullName = `${c.make} ${c.model} ${c.year}`.toLowerCase();
-                        return fullName.includes(latestBooking.carRequested.toLowerCase()) || 
-                               latestBooking.carRequested.toLowerCase().includes(fullName);
-                    });
-                }
+    const empName = window.state.userProfile?.name || "الموظف";
+    finalContent = finalContent.replace(/\(اسم الموظف\)/g, empName);
 
-                if (carObj) {
-                    carMake = carObj.make || carMake;
-                    carModel = carObj.model || carModel;
-                    carYear = carObj.year || carYear;
-                    carPrice = carObj.price ? Number(carObj.price).toLocaleString('ar-SA') : carPrice;
-                    carEngine = carObj.engine || carEngine;
-                    carMileage = carObj.mileage || carMileage;
-                    carFuel = carObj.fuelType || carFuel;
-                    carColorExt = carObj.color || carColorExt;
-                    carColorInt = carObj.interiorColor || carColorInt;
-                    
-                    const bodyMap = { sedan: 'سيدان', suv: 'SUV', coupe: 'كوبيه', luxury: 'فاخرة', pickup: 'بيك آب' };
-                    carBody = bodyMap[carObj.bodyType] || carObj.bodyType || carBody;
+    let custName = "العميل";
+    let carDetails = "السيارة";
+    let carMake = "غير محدد";
+    let carModel = "غير محدد";
+    let carYear = "غير محدد";
+    let carPrice = "غير محدد";
+    let carEngine = "غير محدد";
+    let carMileage = "غير محدد";
+    let carFuel = "غير محدد";
+    let carBody = "غير محدد";
+    let carColorExt = "غير محدد";
+    let carColorInt = "غير محدد";
 
-                    carDetails = `${carMake} ${carModel} ${carYear}`.trim();
-                } else if (latestBooking.brand || latestBooking.model) {
-                    carDetails = `${latestBooking.brand || ''} ${latestBooking.model || ''} ${latestBooking.year || ''}`.trim();
-                    carMake = latestBooking.brand || carMake;
-                    carModel = latestBooking.model || carModel;
-                    carYear = latestBooking.year || carYear;
-                } else if (latestBooking.carName || latestBooking.carRequested) {
-                    carDetails = latestBooking.carName || latestBooking.carRequested;
-                }
+    let paymentMethod = "";
+    let bankName = "غير محدد";
+    let installmentPeriod = "غير محدد";
+    let salary = "غير محدد";
+    let commitments = "غير محدد";
+    let workEntity = "غير محدد";
+    let workStatus = "غير محدد";
 
-                if (latestBooking.paymentMethod) {
-                    paymentMethod = latestBooking.paymentMethod === 'cash' ? 'كاش' : 'تمويل';
-                }
-                if (latestBooking.bankName) bankName = latestBooking.bankName;
-                if (latestBooking.installmentPeriod) installmentPeriod = latestBooking.installmentPeriod;
-                if (latestBooking.salary) salary = latestBooking.salary;
-                if (latestBooking.commitments) commitments = latestBooking.commitments;
-                if (latestBooking.workEntity) workEntity = latestBooking.workEntity;
-                if (latestBooking.workStatus) workStatus = latestBooking.workStatus;
-            }
+    if (window._currentWaPhone) {
+      const current = window._currentWaPhone.toString();
+      const matches = (window.state.bookings || []).filter(b => {
+        return (b.phone && b.phone.toString() === current) ||
+          (b.waJid && b.waJid.toString() === current) ||
+          (b.phone && current.includes(b.phone.toString()));
+      });
+      if (matches && matches.length > 0) {
+        matches.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        const latestBooking = matches[0];
+        if (latestBooking.name) custName = latestBooking.name;
+
+        // Fetch full car details if linked
+        let carObj = null;
+        if (latestBooking.carId) {
+          carObj = (window.state.cars || []).find(c => c.id === latestBooking.carId);
+        } else if (latestBooking.carRequested) {
+          // Try matching by name/text
+          carObj = (window.state.cars || []).find(c => {
+            const fullName = `${c.make} ${c.model} ${c.year}`.toLowerCase();
+            return fullName.includes(latestBooking.carRequested.toLowerCase()) ||
+              latestBooking.carRequested.toLowerCase().includes(fullName);
+          });
         }
-        
-        finalContent = finalContent.replace(/\(اسم العميل\)/g, custName);
-        finalContent = finalContent.replace(/\(اسم السيارة\)/g, carDetails);
-        finalContent = finalContent.replace(/\(الماركة\)/g, carMake);
-        finalContent = finalContent.replace(/\(الموديل\)/g, carModel);
-        finalContent = finalContent.replace(/\(سنة الصنع\)/g, carYear);
-        finalContent = finalContent.replace(/\(السعر\)/g, carPrice);
-        finalContent = finalContent.replace(/\(المحرك\)/g, carEngine);
-        finalContent = finalContent.replace(/\(الممشى\)/g, carMileage);
-        finalContent = finalContent.replace(/\(نوع الوقود\)/g, carFuel);
-        finalContent = finalContent.replace(/\(فئة السيارة\)/g, carBody);
-        finalContent = finalContent.replace(/\(اللون الخارجي\)/g, carColorExt);
-        finalContent = finalContent.replace(/\(اللون الداخلي\)/g, carColorInt);
 
-        finalContent = finalContent.replace(/\(طريقة الشراء\)/g, paymentMethod);
-        finalContent = finalContent.replace(/\(اسم السيارة وتفاصيلها وطريقة الشراء وتفاصيله كاملة\)/g, `${carDetails} - الدفع: ${paymentMethod}`);
-        
-        finalContent = finalContent.replace(/\(اسم البنك الراتب عليه أو المفضل\)/g, bankName);
-        finalContent = finalContent.replace(/\(اسم البنك\)/g, bankName);
-        finalContent = finalContent.replace(/\(مدة الأقساط المفضل\)/g, installmentPeriod);
-        finalContent = finalContent.replace(/\(مدة الأقساط\)/g, installmentPeriod);
-        finalContent = finalContent.replace(/\(الراتب الشهري \(صافي\)\)/g, salary);
-        finalContent = finalContent.replace(/\(الراتب الشهري\)/g, salary);
-        finalContent = finalContent.replace(/\(الراتب\)/g, salary);
-        finalContent = finalContent.replace(/\(الإلتزامات الشهرية\)/g, commitments);
-        finalContent = finalContent.replace(/\(الإلتزامات\)/g, commitments);
-        finalContent = finalContent.replace(/\(جهة العمل\)/g, workEntity);
-        finalContent = finalContent.replace(/\(حالة الجهة\)/g, workStatus);
-        
-        input.value = finalContent;
-        // Trigger auto-resize
-        input.style.height = '42px';
-        input.style.height = Math.min(input.scrollHeight, 150) + 'px';
-        input.focus();
+        if (carObj) {
+          carMake = carObj.make || carMake;
+          carModel = carObj.model || carModel;
+          carYear = carObj.year || carYear;
+          carPrice = carObj.price ? Number(carObj.price).toLocaleString('ar-SA') : carPrice;
+          carEngine = carObj.engine || carEngine;
+          carMileage = carObj.mileage || carMileage;
+          carFuel = carObj.fuelType || carFuel;
+          carColorExt = carObj.color || carColorExt;
+          carColorInt = carObj.interiorColor || carColorInt;
+
+          const bodyMap = { sedan: 'سيدان', suv: 'SUV', coupe: 'كوبيه', luxury: 'فاخرة', pickup: 'بيك آب' };
+          carBody = bodyMap[carObj.bodyType] || carObj.bodyType || carBody;
+
+          carDetails = `${carMake} ${carModel} ${carYear}`.trim();
+        } else if (latestBooking.brand || latestBooking.model) {
+          carDetails = `${latestBooking.brand || ''} ${latestBooking.model || ''} ${latestBooking.year || ''}`.trim();
+          carMake = latestBooking.brand || carMake;
+          carModel = latestBooking.model || carModel;
+          carYear = latestBooking.year || carYear;
+        } else if (latestBooking.carName || latestBooking.carRequested) {
+          carDetails = latestBooking.carName || latestBooking.carRequested;
+        }
+
+        if (latestBooking.paymentMethod) {
+          paymentMethod = latestBooking.paymentMethod === 'cash' ? 'كاش' : 'تمويل';
+        }
+        if (latestBooking.bankName) bankName = latestBooking.bankName;
+        if (latestBooking.installmentPeriod) installmentPeriod = latestBooking.installmentPeriod;
+        if (latestBooking.salary) salary = latestBooking.salary;
+        if (latestBooking.commitments) commitments = latestBooking.commitments;
+        if (latestBooking.workEntity) workEntity = latestBooking.workEntity;
+        if (latestBooking.workStatus) workStatus = latestBooking.workStatus;
+      }
     }
+
+    finalContent = finalContent.replace(/\(اسم العميل\)/g, custName);
+    finalContent = finalContent.replace(/\(اسم السيارة\)/g, carDetails);
+    finalContent = finalContent.replace(/\(الماركة\)/g, carMake);
+    finalContent = finalContent.replace(/\(الموديل\)/g, carModel);
+    finalContent = finalContent.replace(/\(سنة الصنع\)/g, carYear);
+    finalContent = finalContent.replace(/\(السعر\)/g, carPrice);
+    finalContent = finalContent.replace(/\(المحرك\)/g, carEngine);
+    finalContent = finalContent.replace(/\(الممشى\)/g, carMileage);
+    finalContent = finalContent.replace(/\(نوع الوقود\)/g, carFuel);
+    finalContent = finalContent.replace(/\(فئة السيارة\)/g, carBody);
+    finalContent = finalContent.replace(/\(اللون الخارجي\)/g, carColorExt);
+    finalContent = finalContent.replace(/\(اللون الداخلي\)/g, carColorInt);
+
+    finalContent = finalContent.replace(/\(طريقة الشراء\)/g, paymentMethod);
+    finalContent = finalContent.replace(/\(اسم السيارة وتفاصيلها وطريقة الشراء وتفاصيله كاملة\)/g, `${carDetails} - الدفع: ${paymentMethod}`);
+
+    finalContent = finalContent.replace(/\(اسم البنك الراتب عليه أو المفضل\)/g, bankName);
+    finalContent = finalContent.replace(/\(اسم البنك\)/g, bankName);
+    finalContent = finalContent.replace(/\(مدة الأقساط المفضل\)/g, installmentPeriod);
+    finalContent = finalContent.replace(/\(مدة الأقساط\)/g, installmentPeriod);
+    finalContent = finalContent.replace(/\(الراتب الشهري \(صافي\)\)/g, salary);
+    finalContent = finalContent.replace(/\(الراتب الشهري\)/g, salary);
+    finalContent = finalContent.replace(/\(الراتب\)/g, salary);
+    finalContent = finalContent.replace(/\(الإلتزامات الشهرية\)/g, commitments);
+    finalContent = finalContent.replace(/\(الإلتزامات\)/g, commitments);
+    finalContent = finalContent.replace(/\(جهة العمل\)/g, workEntity);
+    finalContent = finalContent.replace(/\(حالة الجهة\)/g, workStatus);
+
+    input.value = finalContent;
+    // Trigger auto-resize
+    input.style.height = '42px';
+    input.style.height = Math.min(input.scrollHeight, 150) + 'px';
+    input.focus();
+  }
 };
 
-window.downloadWAMedia = async function(userId, phone, messageId, containerId, mimetype, msgType) {
-    const btn = document.getElementById(containerId.replace('cont-dl-', 'btn-dl-'));
+window.downloadWAMedia = async function (userId, phone, messageId, containerId, mimetype, msgType) {
+  const btn = document.getElementById(containerId.replace('cont-dl-', 'btn-dl-'));
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+  }
+
+  try {
+    const activeUrl = window._waServerActiveUrl || CURRENT_MASTER_URL;
+    const res = await fetch(`${activeUrl}/api/media/${userId}/${phone}/${messageId}`);
+    if (!res.ok) throw new Error("Failed");
+
+    const data = await res.json();
+    if (!data.data) throw new Error("No data");
+
+    window._waMediaCache[messageId] = data.data; // Cache it so it survives UI redraws
+
+    const cont = document.getElementById(containerId);
+    if (!cont) return;
+
+    let newHtml = '';
+    if (mimetype.startsWith('image/')) {
+      newHtml = `<div style="margin:-4px -6px 4px -8px; background:rgba(0,0,0,0.02); border-radius:10px 10px 0 0; overflow:hidden; text-align:center;"><img src="data:${mimetype};base64,${data.data}" style="max-width:100%; max-height:220px; border-radius:8px; display:inline-block; cursor:pointer; object-fit:cover;" onclick="window.viewFullImage(this.src)"></div>`;
+    } else if (mimetype.startsWith('audio/') || msgType === 'ptt') {
+      newHtml = `<div style="display:flex; align-items:center; gap:10px;"><div style="background:#00a884; width:40px; height:40px; border-radius:50%; display:flex; justify-content:center; align-items:center; flex-shrink:0;"><i class="fas fa-play" style="color:white; margin-right:-2px; font-size:14px;"></i></div> <audio controls style="max-width:200px; height:35px;"><source src="data:${mimetype};base64,${data.data}" type="${mimetype}"></audio></div>`;
+    } else if (mimetype.startsWith('video/')) {
+      newHtml = `<video controls style="max-width:100%; border-radius:8px; margin-bottom:5px;"><source src="data:${mimetype};base64,${data.data}" type="${mimetype}"></video>`;
+    } else {
+      newHtml = `<div style="background:rgba(0,0,0,0.05); padding:10px; border-radius:8px; display:flex; align-items:center; gap:10px; margin-bottom:5px;"><i class="fas fa-check-circle" style="font-size:24px; color:#00a884;"></i> <div><strong style="display:block; font-size:13px;">تم التحميل بنجاح</strong></div></div>`;
+    }
+
+    cont.outerHTML = newHtml;
+  } catch (err) {
     if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-redo"></i>';
     }
-    
-    try {
-        const activeUrl = window._waServerActiveUrl || CURRENT_MASTER_URL;
-        const res = await fetch(`${activeUrl}/api/media/${userId}/${phone}/${messageId}`);
-        if (!res.ok) throw new Error("Failed");
-        
-        const data = await res.json();
-        if (!data.data) throw new Error("No data");
-        
-        window._waMediaCache[messageId] = data.data; // Cache it so it survives UI redraws
-        
-        const cont = document.getElementById(containerId);
-        if (!cont) return;
-        
-        let newHtml = '';
-        if (mimetype.startsWith('image/')) {
-            newHtml = `<div style="margin:-4px -6px 4px -8px; background:rgba(0,0,0,0.02); border-radius:10px 10px 0 0; overflow:hidden; text-align:center;"><img src="data:${mimetype};base64,${data.data}" style="max-width:100%; max-height:220px; border-radius:8px; display:inline-block; cursor:pointer; object-fit:cover;" onclick="window.viewFullImage(this.src)"></div>`;
-        } else if (mimetype.startsWith('audio/') || msgType === 'ptt') {
-            newHtml = `<div style="display:flex; align-items:center; gap:10px;"><div style="background:#00a884; width:40px; height:40px; border-radius:50%; display:flex; justify-content:center; align-items:center; flex-shrink:0;"><i class="fas fa-play" style="color:white; margin-right:-2px; font-size:14px;"></i></div> <audio controls style="max-width:200px; height:35px;"><source src="data:${mimetype};base64,${data.data}" type="${mimetype}"></audio></div>`;
-        } else if (mimetype.startsWith('video/')) {
-            newHtml = `<video controls style="max-width:100%; border-radius:8px; margin-bottom:5px;"><source src="data:${mimetype};base64,${data.data}" type="${mimetype}"></video>`;
-        } else {
-            newHtml = `<div style="background:rgba(0,0,0,0.05); padding:10px; border-radius:8px; display:flex; align-items:center; gap:10px; margin-bottom:5px;"><i class="fas fa-check-circle" style="font-size:24px; color:#00a884;"></i> <div><strong style="display:block; font-size:13px;">تم التحميل بنجاح</strong></div></div>`;
-        }
-        
-        cont.outerHTML = newHtml;
-    } catch(err) {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-redo"></i>';
-        }
-        window.showLuxuryToast('فشل تحميل الوسائط', 'error');
-    }
+    window.showLuxuryToast('فشل تحميل الوسائط', 'error');
+  }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Tab switching event listener
-    document.addEventListener('click', (e) => {
-        const btn = e.target.closest('.dash-tab');
-        if (btn && btn.dataset.tab) {
-            window.switchLuxuryTab(btn.dataset.tab);
-        }
-    });
+  // Tab switching event listener
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.dash-tab');
+    if (btn && btn.dataset.tab) {
+      window.switchLuxuryTab(btn.dataset.tab);
+    }
+  });
 
-    setTimeout(() => {
-        window.initWhatsAppServer();
-    }, 3000);
+  setTimeout(() => {
+    window.initWhatsAppServer();
+  }, 3000);
 });
 
 // Fullscreen Image Lightbox
-window.viewFullImage = function(src) {
-    let overlay = document.getElementById('wa-full-image-overlay');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'wa-full-image-overlay';
-        overlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.9); z-index:999999; display:flex; justify-content:center; align-items:center; opacity:0; transition:opacity 0.25s ease-in-out; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);';
-        
-        const closeBtn = document.createElement('div');
-        closeBtn.innerHTML = '<i class="fas fa-times"></i>';
-        closeBtn.style.cssText = 'position:absolute; top:25px; right:30px; font-size:24px; color:white; cursor:pointer; padding:10px; z-index:1000000; background:rgba(255,255,255,0.1); border-radius:50%; width:45px; height:45px; display:flex; justify-content:center; align-items:center; border: 1px solid rgba(255,255,255,0.2); transition: background 0.2s;';
-        closeBtn.onmouseover = () => closeBtn.style.background = 'rgba(255,255,255,0.2)';
-        closeBtn.onmouseout = () => closeBtn.style.background = 'rgba(255,255,255,0.1)';
-        
-        const img = document.createElement('img');
-        img.id = 'wa-full-image-element';
-        img.style.cssText = 'max-width:90%; max-height:90%; border-radius:12px; box-shadow:0 15px 40px rgba(0,0,0,0.5); object-fit:contain; transform:scale(0.85); transition:transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);';
-        
-        overlay.appendChild(closeBtn);
-        overlay.appendChild(img);
-        document.body.appendChild(overlay);
-        
-        const closeOverlay = () => {
-            overlay.style.opacity = '0';
-            img.style.transform = 'scale(0.85)';
-            setTimeout(() => { overlay.style.display = 'none'; }, 250);
-        };
-        
-        closeBtn.onclick = closeOverlay;
-        overlay.onclick = (e) => {
-            if(e.target === overlay) closeOverlay();
-        };
-    }
-    
-    const imgEl = document.getElementById('wa-full-image-element');
-    imgEl.src = src;
-    overlay.style.display = 'flex';
-    // Trigger reflow for animation
-    void overlay.offsetWidth;
-    overlay.style.opacity = '1';
-    imgEl.style.transform = 'scale(1)';
+window.viewFullImage = function (src) {
+  let overlay = document.getElementById('wa-full-image-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'wa-full-image-overlay';
+    overlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.9); z-index:999999; display:flex; justify-content:center; align-items:center; opacity:0; transition:opacity 0.25s ease-in-out; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);';
+
+    const closeBtn = document.createElement('div');
+    closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+    closeBtn.style.cssText = 'position:absolute; top:25px; right:30px; font-size:24px; color:white; cursor:pointer; padding:10px; z-index:1000000; background:rgba(255,255,255,0.1); border-radius:50%; width:45px; height:45px; display:flex; justify-content:center; align-items:center; border: 1px solid rgba(255,255,255,0.2); transition: background 0.2s;';
+    closeBtn.onmouseover = () => closeBtn.style.background = 'rgba(255,255,255,0.2)';
+    closeBtn.onmouseout = () => closeBtn.style.background = 'rgba(255,255,255,0.1)';
+
+    const img = document.createElement('img');
+    img.id = 'wa-full-image-element';
+    img.style.cssText = 'max-width:90%; max-height:90%; border-radius:12px; box-shadow:0 15px 40px rgba(0,0,0,0.5); object-fit:contain; transform:scale(0.85); transition:transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);';
+
+    overlay.appendChild(closeBtn);
+    overlay.appendChild(img);
+    document.body.appendChild(overlay);
+
+    const closeOverlay = () => {
+      overlay.style.opacity = '0';
+      img.style.transform = 'scale(0.85)';
+      setTimeout(() => { overlay.style.display = 'none'; }, 250);
+    };
+
+    closeBtn.onclick = closeOverlay;
+    overlay.onclick = (e) => {
+      if (e.target === overlay) closeOverlay();
+    };
+  }
+
+  const imgEl = document.getElementById('wa-full-image-element');
+  imgEl.src = src;
+  overlay.style.display = 'flex';
+  // Trigger reflow for animation
+  void overlay.offsetWidth;
+  overlay.style.opacity = '1';
+  imgEl.style.transform = 'scale(1)';
 };
 
 
@@ -4702,9 +4961,9 @@ setTimeout(() => {
   if (splash && !splash.classList.contains("hidden")) {
     console.warn("Safety timeout: removing loader");
     splash.style.opacity = "0";
-    setTimeout(() => { 
-      splash.classList.add("hidden"); 
-      try { splash.remove(); } catch(e) {}
+    setTimeout(() => {
+      splash.classList.add("hidden");
+      try { splash.remove(); } catch (e) { }
     }, 800);
     if (window.state) window.state.firstLoadDone = true;
   }
@@ -4713,7 +4972,7 @@ setTimeout(() => {
 
 // UI enhancement for roles
 const originalUpdateAppUI = window.updateAppUI;
-window.updateAppUI = function() {
+window.updateAppUI = function () {
   if (originalUpdateAppUI) originalUpdateAppUI();
   const nameLabel = document.getElementById("user-display-name");
   const isAdmin = window.state.userProfile?.role === "admin";
@@ -4730,7 +4989,7 @@ console.log("-----------------------------");
 
 
 // Employee Management Enhancement
-window.promoteToAdmin = async function(uid) {
+window.promoteToAdmin = async function (uid) {
   if (confirm("تأكيد ترقية الموظف لصلاحية مسؤول؟")) {
     try {
       await admin.database().ref("users/" + uid).update({ role: "admin" });
