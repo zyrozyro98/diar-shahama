@@ -1124,20 +1124,6 @@
                             </div>
                         </div>
 
-                        <!-- Global Sound Toggle -->
-                        <div style="padding:0 20px; margin-bottom:15px;">
-                            <div class="mini-stat-item" style="display:flex; align-items:center; justify-content:space-between; background:var(--glass-bg); padding:10px 15px; border-radius:12px; border:1px solid var(--glass-border);">
-                                <label for="sound-toggle" style="margin:0; font-weight:600; font-size:13px;"><i class="fas fa-bell" style="color:var(--p-gold); margin-left:5px;"></i> صوت الإشعارات</label>
-                                <div class="toggle-switch" onclick="window.toggleSound()" style="transform:scale(0.9); margin:0;">
-                                    <input type="checkbox" id="sound-toggle" checked aria-label="تفعيل أو تعطيل التنبيهات الصوتية" title="التنبيهات الصوتية">
-                                    <span class="slider round" style="display:flex; align-items:center; justify-content:space-between; padding:0 5px; box-sizing:border-box;">
-                                        <i class="fas fa-volume-up" style="font-size:10px; color:white; opacity:0; transition:opacity 0.3s; position:absolute; right:5px; top:5px;"></i>
-                                        <i class="fas fa-volume-mute" style="font-size:10px; color:white; position:absolute; left:5px; top:5px;"></i>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- Staff Productivity Quick Stats (Staff Only) -->
                         <div id="staff-quick-stats" class="staff-mini-stats hidden">
                             <div class="mini-stat-item">
@@ -1382,8 +1368,15 @@
                                     </button>
                                     <h2 class="luxury-font m-0">لوحة <span class="highlight">التحكم</span></h2>
                                 </div>
-                                <div class="dash-header-welcome-meta">
-                                    <p class="m-0">مرحباً بك مجدداً في نظام إدارة المبيعات</p>
+                                <div class="dash-header-welcome-meta" style="display:flex; align-items:center; gap:10px;">
+                                    <p class="m-0" style="margin-left:10px;">مرحباً بك مجدداً في نظام إدارة المبيعات</p>
+                                    
+                                    <!-- Sound Toggle Button -->
+                                    <button class="icon-btn-lite rel" id="header-sound-toggle" title="كتم / تفعيل الصوت" aria-label="تبديل الصوت" onclick="window.toggleSound()">
+                                        <i class="fas fa-volume-up" id="header-sound-icon"></i>
+                                    </button>
+
+                                    <!-- Notifications Bell -->
                                     <button class="icon-btn-lite rel" id="dash-notif-bell" title="مركز الإشعارات"
                                         aria-label="مشاهدة الإشعارات"
                                         onclick="document.querySelector('.dash-tab[data-tab=\'notifications-mgmt\']').click()">
