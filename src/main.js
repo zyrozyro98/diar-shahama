@@ -981,51 +981,115 @@ window.viewMonitorChat = function (chatId, title) {
 };
 
 window.renderSupervisorStaffList = function () {
-  const grid = document.getElementById("supervisor-staff-list");
-  if (!grid) return;
+  const tbody = document.getElementById("supervisor-staff-list-v2");
+  if (!tbody) return;
 
-  const staff = window.state.users.filter(u => u.role === "staff");
+  const staff = (window.state.users || []).filter(u => u.role === "staff");
   const bookings = window.state.bookings || [];
 
-  grid.innerHTML = staff.map(s => {
+  if (staff.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; opacity:0.5;">لا يوجد موظفين مسجلين حالياً</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = staff.map((s, idx) => {
     const staffBookings = bookings.filter(b => b.assignedTo === s.id);
-    const completed = staffBookings.filter(b => b.status === "completed").length;
+    const completed = staffBookings.filter(b => b.status === "sold" || b.status === "done").length;
     const convRate = staffBookings.length > 0 ? Math.round((completed / staffBookings.length) * 100) : 0;
+    
+    // Clean phone for links
+    const rawPhone = s.phone || "";
+    const cleanPhone = rawPhone.replace(/\D/g, '');
 
     return `
-      <div class="staff-eval-card animate-fade-in">
-        <div class="eval-card-header">
-          <div class="staff-avatar">${(s.name || "S")[0]}</div>
-          <div class="staff-basic">
-            <h4 id="staff-name-${s.id}">${s.name || s.email}</h4>
-            <span class="role-badge">موظف مبيعات</span>
-          </div>
-        </div>
-        <div class="eval-metrics">
-          <div class="eval-stat">
-            <label>الطلبات</label>
-            <strong>${staffBookings.length}</strong>
-          </div>
-          <div class="eval-stat">
-            <label>إنجاز</label>
-            <strong>${completed}</strong>
-          </div>
-          <div class="eval-stat">
-            <label>معدل التحويل</label>
-            <strong class="${convRate > 50 ? 'text-success' : ''}">${convRate}%</strong>
-          </div>
-        </div>
-        <div class="eval-actions">
-          <button class="btn-premium btn-sm" onclick="window.updateStaffName('${s.id}')">
-            <i class="fas fa-edit"></i> تعديل الإسم
-          </button>
-          <button class="btn-premium btn-sm danger" onclick="window.deleteStaff('${s.id}')">
-            <i class="fas fa-trash"></i> حذف
-          </button>
-        </div>
-      </div>
+      <tr onclick="window.showStaffStats('${s.id}')" id="staff-row-${s.id}">
+        <td><div class="staff-avatar-circle">${(s.name || "S")[0]}</div></td>
+        <td>
+            <div style="font-weight:700;">${s.name || 'موظف بدون اسم'}</div>
+            <div style="font-size:10px; opacity:0.5;">ID: ${s.id.substring(0,8)}</div>
+        </td>
+        <td>${s.email}</td>
+        <td><span class="badge-v2" style="background:rgba(255,215,0,0.1); color:var(--p-gold); border:none;">${staffBookings.length} طلب</span></td>
+        <td>
+            <div style="font-size:12px; font-weight:bold; color:${convRate > 50 ? '#10b981' : 'var(--p-gold)'}">${convRate}%</div>
+            <div style="width:50px; height:3px; background:rgba(255,255,255,0.05); border-radius:2px; margin-top:4px;">
+                <div style="width:${convRate}%; height:100%; background:currentColor; border-radius:2px;"></div>
+            </div>
+        </td>
+        <td>
+            <div class="action-btns-cell">
+                ${s.phone ? `
+                    <a href="tel:${cleanPhone}" class="btn-action-lite call" title="اتصال هاتفي" onclick="event.stopPropagation()">
+                        <i class="fas fa-phone-alt"></i>
+                    </a>
+                    <a href="https://wa.me/${cleanPhone}" target="_blank" class="btn-action-lite whatsapp" title="مراسلة واتساب" onclick="event.stopPropagation()">
+                        <i class="fab fa-whatsapp"></i>
+                    </a>
+                ` : ''}
+                <button class="btn-action-lite" title="تعديل الاسم" onclick="event.stopPropagation(); window.updateStaffName('${s.id}')">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-action-lite" style="color:var(--p-red);" title="حذف الموظف" onclick="event.stopPropagation(); window.deleteStaff('${s.id}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </td>
+      </tr>
     `;
   }).join("");
+};
+
+window.showStaffStats = function (staffUid) {
+  const staff = (window.state.users || []).find(u => u.id === staffUid);
+  if (!staff) return;
+
+  // Visual selection
+  document.querySelectorAll(".staff-table tr").forEach(tr => tr.classList.remove("selected"));
+  const row = document.getElementById(`staff-row-${staffUid}`);
+  if (row) row.classList.add("selected");
+
+  const panel = document.getElementById("staff-details-panel");
+  const grid = document.getElementById("staff-stats-grid");
+  const nameLabel = document.getElementById("detail-staff-name");
+  const emailLabel = document.getElementById("detail-staff-email");
+  const avatarLabel = document.getElementById("detail-staff-avatar");
+
+  if (!panel || !grid) return;
+
+  panel.style.display = "block";
+  nameLabel.innerText = staff.name || staff.email;
+  emailLabel.innerText = staff.email;
+  avatarLabel.innerText = (staff.name || "S")[0];
+
+  const bookings = (window.state.bookings || []).filter(b => b.assignedTo === staffUid);
+  
+  const stats = {
+    total: bookings.length,
+    new: bookings.filter(b => b.status === 'new').length,
+    waiting: bookings.filter(b => b.status === 'waiting').length,
+    sold: bookings.filter(b => b.status === 'sold').length,
+    cancelled: bookings.filter(b => b.status === 'cancelled').length,
+    done: bookings.filter(b => b.status === 'done').length
+  };
+
+  const statusLabels = {
+    total: { t: "إجمالي الطلبات", i: "fa-list", c: "var(--p-gold)" },
+    new: { t: "طلبات جديدة", i: "fa-star", c: "#3b82f6" },
+    waiting: { t: "بانتظار الإجراء", i: "fa-clock", c: "#f59e0b" },
+    sold: { t: "تم المبايعة", i: "fa-check-circle", c: "#10b981" },
+    cancelled: { t: "طلبات مرفوضة", i: "fa-times-circle", c: "#ef4444" },
+    done: { t: "مكتملة", i: "fa-flag-checkered", c: "#8b5cf6" }
+  };
+
+  grid.innerHTML = Object.keys(stats).map(key => `
+    <div class="mini-stat-box">
+        <i class="fas ${statusLabels[key].i}" style="color:${statusLabels[key].c}; margin-bottom:8px; font-size:18px;"></i>
+        <label>${statusLabels[key].t}</label>
+        <strong>${stats[key]}</strong>
+    </div>
+  `).join("");
+
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 };
 
 window.updateStaffName = async function (uid) {
@@ -3077,6 +3141,8 @@ window.updateStatistics = function () {
   } else {
     window.switchPeriodReport('day');
   }
+  // Auto-refresh Staff List
+  window.renderSupervisorStaffList();
 };
 
 window.switchPeriodReport = function (period, btn) {

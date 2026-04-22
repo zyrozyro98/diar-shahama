@@ -1,0 +1,906 @@
+import{i as te,g as re,a as le,b as ne,c as de,d as ce,s as ue,o as pe,r as C,e as V,u as j,f as W,h as D,j as J,k as me,l as ge,p as F,m as fe,n as K,q as we,t as ye}from"./firebase-BfvlcbVS.js";import"./emoji-picker-CeBMFWb3.js";import"./vendor-Bg_btqvK.js";(function(){const e=document.createElement("link").relList;if(e&&e.supports&&e.supports("modulepreload"))return;for(const i of document.querySelectorAll('link[rel="modulepreload"]'))o(i);new MutationObserver(i=>{for(const a of i)if(a.type==="childList")for(const s of a.addedNodes)s.tagName==="LINK"&&s.rel==="modulepreload"&&o(s)}).observe(document,{childList:!0,subtree:!0});function n(i){const a={};return i.integrity&&(a.integrity=i.integrity),i.referrerPolicy&&(a.referrerPolicy=i.referrerPolicy),i.crossOrigin==="use-credentials"?a.credentials="include":i.crossOrigin==="anonymous"?a.credentials="omit":a.credentials="same-origin",a}function o(i){if(i.ep)return;i.ep=!0;const a=n(i);fetch(i.href,a)}})();const oe={apiKey:"AIzaSyDQodWTn2wa0WzQuHqzZt2Ex6CdnQdrlUU",authDomain:"onecar1.firebaseapp.com",projectId:"onecar1",storageBucket:"onecar1.firebasestorage.app",messagingSenderId:"735648367644",appId:"1:735648367644:web:44ae368553280b14bdcbd9",measurementId:"G-RSTPV8SRXT",databaseURL:"https://onecar1-default-rtdb.firebaseio.com"},N=te(oe);re(N);const A=le(N),H=ne(N);de(N);ce(N);window.state={cars:[],ads:[],bookings:[],users:[],notifications:[],logs:[],partners:[],locations:[],brands:[],agents:[],specs:[],packages:[],blogs:[],reviews:[],plates:[],sales:[],user:null,userProfile:null,settings:{},lang:localStorage.getItem("luxury_lang")||"ar",soundEnabled:localStorage.getItem("luxury_sound_enabled")!=="false",tempImages:[],bookingFilter:"all",bookingSubStatusFilter:"all",currentReportPeriod:"day",firstLoadDone:!1,inventoryPage:1,inventorySize:8,sliderIndex:0};const be={ar:{welcome:"مرحباً بك في عالم الفخامة",inventory:"مخزون السيارات المتاح",totalCars:"إجمالي السيارات",totalBookings:"إجمالي الطلبات",totalValue:"قيمة المخزون",searchPlaceholder:"ابحث عن سيارتك المثالية...",loading:"جاري التحميل...",noResults:"لم يتم العثور على نتائج تطابق بحثك",applyNow:"اطلبها الآن",details:"عرض التفاصيل",back:"رجوع",save:"حفظ",delete:"حذف",edit:"تعديل",cancel:"إلغاء",successMsg:"تمت العملية بنجاح",errorMsg:"حدث خطأ غير متوقع",staff:"قسم المبيعات والمتابعة",admin:"إدارة النظام",supervisor:"مشرف النظام"},en:{welcome:"Welcome to the World of Luxury",inventory:"Available Vehicle Inventory",totalCars:"Total Vehicles",totalBookings:"Total Bookings",totalValue:"Inventory Value",searchPlaceholder:"Search for your perfect car...",loading:"Loading...",noResults:"No results found matching your search",applyNow:"Request Now",details:"View Details",back:"Back",save:"Save",delete:"Delete",edit:"Edit",cancel:"Cancel",successMsg:"Operation successful",errorMsg:"An unexpected error occurred",staff:"Sales & Follow-up Department",admin:"System Administration",supervisor:"System Supervisor"}};window.showLuxuryToast=function(t,e="success"){const n=document.getElementById("toast-container");if(!n)return;const o=document.createElement("div");o.className=`toast-v2 ${e}`,o.style.cssText=`
+    background: ${e==="success"?"rgba(16, 185, 129, 0.9)":"rgba(239, 68, 68, 0.9)"};
+    color: white;
+    padding: 12px 25px;
+    border-radius: 50px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    font-weight: 600;
+    margin-bottom: 10px;
+    animation: toast-in 0.4s ease-out;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  `;const i=e==="success"?"fa-check-circle":"fa-exclamation-circle";o.innerHTML=`<i class="fas ${i}"></i> <span>${t}</span>`,n.appendChild(o),setTimeout(()=>{o.style.opacity="0",o.style.transform="translateY(-20px)",o.style.transition="all 0.4s ease-in",setTimeout(()=>o.remove(),400)},4e3)};window.compressImage=function(t,e=1e3,n=1e3,o=.6){return new Promise((i,a)=>{if(!t||!(t instanceof File||t instanceof Blob)){i(t);return}const s=new FileReader;s.readAsDataURL(t),s.onload=l=>{const r=new Image;r.src=l.target.result,r.onload=()=>{const d=document.createElement("canvas");let w=r.width,f=r.height;w>f?w>e&&(f*=e/w,w=e):f>n&&(w*=n/f,f=n),d.width=w,d.height=f,d.getContext("2d").drawImage(r,0,0,w,f),i(d.toDataURL("image/jpeg",o))},r.onerror=a},s.onerror=a})};window.openModal=function(t){const e=document.getElementById(t);if(e){e.classList.remove("hidden"),document.body.style.overflow="hidden";const n=document.querySelectorAll(".modal:not(.hidden)");e.style.zIndex=2e3+n.length*10,ve(`modal-${t}`)}};window.closeModal=function(t,e=!1){var o;const n=document.getElementById(t);n&&(n.classList.add("hidden"),n.style.zIndex="",!e&&((o=history.state)==null?void 0:o.type)===`modal-${t}`&&history.back(),document.querySelector(".modal:not(.hidden)")||(document.body.style.overflow="auto"))};window.setModalTitle=function(t,e){const n=document.getElementById(t+"-title");n&&(n.innerText=e)};window.switchLuxuryTab=function(t){const e=document.querySelectorAll(".pane, .admin-tab-content"),n=document.querySelectorAll(".dash-tab, .admin-sidebar-nav li");e.forEach(s=>s.classList.add("hidden")),n.forEach(s=>s.classList.remove("active"));const o=document.getElementById(t),i=document.querySelector(`[data-tab="${t}"]`);o&&(o.classList.remove("hidden"),o.classList.add("active"),o.style.animation="fade-up 0.5s ease-out forwards"),i&&i.classList.add("active");const a=document.getElementById("bookings-submenu");if(a&&a.classList.toggle("active",t==="bookings-mgmt"||t==="all-bookings"),window.innerWidth<1024){const s=document.querySelector(".dash-sidebar, .admin-sidebar-v2");s&&s.classList.remove("active")}t==="whatsapp-monitor-mgmt"&&window.initWhatsAppServer&&window.initWhatsAppServer(),t==="whatsapp-mgmt"&&window.startCurrentWASession(),t==="quick-replies-mgmt"&&window.renderQuickRepliesAdmin&&window.renderQuickRepliesAdmin()};function ve(t){var e;((e=history.state)==null?void 0:e.type)!==t&&history.pushState({type:t},"")}window.normalizePhone=function(t){if(!t)return"";const e=t.toString().trim();if(e.includes("@s.whatsapp.net"))return e.split("@")[0].replace(/\D/g,"");if(e.includes("@lid"))return e;let n=e.replace(/\D/g,"");if(n.startsWith("9660")?n="966"+n.substring(4):n.startsWith("9670")&&(n="967"+n.substring(4)),n.startsWith("966")||n.startsWith("967"))return n;if(n.startsWith("05"))return"966"+n.substring(1);if(n.startsWith("07"))return"967"+n.substring(1);if(n.startsWith("0"))return"966"+n.substring(1);if(n.length===9){if(n.startsWith("7"))return"967"+n;if(n.startsWith("5"))return"966"+n}return n};document.addEventListener("DOMContentLoaded",()=>{xe(),ie(),ke(),window.trackVisit(),he()});function he(){const t=document.querySelector(".mobile-btn"),e=document.querySelector(".nav-menu"),n=document.querySelector(".mobile-nav-overlay"),o=document.querySelector(".menu-close-btn"),i=(c=!1)=>{const y=c===!1?!e.classList.contains("active"):!1;e.classList.toggle("active",y),n.classList.toggle("active",y),document.body.style.overflow=y?"hidden":"";const I=t==null?void 0:t.querySelector("i");I&&(I.className=y?"fas fa-times":"fas fa-bars-staggered")};t&&(t.onclick=()=>i()),n&&(n.onclick=()=>i(!0)),o&&(o.onclick=()=>i(!0)),document.querySelectorAll(".nav-menu a").forEach(c=>{c.addEventListener("click",()=>i(!0))});const a=document.querySelector(".mobile-menu-header .dynamic-name-ar");a&&window.__DYNAMIC_NAME_AR__&&(a.innerText=window.__DYNAMIC_NAME_AR__);const s=document.getElementById("admin-trigger");s&&(s.onclick=c=>{c.preventDefault(),window.openModal("admin-modal")});const l=document.getElementById("theme-btn");l&&(l.onclick=()=>{const y=(document.body.getAttribute("data-theme")||"dark")==="dark"?"light":"dark";document.body.setAttribute("data-theme",y),localStorage.setItem("luxury_theme",y),localStorage.setItem("theme_manually_overridden","true"),l.innerHTML=y==="dark"?'<i class="fas fa-sun"></i>':'<i class="fas fa-moon"></i>'});const r=document.getElementById("lang-btn");r&&(r.onclick=()=>{window.state.lang=window.state.lang==="ar"?"en":"ar",localStorage.setItem("luxury_lang",window.state.lang),ie(),window.applyInventoryFilters(),r.innerText=window.state.lang==="ar"?"EN":"AR"}),document.querySelectorAll(".dash-tab").forEach(c=>{c.onclick=()=>window.switchLuxuryTab(c.dataset.tab)});const d=document.getElementById("car-search-input");d&&(d.oninput=()=>window.applyInventoryFilters()),["filter-make","filter-type","filter-year","filter-sort"].forEach(c=>{const y=document.getElementById(c);y&&(y.onchange=()=>{window.state.inventoryPage=1,window.applyInventoryFilters()})});const f=document.getElementById("p-prev"),p=document.getElementById("p-next");f&&(f.onclick=()=>window.moveLuxurySlider(-1)),p&&(p.onclick=()=>window.moveLuxurySlider(1)),setInterval(()=>{const c=document.getElementById("luxury-splash");(!c||c.classList.contains("hidden"))&&window.moveLuxurySlider(1)},5e3),["calc-car-price","calc-down-pay","calc-years"].forEach(c=>{const y=document.getElementById(c);y&&(y.oninput=()=>window.calculateLuxuryFinancing()),y&&y.tagName==="SELECT"&&(y.onchange=()=>window.calculateLuxuryFinancing())}),document.querySelectorAll(".modal-close").forEach(c=>{c.onclick=y=>{y.stopPropagation();const I=c.closest(".modal");if(I){if(I.id==="admin-modal"&&window.state.user&&!confirm("هل تريد الخروج من لوحة التحكم؟"))return;window.closeModal(I.id)}}}),window.onclick=c=>{const y=document.getElementById("wa-emoji-picker");if(y&&y.style.display!=="none"){const k=c.target.closest(".fa-smile")!==null,S=y.contains(c.target);!k&&!S&&(y.style.display="none")}const I=Array.from(document.querySelectorAll(".modal:not(.hidden)"));if(I.length>0){const k=I[I.length-1];if(c.target===k){if(k.id==="admin-modal"&&window.state.user&&!confirm("هل تريد الخروج من لوحة التحكم؟"))return;window.closeModal(k.id)}}},window.addEventListener("popstate",c=>{const y=document.querySelectorAll(".modal:not(.hidden)");y.length>0&&y.forEach(I=>{var k;((k=c.state)==null?void 0:k.type)!==`modal-${I.id}`&&window.closeModal(I.id,!0)})}),window.onscroll=()=>{const c=document.getElementById("main-nav");c&&c.classList.toggle("scrolled",window.scrollY>50);const y=document.getElementById("scroll-jump");y&&y.classList.toggle("hidden",window.scrollY<500)},document.getElementById("scroll-jump")&&(document.getElementById("scroll-jump").onclick=()=>window.scrollTo({top:0,behavior:"smooth"}));const x=document.getElementById("login-form");x&&(x.onsubmit=c=>window.loginAdmin(c));const m=document.getElementById("booking-form");m&&(m.onsubmit=c=>window.submitBooking(c));const h=document.getElementById("item-form");h&&(h.onsubmit=c=>window.saveLuxuryItem(c))}function xe(){const t=JSON.parse(localStorage.getItem("luxury-settings-cache")||"{}"),e=localStorage.getItem("theme_manually_overridden")==="true",n=(e?localStorage.getItem("luxury_theme"):t.defaultTheme)||"dark";e||localStorage.setItem("luxury_theme",n),document.body.setAttribute("data-theme",n);const o=document.getElementById("theme-btn");o&&(o.innerHTML=n==="dark"?'<i class="fas fa-sun"></i>':'<i class="fas fa-moon"></i>')}function ie(){const t=window.state.lang;document.body.dir=t==="ar"?"rtl":"ltr",document.body.classList.toggle("en",t==="en");const e=be[t];document.querySelectorAll("[data-i18n]").forEach(n=>{const o=n.getAttribute("data-i18n");e[o]&&(n.innerText=e[o])})}async function ke(){await ue(H,ye);const t=["users","plates","locations","brands","agents","specs","packages","blogs","reviews","cars","ads","sales","settings","partners","custom_presets"],e=["bookings","notifications","logs","quickReplies"],n={};function o(i){n[i]||(n[i]=V(C(A,i),a=>{const s=a.val();i==="settings"?(window.state.settings=s||{},window.applySettings(s)):(window.state[i]=s?Object.entries(s).map(([l,r])=>({...r,id:l})):[],i==="cars"&&window.applyInventoryFilters(),i==="ads"&&window.renderAdsSlider(),i==="sales"&&window.renderSalesVideos(),i==="partners"&&window.renderPartners(),i==="reviews"&&window.renderPublicReviews(),i==="custom_presets"&&window.renderCustomPresets(),window.state.user&&(window.syncAdminTables(i),window.updateStatistics())),Ie()},a=>{console.warn(`Listener for ${i} failed:`,a.message),delete n[i]}))}pe(H,async i=>{if(window.state.user=i,i){const a=C(A,`users/${i.uid}`);V(a,s=>{window.state.userProfile={...s.val(),id:i.uid},Z(),window.initWhatsAppServer&&window.initWhatsAppServer()}),e.forEach(o)}else window.state.userProfile=null,Z(),e.forEach(a=>{n[a]&&delete n[a]})}),t.forEach(o)}function Ie(){var o,i;if(window.state.firstLoadDone)return;const t=window.state.settings,e=t==null?void 0:t.maintenanceMode,n=((o=window.state.userProfile)==null?void 0:o.role)==="admin"||((i=window.state.userProfile)==null?void 0:i.role)==="supervisor";if(e&&!n){const a=document.getElementById("luxury-splash");a&&(a.innerHTML=`
+            <div class="maint-content" style="text-align:center; color:white; padding: 20px;">
+                <i class="fas fa-tools" style="font-size:60px; color:var(--p-red); margin-bottom:20px;"></i>
+                <h1 class="luxury-font" style="margin-bottom:10px;">الموقع تحت الصيانة</h1>
+                <p style="opacity:0.8;">نعمل حالياً على تحديث المنصة لتقديم تجربة أفضل، سنعود قريباً جداً.</p>
+                <div style="margin-top:30px;">
+                    <button class="btn-premium btn-sm" onclick="window.openModal('admin-modal')">دخول الإدارة</button>
+                </div>
+            </div>
+          `,a.style.opacity="1",a.classList.remove("hidden"));return}t&&Object.keys(t).length>0&&setTimeout(()=>{const a=document.getElementById("luxury-splash");a&&(a.style.opacity="0",setTimeout(()=>{a.classList.add("hidden"),a.remove()},800)),window.state.firstLoadDone=!0},1200)}function Z(){var s,l,r;const t=!!window.state.user,e=((s=window.state.userProfile)==null?void 0:s.role)==="admin",n=((l=window.state.userProfile)==null?void 0:l.role)==="supervisor";document.body.classList.toggle("is-logged-in",t),document.body.classList.toggle("is-admin",e),document.body.classList.toggle("is-supervisor",n);const o=document.getElementById("admin-login-ui"),i=document.getElementById("admin-dash-ui");o&&o.classList.toggle("hidden",t),i&&i.classList.toggle("hidden",!t);const a=document.getElementById("admin-trigger");if(a&&(a.innerText=t?"لوحة التحكم":"تسجيل الدخول"),document.querySelectorAll(".admin-only").forEach(d=>d.classList.toggle("hidden",!e&&!n)),document.querySelectorAll(".supervisor-only").forEach(d=>d.classList.toggle("hidden",!n&&!e)),document.querySelectorAll(".admin-strictly").forEach(d=>d.classList.toggle("hidden",!e)),document.querySelectorAll(".staff-only").forEach(d=>d.classList.toggle("hidden",e||n)),t){window.syncAdminTables("all"),window.updateStatistics();const d=document.getElementById("user-display-name"),w=document.getElementById("user-role-label");if(d&&(d.innerText=((r=window.state.userProfile)==null?void 0:r.name)||(e?"المسؤول العام":n?"المشرف العام":"الموظف")),w){let p="قسم المبيعات والمتابعة";e?p="إدارة النظام (Admin)":n&&(p="إدارة الرقابة والإشراف (Supervisor)"),w.innerText=p}const f=document.querySelector(".dash-tab.active");if(!f||f.classList.contains("hidden")){let p="bookings-mgmt";n&&(p="supervisor-dash");const u=document.querySelector(`.dash-tab[data-tab="${p}"]`);u&&u.click()}(n||e)&&(window.renderSupervisorStaffList(),window.populateStaffMonitorSelect())}}window.handleSupervisorExport=async function(t){var w,f,p;const e=document.getElementById("sup-export-type").value,n=document.getElementById("sup-export-start").value,o=document.getElementById("sup-export-end").value;let i=window.state[e]||[];Array.isArray(i)||(i=Object.values(i));let a=i;if(n||o){const u=n?new Date(n):new Date(0),x=o?new Date(o):new Date;x.setHours(23,59,59,999),a=i.filter(m=>{const h=m.createdAt||m.timestamp||0,c=new Date(h);return c>=u&&c<=x})}if(a.length===0){window.showLuxuryToast("لا توجد بيانات للفترة المحددة","warning");return}const l={cars:{make:"الماركة",model:"الموديل",year:"السنة",price:"السعر",monthlyInstallment:"القسط الشهري",color:"اللون الخارجى",interiorColor:"اللون الداخلى",mileage:"الممشى",engine:"المحرك",gearbox:"ناقل الحركة",fuelType:"نوع الوقود",status:"الحالة",createdAt:"تاريخ الإضافة"},bookings:{name:"اسم العميل",phone:"رقم الجوال",carRequested:"السيارة المطلوبة",city:"المدينة",nationality:"الجنسية",paymentMethod:"طريقة الشراء",salary:"الراتب",status:"الحالة",subStatus:"الحالة الفرعية",createdAt:"تاريخ الطلب",assignedTo:"الموظف المسؤول"},users:{name:"الاسم",email:"البريد الإلكتروني",role:"الدور",isAvailable:"متاح للاستلام",createdAt:"تاريخ الإنشاء"}}[e]||{},r=Object.keys(l),d=a.map(u=>{const x={};return r.forEach(m=>{let h=u[m];if(m==="createdAt"||m==="timestamp"||m==="lastLogin")h=h?new Date(h).toLocaleString("ar-SA"):"";else if(m==="assignedTo"&&h){const c=(window.state.users||[]).find(y=>y.id===h);h=c?c.name||c.email:h}else m==="status"?h={available:"متاح",reserved:"محجوز",sold:"مباع",incoming:"قادم قريباً",new:"جديد",done:"تم",cancelled:"ملغى",rejected:"مرفوض"}[h]||h:m==="isAvailable"&&(h=h?"نعم":"لا");x[l[m]]=h??""}),x});if(d.length===0||Object.keys(d[0]).length===0){window.showLuxuryToast("خطأ في معالجة البيانات للتصدير","error");return}if(t==="xlsx"){const u=XLSX.utils.json_to_sheet(d);u["!views"]=[{RTL:!0}];const x=Object.keys(d[0]).map(()=>({wch:20}));u["!cols"]=x;const m=XLSX.utils.book_new();XLSX.utils.book_append_sheet(m,u,"التقرير"),XLSX.writeFile(m,`تقرير_${e}_${new Date().toLocaleDateString("ar-EG").replace(/\//g,"-")}.xlsx`),window.showLuxuryToast("تم تصدير ملف Excel بنجاح"),window.createLog("تصدير بيانات",`تصدير تقرير ${e} بصيغة Excel`,"data")}else if(t==="pdf"){window.showLuxuryToast("جاري معالجة ملف PDF...");const u=document.createElement("div");u.style.position="absolute",u.style.top="-9999px",u.style.width="1000px",u.style.direction="rtl",u.style.fontFamily="'Cairo', sans-serif",u.style.padding="30px",u.style.background="#fff",u.style.color="#111";const x=a.length,m=n||o?`الفترة من: ${n||"البداية"} إلى: ${o||"اليوم"}`:"كافة البيانات",h=((w=window.state.settings)==null?void 0:w.logo)||"logo.jpg",c=Object.keys(d[0]);let y=`
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #a11d21; padding-bottom:20px; margin-bottom:30px;">
+        <div style="text-align:right;">
+          <h1 style="color:#a11d21; margin:0; font-size:28px;">${((f=window.state.settings)==null?void 0:f.nameAr)||"ديار الشهامة"}</h1>
+          <p style="margin:5px 0; opacity:0.7;">تقرير إداري مفصل - ${e==="cars"?"مخزون السيارات":e==="bookings"?"سجل الحجوزات":"قائمة الموظفين"}</p>
+          <p style="font-size:12px; font-weight:bold;">${m}</p>
+        </div>
+        <img src="${h}" style="height:80px; width:auto; object-fit:contain;">
+      </div>
+
+      <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:20px; margin-bottom:30px;">
+        <div style="background:#f9fafb; padding:15px; border-radius:10px; border:1px solid #eee;">
+          <small style="color:#666;">إجمالي السجلات</small>
+          <div style="font-size:20px; font-weight:bold; color:#a11d21;">${x}</div>
+        </div>
+        <div style="background:#f9fafb; padding:15px; border-radius:10px; border:1px solid #eee;">
+          <small style="color:#666;">تاريخ الاستخراج</small>
+          <div style="font-size:14px; font-weight:bold;">${new Date().toLocaleString("ar-SA")}</div>
+        </div>
+        <div style="background:#f9fafb; padding:15px; border-radius:10px; border:1px solid #eee;">
+          <small style="color:#666;">المصدر</small>
+          <div style="font-size:14px; font-weight:bold;">نظام ديار الشهامة السحابي</div>
+        </div>
+      </div>
+
+      <table style="width:100%; border-collapse:collapse; text-align:right; font-size:10px;">
+        <thead>
+          <tr style="background:#a11d21; color:white;">
+            ${c.map(k=>`<th style="padding:10px 5px; border:1px solid #a11d21; white-space:nowrap;">${k}</th>`).join("")}
+          </tr>
+        </thead>
+        <tbody>
+          ${d.map((k,S)=>`
+            <tr style="background:${S%2===0?"#fff":"#fcfcfc"};">
+              ${c.map($=>`<td style="padding:8px 5px; border:1px solid #eee;">${k[$]}</td>`).join("")}
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+
+      <div style="margin-top:40px; border-top:1px solid #eee; padding-top:10px; font-size:10px; color:#999; text-align:center;">
+        هذا التقرير تم توليده آلياً من لوحة تحكم المشرف. جميع الحقوق محفوظة لشركة ${((p=window.state.settings)==null?void 0:p.nameAr)||"ديار الشهامة"}.
+      </div>
+    `;u.innerHTML=y,document.body.appendChild(u);const I={margin:[10,10],filename:`تقرير_${e}_${new Date().toLocaleDateString("ar-EG").replace(/\//g,"-")}.pdf`,image:{type:"jpeg",quality:1},html2canvas:{scale:2,useCORS:!0,letterRendering:!0},jsPDF:{unit:"mm",format:"a4",orientation:"landscape"}};html2pdf().set(I).from(u).save().then(()=>{document.body.removeChild(u),window.showLuxuryToast("تم استخراج التقرير بنجاح"),window.createLog("تصدير بيانات",`تصدير تقرير ${e} بصيغة PDF`,"data")}).catch(k=>{console.error(k),window.showLuxuryToast("خطأ أثناء استخراج PDF","error"),u.parentNode&&document.body.removeChild(u)})}};window.populateStaffMonitorSelect=function(){const t=document.getElementById("sup-monitor-staff-select");if(!t)return;const e=window.state.users.filter(n=>n.role==="staff");t.innerHTML='<option value="">-- اختر موظف --</option>'+e.map(n=>`<option value="${n.id}">${n.name||n.email}</option>`).join("")};window.monitorStaffChats=function(t){const e=document.getElementById("monitor-active-chats-list"),n=document.getElementById("monitor-chat-body"),o=document.getElementById("monitor-chat-header");if(!e||!n||!o)return;if(!t){e.innerHTML="",n.innerHTML="",o.innerText="اختر محادثة لبدء المراقبة";return}e.innerHTML='<div class="loading-v2">جاري جلب المحادثات...</div>';const i=C(A,"chats"),a=query(i,orderByChild("assignedTo"),equalTo(t));V(a,s=>{const l=[];if(s.forEach(r=>{l.push({id:r.key,...r.val()})}),l.length===0){e.innerHTML='<div class="no-data">لا توجد محادثات نشطة لهذا الموظف</div>';return}e.innerHTML=l.map(r=>`
+      <div class="monitor-chat-item" onclick="window.viewMonitorChat('${r.id}', '${r.customerName||r.customerPhone}')">
+        <div class="m-chat-info">
+          <strong>${r.customerName||"عميل"}</strong>
+          <span>${r.customerPhone||""}</span>
+        </div>
+        <div class="m-chat-meta">
+          <small>${new Date(r.lastMessageTime).toLocaleTimeString()}</small>
+        </div>
+      </div>
+    `).join("")})};window.viewMonitorChat=function(t,e){const n=document.getElementById("monitor-chat-body"),o=document.getElementById("monitor-chat-header");if(!n||!o)return;o.innerText=`مراقبة: ${e}`,n.innerHTML='<div class="loading-v2">جاري تحميل الرسائل...</div>';const i=C(A,`messages/${t}`);V(i,a=>{const s=[];a.forEach(l=>s.push(l.val())),n.innerHTML=s.map(l=>`
+      <div class="chat-msg ${l.sender==="staff"?"sent":"received"}">
+        <div class="msg-bubble">
+          <p>${l.text}</p>
+          <small>${new Date(l.timestamp).toLocaleTimeString()}</small>
+        </div>
+      </div>
+    `).join(""),n.scrollTop=n.scrollHeight})};window.renderSupervisorStaffList=function(){const t=document.getElementById("supervisor-staff-list");if(!t)return;const e=window.state.users.filter(o=>o.role==="staff"),n=window.state.bookings||[];t.innerHTML=e.map(o=>{const i=n.filter(l=>l.assignedTo===o.id),a=i.filter(l=>l.status==="completed").length,s=i.length>0?Math.round(a/i.length*100):0;return`
+      <div class="staff-eval-card animate-fade-in">
+        <div class="eval-card-header">
+          <div class="staff-avatar">${(o.name||"S")[0]}</div>
+          <div class="staff-basic">
+            <h4 id="staff-name-${o.id}">${o.name||o.email}</h4>
+            <span class="role-badge">موظف مبيعات</span>
+          </div>
+        </div>
+        <div class="eval-metrics">
+          <div class="eval-stat">
+            <label>الطلبات</label>
+            <strong>${i.length}</strong>
+          </div>
+          <div class="eval-stat">
+            <label>إنجاز</label>
+            <strong>${a}</strong>
+          </div>
+          <div class="eval-stat">
+            <label>معدل التحويل</label>
+            <strong class="${s>50?"text-success":""}">${s}%</strong>
+          </div>
+        </div>
+        <div class="eval-actions">
+          <button class="btn-premium btn-sm" onclick="window.updateStaffName('${o.id}')">
+            <i class="fas fa-edit"></i> تعديل الإسم
+          </button>
+          <button class="btn-premium btn-sm danger" onclick="window.deleteStaff('${o.id}')">
+            <i class="fas fa-trash"></i> حذف
+          </button>
+        </div>
+      </div>
+    `}).join("")};window.updateStaffName=async function(t){const e=prompt("أدخل الإسم الجديد للموظف:");if(e)try{await j(C(A,`users/${t}`),{name:e}),window.showLuxuryToast("تم تحديث الإسم بنجاح"),window.renderSupervisorStaffList()}catch{window.showLuxuryToast("خطأ في التحديث","error")}};window.deleteStaff=async function(t){if(confirm("هل أنت متأكد من حذف هذا الموظف؟ لن يتمكن من تسجيل الدخول بعد الآن."))try{await W(C(A,`users/${t}`)),window.showLuxuryToast("تم حذف الموظف من النظام"),window.renderSupervisorStaffList()}catch{window.showLuxuryToast("خطأ في الحذف","error")}};window.toggleAvailability=async function(){if(!window.state.userProfile)return;const t=window.state.userProfile.isAvailable||!1;try{await j(C(A,`users/${window.state.user.uid}`),{isAvailable:!t}),window.state.userProfile.isAvailable=!t,window.showLuxuryToast(t?"تم تعيين الحالة: غير متاح":"أنت متاح الآن لاستلام الطلبات"),window.updateStatistics()}catch{window.showLuxuryToast("فشل تحديث الحالة","error")}};window.toggleSound=function(){window.state.soundEnabled=!window.state.soundEnabled,localStorage.setItem("luxury_sound_enabled",window.state.soundEnabled);const t=document.getElementById("sound-toggle");t&&(t.checked=window.state.soundEnabled),window.showLuxuryToast(window.state.soundEnabled?"تم تفعيل التنبيهات الصوتية":"تم كتم التنبيهات")};window.setBookingFilter=function(t,e,n="all",o=null){window.state.bookingFilter=t,window.state.bookingSubStatusFilter=n;const i=document.getElementById("filter-booking-status");i&&i.value!==t&&(i.value=t);const a=document.getElementById("filter-booking-sub-status");if(a){const s={new:["not_contacted","contacted"],waiting:["docs_received","waiting_calc","waiting_docs","waiting_signature"],inquiry:["docs_not_received"],sold:["signed","delivered"],done:["done"],cancelled:["no_response","obligations","calc_rejected","ineligible","duplicate"]},l={not_contacted:"لم يتم التواصل",contacted:"تم التواصل",docs_received:"تم استلام الاوراق",waiting_calc:"انتظار رد العميل",waiting_docs:"إنتظار إكمال الاوراق",waiting_signature:"إنتظار توقيع العميل",docs_not_received:"لم يتم استلام الاوراق",signed:"تم التوقيع",delivered:"تم التسليم",done:"تم",no_response:"لم يتم رد العميل",obligations:"التزامات",calc_rejected:"رفض الحسبة",ineligible:"غير مسموح له",duplicate:"مكرر"};let r=t==="all"?Object.keys(l):s[t]||[];a.innerHTML='<option value="all">جميع الحالات الفرعية</option>',r.forEach(d=>{const w=document.createElement("option");w.value=d,w.textContent=l[d],a.appendChild(w)}),Array.from(a.options).some(d=>d.value===n)?a.value=n:(a.value="all",window.state.bookingSubStatusFilter="all",n="all")}document.querySelectorAll(".sub-tab.b-filter").forEach(s=>{if(s.getAttribute("onclick")&&s.getAttribute("onclick").includes(`'${t}'`)){document.querySelectorAll(".sub-tab.b-filter").forEach(r=>r.classList.remove("active")),s.classList.add("active"),document.querySelectorAll(".deep-submenu").forEach(r=>r.classList.remove("active"));const l=s.closest(".status-group");if(l){const r=l.querySelector(".deep-submenu");r&&r.classList.add("active")}}}),document.querySelectorAll(".deep-tab").forEach(s=>{s.classList.remove("active"),n!=="all"&&s.getAttribute("onclick")&&s.getAttribute("onclick").includes(`'${n}'`)&&s.classList.add("active")}),window.syncAdminTables("bookings")};window.applyInventoryFilters=function(){var m,h,c,y,I,k,S;if(!document.getElementById("cars-container"))return;const e=document.getElementById("filter-make"),n=document.getElementById("filter-year");e&&e.options.length<=1&&[...new Set(window.state.cars.map(g=>g.make))].sort().forEach(g=>{const v=document.createElement("option");v.value=g,v.textContent=g,e.appendChild(v)}),n&&n.options.length<=1&&[...new Set(window.state.cars.map(g=>g.year))].sort((g,v)=>v-g).forEach(g=>{const v=document.createElement("option");v.value=g,v.textContent=g,n.appendChild(v)});const o=(((m=document.getElementById("car-search-input"))==null?void 0:m.value)||"").toLowerCase(),i=((h=document.getElementById("filter-make"))==null?void 0:h.value)||"all",a=((c=document.getElementById("filter-type"))==null?void 0:c.value)||"all",s=((y=document.getElementById("filter-year"))==null?void 0:y.value)||"all",l=((I=document.getElementById("filter-sort"))==null?void 0:I.value)||"newest";let r=((k=window.state.cars)==null?void 0:k.filter($=>{const g=!o||($.make+" "+$.model).toLowerCase().includes(o),v=i==="all"||$.make===i,E=a==="all"||$.status===a,b=s==="all"||$.year===s;return g&&v&&E&&b}))||[];l==="price-asc"?r.sort(($,g)=>(Number($.price)||0)-(Number(g.price)||0)):l==="price-desc"?r.sort(($,g)=>(Number(g.price)||0)-(Number($.price)||0)):l==="year-asc"?r.sort(($,g)=>(Number($.year)||0)-(Number(g.year)||0)):r.sort(($,g)=>new Date(g.createdAt||0)-new Date($.createdAt||0));const d=((S=window.state.cars)==null?void 0:S.filter($=>$.isFeatured).slice(0,3))||[];$e(d.length>0?d:window.state.cars.slice(0,3));const w=r.length,f=window.state.inventoryPage||1,p=window.state.inventorySize||8,u=(f-1)*p,x=r.slice(u,u+p);renderCarGrid(x),Ee(w,f,p)};function $e(t){const e=document.getElementById("featured-offers-container");if(!e||!t.length)return;const n=document.getElementById("featured-offers-section");n&&(n.style.display="block"),e.innerHTML=t.map(o=>`
+        <div class="offer-card-v2" onclick="window.viewLuxuryCar('${o.id}')">
+            <div class="offer-badge">عرض حصري</div>
+            <div class="offer-img-box">
+                <img src="${o.image||"logo.jpg"}" alt="${o.make}" loading="lazy" onerror="this.src='logo.jpg'">
+            </div>
+            <div class="offer-info">
+                <h4>${o.make} ${o.model}</h4>
+                <div class="offer-price">
+                    <span>${o.price?Number(o.price).toLocaleString():o.monthlyInstallment?`قسط: ${Number(o.monthlyInstallment).toLocaleString()}`:"تواصل معنا"}</span>
+                    ${o.price||o.monthlyInstallment?'<small style="font-size: 14px; margin-right: 5px;">ريال</small>':""}
+                </div>
+                <button class="btn-premium btn-sm" style="margin-top: 10px; width: 100%;">تفاصيل العرض</button>
+            </div>
+        </div>
+    `).join("")}function Ee(t,e,n){const o=document.getElementById("pagination-wrap");if(!o)return;const i=Math.ceil(t/n);if(i<=1){o.innerHTML="";return}let a="";e>1&&(a+=`<button class="p-btn nav-dir" onclick="window.state.inventoryPage=${e-1}; window.applyInventoryFilters(); window.scrollTo({top: document.getElementById('inventory').offsetTop - 100, behavior:'smooth'})"><i class="fas fa-chevron-right"></i> السابق</button>`);for(let s=1;s<=i;s++)a+=`<button class="p-btn ${s===e?"active":""}" onclick="window.state.inventoryPage=${s}; window.applyInventoryFilters(); window.scrollTo({top: document.getElementById('inventory').offsetTop - 100, behavior:'smooth'})">${s}</button>`;e<i&&(a+=`<button class="p-btn nav-dir" onclick="window.state.inventoryPage=${e+1}; window.applyInventoryFilters(); window.scrollTo({top: document.getElementById('inventory').offsetTop - 100, behavior:'smooth'})">التالي <i class="fas fa-chevron-left"></i></button>`),o.innerHTML=a}window.renderPartners=function(){const t=document.getElementById("front-partners-grid");!t||!window.state.partners||(t.innerHTML=window.state.partners.map(e=>`
+    <div class="partner-logo-v2">
+        <img src="${e.logo}" alt="${e.name}" title="${e.name}">
+    </div>
+  `).join(""))};window.renderPublicReviews=function(){const t=document.getElementById("public-reviews-container");if(!(!t||!window.state.reviews)){if(window.state.reviews.length===0){t.innerHTML='<div class="no-results-v2"><p>لا توجد آراء عملاء حالياً</p></div>';return}t.innerHTML=window.state.reviews.map(e=>{const n=e.avatar||e.image||"",o=e.name||"عميل غير معروف",i=e.car?`<span> اشترى <span style="color:var(--p-copper); font-weight:bold;">${e.car}</span></span>`:'<span>عميل مُحقّق <i class="fas fa-check-circle"></i></span>';return`
+    <div class="review-card-v2" data-aos="zoom-in">
+        <div class="review-stars">
+            ${'<i class="fas fa-star"></i>'.repeat(Number(e.rating||5))}
+        </div>
+        <p class="review-text">"${e.text||"لا يوجد تعليق"}"</p>
+        <div class="review-author">
+           <div class="review-author-avatar">
+                ${n?`<img src="${n}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`:o.charAt(0)}
+           </div>
+           <div class="review-author-info" style="line-height:1.4;">
+              <strong style="display:block; font-size:16px;">${o}</strong>
+              <div style="font-size:12px; opacity:0.8;">${i}</div>
+           </div>
+        </div>
+    </div>
+  `}).join("")}};window.renderCarGrid=function(t){const e=document.getElementById("cars-container");if(e){if(t.length===0){e.innerHTML='<div class="no-results-v2"><i class="fas fa-search"></i> <p>لم يتم العثور على سيارات تطابق بحثك</p></div>';return}e.innerHTML=t.map(n=>`
+    <div class="car-card-premium" onclick="window.viewLuxuryCar('${n.id}')" data-aos="fade-up">
+      <div class="car-img-wrap">
+        <img src="${n.image||"logo.jpg"}" alt="${n.make}" loading="lazy" onerror="this.src='logo.jpg'">
+        <div class="car-price-v3">${n.price?`${Number(n.price).toLocaleString()} <small>ريال</small>`:n.monthlyInstallment?`قسط من: ${Number(n.monthlyInstallment).toLocaleString()} <small>ريال</small>`:"عند التواصل"}</div>
+        <div class="car-badge-v3 ${n.status==="available"?"available":n.status==="reserved"?"reserved":"sold"}">${n.status==="available"?"متاح":n.status==="reserved"?"محجوز":"مباع"}</div>
+      </div>
+      <div class="car-info-v3">
+        <span class="car-year-v3">${n.year}</span>
+        <h3 class="car-title-v3">${n.make} ${n.model}</h3>
+        <div class="car-specs-v3">
+          <div class="spec-item-v3">
+            <i class="fas fa-road"></i>
+            <span>${(Number(n.mileage)||0).toLocaleString()} كم</span>
+          </div>
+          <div class="spec-item-v3">
+            <i class="fas fa-gas-pump"></i>
+            <span>${n.fuelType||"بنزين"}</span>
+          </div>
+        </div>
+        <div class="car-footer-v3">
+          <button class="btn-premium btn-sm btn-full-v3">
+            <span>عرض التفاصيل</span>
+            <i class="fas fa-arrow-left"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  `).join("")}};window.viewLuxuryCar=function(t){const e=window.state.cars.find(r=>r.id===t);if(!e||!document.getElementById("details-modal"))return;let o=e.images||[];o.length===0&&e.image&&(o=[e.image]),o.length===0&&(o=["logo.jpg"]),window.normalizePhone(window.state.settings.contactSales||"0500000000");const i=e.price?`${Number(e.price).toLocaleString()} ريال`:"عند التواصل",a=e.monthlyInstallment?`
+*القسط الشهري يبدأ من:* ${Number(e.monthlyInstallment).toLocaleString()} ريال`:"";`${e.make}${e.model}${e.year}${i}${a}${window.location.origin}${e.id}`;const s=`
+    <div class="details-luxury-container animate-fade-in-v2">
+      <!-- Top Header Section -->
+      <div class="details-top-v4">
+        <div class="details-header-v3">
+          <div class="d-badge-row">
+            <span class="badge-v3 year">${e.year}</span>
+            ${e.isFeatured?'<span class="badge-v3 featured"><i class="fas fa-crown"></i> عرض مميز</span>':""}
+            ${e.status==="available"?'<span class="badge-v3 status available">متاح حالياً</span>':e.status==="reserved"?'<span class="badge-v3 status reserved">محجوز</span>':'<span class="badge-v3 status sold">مباع</span>'}
+          </div>
+          <h1 class="luxury-font">${e.make} ${e.model}</h1>
+          <p class="car-subtitle-v5">${e.engine||""} | ${e.gearbox||""} | ${e.fuelType||""}</p>
+        </div>
+        <div class="price-premium-v6">
+          <div class="p-header">سعر الكاش</div>
+          <div class="p-main">
+            <span class="p-amount">${e.price?Number(e.price).toLocaleString():"عند التواصل"}</span>
+            <span class="p-curr">${e.price?"ريال":""}</span>
+          </div>
+          ${e.monthlyInstallment?`
+            <div class="p-header" style="margin-top:12px; border-top:1px solid rgba(255,255,255,0.1); padding-top:8px;">قسط شهري يبدأ من</div>
+            <div class="p-main-sm" style="font-size:22px; color:var(--p-copper); font-weight:800;">
+              ${Number(e.monthlyInstallment).toLocaleString()} <span style="font-size:12px; font-weight:400; opacity:0.8;">ريال / شهرياً</span>
+            </div>
+          `:""}
+          <div class="VAT-hint">${e.price?"السعر شامل ضريبة القيمة المضافة":""}</div>
+        </div>
+      </div>
+
+      <div class="details-main-split">
+        <div class="details-media">
+          <div class="main-viewer" onclick="window.openFullscreenGallery('${e.id}', document.getElementById('active-luxury-img').src)">
+            <img src="${o[0]}" id="active-luxury-img" alt="${e.make} ${e.model}" onerror="this.src='logo.jpg'">
+            <div class="viewer-actions">
+              <button class="viewer-btn" onclick="event.stopPropagation(); window.switchLuxuryDetailImg('${e.id}', -1)"><i class="fas fa-chevron-right"></i></button>
+              <button class="viewer-btn" onclick="event.stopPropagation(); window.switchLuxuryDetailImg('${e.id}', 1)"><i class="fas fa-chevron-left"></i></button>
+            </div>
+            <div class="zoom-hint"><i class="fas fa-expand"></i> انقر للتكبير</div>
+          </div>
+          ${o.length>1?`
+          <div class="thumbs-view custom-scrollbar">
+            ${o.map((r,d)=>`
+              <div class="thumb-wrapper ${d===0?"active":""}" onclick="window.setLuxuryDetailImg(this, '${r}')">
+                <img src="${r}" class="thumb-frame" onerror="this.src='logo.jpg'">
+              </div>
+            `).join("")}
+          </div>
+          `:""}
+        </div>
+
+        <div class="details-info-v4">
+          <div class="specs-grid-v4-compact">
+            <div class="spec-card-v5">
+               <i class="fas fa-tachometer-alt"></i>
+               <div class="s-info"><span>الممشى</span><strong>${(Number(e.mileage)||0).toLocaleString()} كم</strong></div>
+            </div>
+            <div class="spec-card-v5">
+               <i class="fas fa-calendar-alt"></i>
+               <div class="s-info"><span>الموديل</span><strong>${e.year}</strong></div>
+            </div>
+            <div class="spec-card-v5">
+               <i class="fas fa-fill-drip"></i>
+               <div class="s-info"><span>اللون الخارجي</span><strong>${e.color||"غير محدد"}</strong></div>
+            </div>
+            <div class="spec-card-v5">
+               <i class="fas fa-palette"></i>
+               <div class="s-info"><span>اللون الداخلي</span><strong>${e.interiorColor||"غير محدد"}</strong></div>
+            </div>
+            <div class="spec-card-v5">
+               <i class="fas fa-gas-pump"></i>
+               <div class="s-info"><span>الوقود</span><strong>${e.fuelType||"بنزين"}</strong></div>
+            </div>
+            <div class="spec-card-v5">
+               <i class="fas fa-cog"></i>
+               <div class="s-info"><span>الجير</span><strong>${e.gearbox||"أوتوماتيكي"}</strong></div>
+            </div>
+             <div class="spec-card-v5">
+               <i class="fas fa-car-side"></i>
+               <div class="s-info"><span>الفئة</span><strong>${e.bodyType||"فاخرة"}</strong></div>
+            </div>
+             <div class="spec-card-v5">
+               <i class="fas fa-shield-alt"></i>
+               <div class="s-info"><span>الحالة</span><strong>${e.status==="available"?"متاح":e.status==="sold"?"مباع":"محجوز"}</strong></div>
+            </div>
+          </div>
+
+          <div class="desc-card-v5" id="luxury-car-desc-container">
+            <h3><i class="fas fa-list-ul"></i> وصف ومميزات السيارة</h3>
+            <div class="desc-text-v5 custom-scrollbar" id="luxury-desc-body">
+              ${(e.desc||e.description||e.details||"سيارة بحالة الوكالة...").replace(/\n/g,"<br>")}
+            </div>
+          </div>
+
+          <div class="details-footer-actions-v3">
+             <button onclick="window.bookCar('${e.id}')" class="btn-luxury-v2 wa-btn" style="border:none; text-align:right;">
+               <i class="fas fa-calendar-check"></i>
+               <div class="btn-txt">
+                 <strong>إحجز هذه السيارة الآن</strong>
+                 <span>تعبئة طلب حجز الخدمة</span>
+               </div>
+             </button>
+             <a href="tel:${window.state.settings.contactSales||""}" class="btn-luxury-v2 call-btn">
+               <i class="fas fa-phone-alt"></i>
+               <div class="btn-txt">
+                 <strong>طلب إتصال هاتفي</strong>
+                 <span>تواصل مباشر بالمبيعات</span>
+               </div>
+             </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  `,l=document.getElementById("details-modal-body");if(l){l.innerHTML=s,l.scrollTop=0;const r=document.getElementById("details-modal");if(r){r.scrollTop=0;const d=r.querySelector(".modal-inner");d&&(d.scrollTop=0)}window.openModal("details-modal")}window.trackCarView(t)};window.bookCar=function(t){const e=window.state.cars.find(i=>i.id===t);if(!e)return;const n=document.getElementById("b-car");n&&(n.value=`${e.make} ${e.model} ${e.year}`),window.closeModal("details-modal");const o=document.getElementById("booking");o&&(o.scrollIntoView({behavior:"smooth"}),n&&(n.focus(),n.style.borderColor="var(--p-copper)",setTimeout(()=>n.style.borderColor="",2e3)))};window.viewBookingDetails=function(t){var a;const e=(window.state.bookings||[]).find(s=>s.id===t);if(!e)return;(a=window.state.users.find(s=>s.id===e.assignedTo))!=null&&a.name,e.status==="sold"||e.status==="available"||e.status==="rejected"||e.status,e.status==="sold"||e.status;const n={new:"جديد",waiting:"بالانتظار",inquiry:"استفسار",sold:"مكتمل",rejected:"مرفوض",available:"متاح"},o=`
+    <div class="booking-modal-layout details-luxury-container" style="direction: rtl;">
+      
+      <!-- القسم الأيمن: تفاصيل الحجز -->
+      <div class="details-info-v4 custom-scrollbar">
+        <div class="p-header" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:25px;">
+           <div>
+              <h2 style="margin:0; font-size:28px; color:var(--text-main); font-weight:800;">${e.name||"عميل مجهول"}</h2>
+              <p style="margin:5px 0 0; color:var(--text-dim); display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-phone-alt" style="font-size:12px; color:var(--p-copper);"></i> ${e.phone}
+              </p>
+           </div>
+           <div class="status-badge-v3" style="background:var(--bg-card); padding:8px 16px; border-radius:12px; border:1px solid var(--glass-border); text-align:center;">
+              <span style="display:block; font-size:10px; color:var(--text-dim); text-transform:uppercase;">حالة الطلب الحالية</span>
+              <strong style="color:var(--p-copper); font-size:14px;">${n[e.status]||e.status}</strong>
+           </div>
+        </div>
+
+        <div class="details-grid-lite" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:20px; margin-bottom:30px;">
+            <div class="d-item" style="background:rgba(255,255,255,0.02); padding:15px; border-radius:15px; border:1px solid var(--glass-border);">
+                <span style="display:block; font-size:11px; color:var(--text-dim); margin-bottom:5px;">السيارة المطلوبة</span>
+                <strong style="font-size:15px; color:var(--p-copper);"><i class="fas fa-car" style="margin-left:8px;"></i>${e.carRequested||"غير محدد"}</strong>
+            </div>
+            <div class="d-item" style="background:rgba(255,255,255,0.02); padding:15px; border-radius:15px; border:1px solid var(--glass-border);">
+                <span style="display:block; font-size:11px; color:var(--text-dim); margin-bottom:5px;">تاريخ الطلب</span>
+                <strong style="font-size:14px;"><i class="far fa-calendar-alt" style="margin-left:8px;"></i>${new Date(e.createdAt).toLocaleDateString("ar-SA")}</strong>
+            </div>
+        </div>
+
+        <div class="update-section" style="background:rgba(255,255,255,0.03); padding:20px; border-radius:20px; border:1px solid var(--glass-border);">
+            <h4 style="margin:0 0 15px; font-size:16px; font-weight:700;"><i class="fas fa-edit" style="margin-left:10px; color:var(--p-copper);"></i>تحديث حالة المتابعة</h4>
+            
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+                <div class="f-group">
+                    <label style="font-size:12px; color:var(--text-dim); margin-bottom:6px; display:block;">الحالة العامة</label>
+                    <select id="update-booking-status" onchange="window.updateSubStatusOptions(this.value)" style="width:100%; border-radius:10px; padding:10px; background:var(--bg-alt); border:1px solid var(--glass-border); color:var(--text-main); font-family:inherit;">
+                        ${Object.entries(n).map(([s,l])=>`<option value="${s}" ${s===(e.status||"new")?"selected":""}>${l}</option>`).join("")}
+                    </select>
+                </div>
+                <div class="f-group">
+                    <label style="font-size:12px; color:var(--text-dim); margin-bottom:6px; display:block;">المحافظة / الوضع</label>
+                    <select id="update-booking-substatus" style="width:100%; border-radius:10px; padding:10px; background:var(--bg-alt); border:1px solid var(--glass-border); color:var(--text-main); font-family:inherit;">
+                        <!-- dynamic -->
+                    </select>
+                </div>
+            </div>
+
+            <div class="f-group" style="margin-bottom:15px;">
+                <label style="font-size:12px; color:var(--text-dim); margin-bottom:6px; display:block;">ملاحظات الموظف الخاصة</label>
+                <textarea id="update-booking-details" style="width:100%; min-height:80px; border-radius:12px; padding:12px; background:var(--bg-alt); border:1px solid var(--glass-border); color:var(--text-main); font-family:inherit; resize:vertical;">${e.additionalDetails||""}</textarea>
+            </div>
+
+            <button onclick="window.updateBookingQuickStatus('${e.id}')" class="btn-premium" style="width:100%; padding:14px; border:none; border-radius:12px; font-weight:700; cursor:pointer;">
+                حفظ التعديلات
+            </button>
+        </div>
+
+        <div style="margin-top:20px; display:flex; gap:10px;">
+            <a href="tel:${e.phone}" class="icon-btn-lite" style="flex:1; height:45px; border-radius:12px; background:#1c7c8c; color:white; border:none; gap:10px; display:flex; align-items:center; justify-content:center; text-decoration:none;">
+                <i class="fas fa-phone-alt" style="color:white;"></i> مكالمة
+            </a>
+            <button onclick="window.fetchServerWAChat('${e.waJid||e.phone}', '${e.assignedTo||""}')" class="icon-btn-lite" style="flex:1; height:45px; border-radius:12px; gap:10px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                <i class="fas fa-sync-alt"></i> تحديث الدردشة
+            </button>
+        </div>
+      </div>
+
+      <!-- القسم الأيسر: دردشة واتساب سيرفر -->
+      <div class="details-wa-v4">
+          <div class="wa-chat-header">
+              <div class="avatar">
+                  <i class="fab fa-whatsapp" style="font-size:24px; color:white;"></i>
+              </div>
+              <div style="flex:1; line-height:1.2;">
+                  <h3 style="margin:0; font-weight:700;">${e.name||"محادثة واتساب"}</h3>
+                  <small style="opacity:0.8;">الرقم: ${e.phone}</small>
+              </div>
+              <div id="wa-connection-dot" style="width:10px; height:10px; background:#4de265; border-radius:50%; box-shadow:0 0 5px #4de265;" title="متصل بالسيرفر"></div>
+          </div>
+
+          <div id="wa-server-chat-box" class="custom-scrollbar">
+              <div style="text-align:center; margin: auto;">
+                  <i class="fas fa-circle-notch fa-spin" style="font-size:32px; color:#00a884; margin-bottom:15px;"></i>
+                  <p style="font-size:13px; color:#666;">جاري تحميل محادثات السيرفر...</p>
+              </div>
+          </div>
+
+          <div id="wa-quick-replies-bar">
+               <!-- rendered via js -->
+          </div>
+
+          <div id="wa-emoji-picker" style="display:none; position:absolute; bottom:80px; right:15px; z-index:1000; background:white; border-radius:15px; box-shadow:0 10px 40px rgba(0,0,0,0.2); overflow:hidden; border:1px solid #ddd;">
+               <emoji-picker style="width:300px; height:400px; -webkit-filter: grayscale(0);"></emoji-picker>
+          </div>
+
+          <div class="wa-input-bar">
+              <i class="far fa-smile" style="font-size:22px; color:#54656f; cursor:pointer;" onclick="const p=document.getElementById('wa-emoji-picker'); p.style.display=p.style.display==='none'?'block':'none'"></i>
+              <input type="file" id="wa-media-upload" style="display:none" onchange="window.handleWAMediaSelect('${e.waJid||e.phone}', '${e.assignedTo||""}')">
+              <i class="fas fa-paperclip" style="font-size:20px; color:#54656f; cursor:pointer;" onclick="document.getElementById('wa-media-upload').click()"></i>
+              <i id="wa-mic-btn" class="fas fa-microphone" style="font-size:20px; color:#54656f; cursor:pointer;" onpointerdown="window.startWARecording()" onpointerup="window.stopWARecording('${e.waJid||e.phone}', '${e.assignedTo||""}')"></i>
+              
+              <textarea id="wa-server-input" placeholder="اكتب رسالة للرد..." rows="1" 
+                        style="flex:1; border:none; background:#f0f2f5; border-radius:20px; padding:10px 18px; font-family:inherit; font-size:14.5px; resize:none; max-height:150px; outline:none; height:42px; line-height:1.4; display:block; transition: background 0.2s;" 
+                        onfocus="this.style.background='white'; this.style.boxShadow='inset 0 0 0 1px #eee';" 
+                        onblur="this.style.background='#f0f2f5'; this.style.boxShadow='none';"
+                        oninput="this.style.height = '42px'; this.style.height = Math.min(this.scrollHeight, 150) + 'px';" 
+                        onkeydown="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); window.sendServerWAMessage('${e.waJid||e.phone}', '${e.assignedTo||""}'); }"></textarea>
+              
+              <button class="wa-send-btn" onclick="window.sendServerWAMessage('${e.waJid||e.phone}', '${e.assignedTo||""}')">
+                  <i class="fas fa-paper-plane"></i>
+              </button>
+          </div>
+      </div>
+    </div>
+  `,i=document.getElementById("details-modal-body");if(i){i.innerHTML=o,i.scrollTop=0;const s=document.getElementById("details-modal");s&&(s.scrollTop=0),window.openModal("details-modal"),setTimeout(()=>{window.fetchServerWAChat&&window.fetchServerWAChat(e.waJid||e.phone,e.assignedTo||""),window.updateSubStatusOptions&&window.updateSubStatusOptions(e.status||"new",e.subStatus||"not_contacted"),window.renderQuickRepliesBar&&window.renderQuickRepliesBar();const l=document.querySelector("emoji-picker");l&&l.addEventListener("emoji-click",r=>{const d=document.getElementById("wa-server-input");d&&(d.value+=r.detail.unicode,d.focus())})},100)}};window.updateSubStatusOptions=function(t,e=null){const n=document.getElementById("update-booking-substatus");if(!n)return;const i={new:[{v:"not_contacted",t:"لم يتم التواصل"},{v:"contacted",t:"تم التواصل"}],waiting:[{v:"docs_received",t:"تم استلام الاوراق"},{v:"waiting_calc",t:"انتظار رد العميل"},{v:"waiting_docs",t:"إنتظار إكمال الاوراق"},{v:"waiting_signature",t:"إنتظار توقيع العميل"}],inquiry:[{v:"docs_not_received",t:"لم يتم استلام الاوراق"}],sold:[{v:"signed",t:"تم التوقيع"},{v:"delivered",t:"تم التسليم"}],rejected:[{v:"no_response",t:"لم يتم رد العميل"},{v:"obligations",t:"التزامات"},{v:"calc_rejected",t:"رفض الحسبة"},{v:"ineligible",t:"غير مسموح له"},{v:"duplicate",t:"مكرر"}]}[t]||[{v:"none",t:"-"}];n.innerHTML=i.map(a=>`<option value="${a.v}" ${a.v===e?"selected":""}>${a.t}</option>`).join("")};window.updateBookingQuickStatus=async function(t){var i,a,s;const e=(i=document.getElementById("update-booking-status"))==null?void 0:i.value,n=((a=document.getElementById("update-booking-substatus"))==null?void 0:a.value)||"",o=((s=document.getElementById("update-booking-details"))==null?void 0:s.value)||"";if(!(!e||!t))try{const l=C(A,`bookings/${t}`);await j(l,{status:e,subStatus:n,additionalDetails:o,updatedAt:new Date().toISOString()}),window.showLuxuryToast("تم تحديث حالة الطلب والتفاصيل بنجاح")}catch(l){console.error(l),window.showLuxuryToast("فشل تحديث الحالة","error")}};window.saveWAServerURL=async function(){var e;const t=(e=document.getElementById("wa-server-url-config"))==null?void 0:e.value;if(t){localStorage.setItem("wa_server_url",t);try{await D(C(A,"settings/waServerUrl"),t)}catch(n){console.error("Firebase save config error:",n)}window.showLuxuryToast("تم حفظ رابط السيرفر وتعميمه لجميع الموظفين بنجاح. يرجى إعادة تحميل الصفحة."),setTimeout(()=>location.reload(),1500)}};window.setLuxuryDetailImg=function(t,e){document.getElementById("active-luxury-img").src=e,document.querySelectorAll(".thumb-wrapper").forEach(n=>n.classList.remove("active")),t.classList.add("active")};window.switchLuxuryDetailImg=function(t,e){const n=window.state.cars.find(d=>d.id===t);if(!n)return;const o=n.images||[n.image||"logo.jpg"],i=document.getElementById("active-luxury-img").src;let a=o.findIndex(d=>i.includes(d));a===-1&&(a=0);let s=(a+e+o.length)%o.length;const l=o[s];document.getElementById("active-luxury-img").src=l;const r=document.querySelectorAll(".thumb-wrapper");r[s]&&(r.forEach(d=>d.classList.remove("active")),r[s].classList.add("active"))};window.openFullscreenGallery=function(t,e){const n=window.state.cars.find(a=>a.id===t);if(!n)return;const o=n.images||[n.image||"logo.jpg"],i=document.createElement("div");i.className="luxury-lightbox",i.innerHTML=`
+        <div class="lb-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></div>
+        <div class="lb-content">
+            <img src="${e}" id="lb-main-img">
+            <div class="lb-nav">
+                <button onclick="window.navLightbox('${t}', -1)"><i class="fas fa-chevron-right"></i></button>
+                <button onclick="window.navLightbox('${t}', 1)"><i class="fas fa-chevron-left"></i></button>
+            </div>
+        </div>
+        <div class="lb-thumbs">
+            ${o.map(a=>`<img src="${a}" class="lb-thumb ${a===e?"active":""}" onclick="document.getElementById('lb-main-img').src='${a}'; this.parentElement.querySelectorAll('.lb-thumb').forEach(t=>t.classList.remove('active')); this.classList.add('active');">`).join("")}
+        </div>
+    `,document.body.appendChild(i)};window.navLightbox=function(t,e){const n=window.state.cars.find(r=>r.id===t),o=n.images||[n.image||"logo.jpg"],i=document.getElementById("lb-main-img");let a=o.indexOf(i.src);a===-1&&(a=0);let s=a+e;s<0&&(s=o.length-1),s>=o.length&&(s=0),i.src=o[s];const l=document.querySelectorAll(".lb-thumb");l.forEach(r=>r.classList.remove("active")),l[s].classList.add("active")};window.trackCarView=async function(t){if(t)try{const e=C(A,`analytics/popularCars/${t}`);await J(e,n=>(n||0)+1)}catch(e){console.error("Tracking Error:",e)}};window.resetFilters=function(){["car-search-input","filter-make","filter-type","filter-year","filter-sort"].forEach(e=>{const n=document.getElementById(e);n&&(n.value=n.tagName==="SELECT"?e==="filter-sort"?"newest":"all":"")}),window.applyInventoryFilters()};window.trackVisit=async function(){try{const t=new Date().toISOString().split("T")[0];if(localStorage.getItem("visited_"+t))return;localStorage.setItem("visited_"+t,"true");const e=C(A,"analytics");await J(e,n=>{n||(n={totalVisits:0,dailyVisits:{},browsers:{},devices:{},popularCars:{}}),n.totalVisits=(n.totalVisits||0)+1,n.dailyVisits=n.dailyVisits||{},n.dailyVisits[t]=(n.dailyVisits[t]||0)+1;const o=navigator.userAgent;let i="Other";o.includes("Chrome")?i="Chrome":o.includes("Safari")?i="Safari":o.includes("Firefox")?i="Firefox":o.includes("Edge")&&(i="Edge"),n.browsers=n.browsers||{},n.browsers[i]=(n.browsers[i]||0)+1;const a=/iPhone|iPad|iPod|Android/i.test(o)?"mobile":"desktop";return n.devices=n.devices||{},n.devices[a]=(n.devices[a]||0)+1,n})}catch(t){console.error("Analytics Error:",t)}};window.loginAdmin=async function(t){var a,s;t.preventDefault();const e=(a=document.getElementById("admin-email"))==null?void 0:a.value,n=(s=document.getElementById("admin-pass"))==null?void 0:s.value,o=t.target.querySelector("button");if(!e||!n)return window.showLuxuryToast("يرجى إدخال البريد وكلمة المرور","error");const i=o.innerText;o.innerText="جاري التحقق...",o.disabled=!0;try{await me(H,e,n),window.showLuxuryToast("تم تسجيل الدخول بنجاح"),window.createLog("تسجيل دخول","نجاح تسجيل الدخول للنظام","auth"),window.closeModal("admin-modal")}catch(l){console.error(l),window.showLuxuryToast("خطأ في البيانات، يرجى المحاولة مرة أخرى","error")}finally{o.innerText=i,o.disabled=!1}};window.logout=async function(){confirm("هل أنت متأكد من تسجيل الخروج؟")&&(await window.createLog("تسجيل خروج","خرج المستخدم من النظام","auth"),await ge(H),window.showLuxuryToast("تم تسجيل الخروج"))};window.DESIGN_PRESETS={emerald:{primaryColor:"#065f46",secondaryColor:"#10b981",accentColor:"#fbbf24",glassBlur:25,borderRadius:20,cardStyle:"glass",glassOpacity:.6,light:{bgColor:"#ecfdf5",textColor:"#064e3b"},dark:{bgColor:"#022c22",textColor:"#ecfdf5"}},royal:{primaryColor:"#4c1d95",secondaryColor:"#8b5cf6",accentColor:"#f59e0b",glassBlur:15,borderRadius:12,cardStyle:"glass",glassOpacity:.8,light:{bgColor:"#f5f3ff",textColor:"#2e1065"},dark:{bgColor:"#0f0720",textColor:"#f5f3ff"}},midnight:{primaryColor:"#1e1b4b",secondaryColor:"#4338ca",accentColor:"#6366f1",glassBlur:30,borderRadius:24,cardStyle:"glass",glassOpacity:.7,light:{bgColor:"#f0f9ff",textColor:"#0c4a6e"},dark:{bgColor:"#020617",textColor:"#f0f9ff"}},classic:{primaryColor:"#a11d21",secondaryColor:"#1c7c8c",accentColor:"#b8860b",glassBlur:0,borderRadius:8,cardStyle:"solid",glassOpacity:1,light:{bgColor:"#f8fafc",textColor:"#0f172a"},dark:{bgColor:"#05080c",textColor:"#f8fafc"}},gold:{primaryColor:"#b8860b",secondaryColor:"#d4af37",accentColor:"#ffd700",glassBlur:10,borderRadius:0,cardStyle:"glass",glassOpacity:.9,light:{bgColor:"#fffdf0",textColor:"#2d2300"},dark:{bgColor:"#050500",textColor:"#fffdf0"}},ocean:{primaryColor:"#0f172a",secondaryColor:"#38bdf8",accentColor:"#2dd4bf",glassBlur:20,borderRadius:30,cardStyle:"glass",glassOpacity:.5,light:{bgColor:"#f0f9ff",textColor:"#0c4a6e"},dark:{bgColor:"#020617",textColor:"#f0f9ff"}},carbon:{primaryColor:"#171717",secondaryColor:"#404040",accentColor:"#ef4444",glassBlur:5,borderRadius:4,cardStyle:"solid",glassOpacity:1,light:{bgColor:"#f5f5f5",textColor:"#171717"},dark:{bgColor:"#0a0a0a",textColor:"#f5f5f5"}}};window.applyDesignPreset=function(t){const e=window.DESIGN_PRESETS[t];e&&(window.applySettings({...window.state.settings,...e}),showLuxuryToast(window.state.lang==="ar"?"تم تطبيق النمط بنجاح":"Preset applied successfully"))};window.saveCustomDesign=async function(){var n,o,i,a,s,l,r,d,w,f;const t=prompt(window.state.lang==="ar"?"أدخل اسماً لمظهرك المخصص:":"Enter a name for your custom design:");if(!t)return;const e={primaryColor:(n=document.getElementById("set-color-primary"))==null?void 0:n.value,secondaryColor:(o=document.getElementById("set-color-secondary"))==null?void 0:o.value,accentColor:(i=document.getElementById("set-color-accent"))==null?void 0:i.value,glassBlur:parseInt(((a=document.getElementById("set-glass-blur"))==null?void 0:a.value)||"20"),shadowDepth:parseInt(((s=document.getElementById("set-shadow-depth"))==null?void 0:s.value)||"40"),borderRadius:((l=document.getElementById("set-border-radius"))==null?void 0:l.value)||"16",cardStyle:((r=document.getElementById("set-card-style"))==null?void 0:r.value)||"glass",glassOpacity:parseFloat(((d=document.getElementById("set-glass-opacity"))==null?void 0:d.value)||"0.75"),bgColor:(w=document.getElementById("set-color-bg"))==null?void 0:w.value,textColor:(f=document.getElementById("set-color-text"))==null?void 0:f.value,name:t,createdAt:new Date().toISOString()};try{const p=F(C(A,"custom_presets"));await D(p,e),showLuxuryToast(window.state.lang==="ar"?"تم حفظ المظهر الخاص بنجاح":"Custom design saved successfully")}catch{showLuxuryToast("فشل الحفظ","error")}};window.deleteCustomPreset=async function(t){if(confirm(window.state.lang==="ar"?"هل أنت متأكد من حذف هذا المظهر؟":"Are you sure you want to delete this preset?"))try{await W(C(A,`custom_presets/${t}`)),showLuxuryToast(window.state.lang==="ar"?"تم الحذف":"Deleted")}catch{showLuxuryToast("Error","error")}};window.renderCustomPresets=function(){const t=document.getElementById("custom-presets-list");if(!t)return;const e=window.state.custom_presets||[];if(e.length===0){t.innerHTML=`<div style="grid-column: 1/-1; text-align:center; opacity:0.5; padding:20px;">${window.state.lang==="ar"?"لا يوجد مظاهر محفوظة":"No saved designs"}</div>`;return}t.innerHTML=e.map(n=>`
+    <div class="custom-preset-card" style="background:var(--bg-card); border:1px solid var(--glass-border); padding:15px; border-radius:12px; display:flex; justify-content:space-between; align-items:center;">
+       <div>
+         <div style="font-weight:bold; margin-bottom:5px;">${n.name}</div>
+         <div style="display:flex; gap:5px;">
+            <span style="width:12px; height:12px; border-radius:50%; background:${n.primaryColor};"></span>
+            <span style="width:12px; height:12px; border-radius:50%; background:${n.secondaryColor};"></span>
+         </div>
+       </div>
+       <div style="display:flex; gap:10px;">
+          <button class="btn-premium btn-sm" onclick="window.applySettings(window.state.custom_presets.find(x => x.id === '${n.id}'))" style="padding:5px 10px; font-size:11px;">تطبيق</button>
+          <button class="btn-premium btn-sm" onclick="window.deleteCustomPreset('${n.id}')" style="background:var(--p-red); padding:5px 10px; font-size:11px;"><i class="fas fa-trash"></i></button>
+       </div>
+    </div>
+  `).join("")};window.applySettings=function(t){var b,T,L,M;if(!t)return;const e=document.documentElement;if(t.defaultTheme&&!(localStorage.getItem("theme_manually_overridden")==="true")){document.body.setAttribute("data-theme",t.defaultTheme),localStorage.setItem("luxury_theme",t.defaultTheme);const z=document.getElementById("theme-btn");z&&(z.innerHTML=t.defaultTheme==="dark"?'<i class="fas fa-sun"></i>':'<i class="fas fa-moon"></i>')}t.primaryColor&&(e.style.setProperty("--p-red",t.primaryColor),e.style.setProperty("--p-red-glow",t.primaryColor+"66")),t.secondaryColor&&e.style.setProperty("--p-teal",t.secondaryColor),t.accentColor&&e.style.setProperty("--p-copper",t.accentColor);const n=t.logo||"logo.jpg";document.querySelectorAll(".logo-wrap img, .sidebar-brand img, .splash-logo img, #footer-logo-img, #nav-logo-img, #splash-logo-img").forEach(B=>{B.src=n});const o=t.nameAr||"ون كار",i=t.nameEn||"ONE CAR",a=window.state.lang==="ar"?o:i;document.querySelectorAll(".dynamic-name-ar").forEach(B=>B.innerText=o),document.querySelectorAll(".dynamic-name-en").forEach(B=>B.innerText=i),document.title=a+" | "+(window.state.lang==="ar"?"الفخامة في عالم السيارات":"Luxury Automotive"),t.fontFamily&&(e.style.setProperty("--font-main",t.fontFamily),document.body.style.fontFamily=t.fontFamily);const s="dynamic-design-styles";let l=document.getElementById(s);l||(l=document.createElement("style"),l.id=s,document.head.appendChild(l));let r="";const d=((b=t.dark)==null?void 0:b.bgColor)||t.bgColor,w=((T=t.dark)==null?void 0:T.textColor)||t.textColor,f=(L=t.light)==null?void 0:L.bgColor,p=(M=t.light)==null?void 0:M.textColor;if(d&&(r+=`body[data-theme="dark"] { --bg-main: ${d}; }
+`),w&&(r+=`body[data-theme="dark"] { --text-main: ${w}; }
+`),f&&(r+=`body[data-theme="light"] { --bg-main: ${f}; }
+`),p&&(r+=`body[data-theme="light"] { --text-main: ${p}; }
+`),t.borderRadius&&(e.style.setProperty("--border-radius-main",t.borderRadius+"px"),r+=`
+      .car-card-premium, .ad-slide, .nav-premium, .modal-inner, .video-card-v2, .feature-card, .btn-premium { 
+        border-radius: ${t.borderRadius}px !important; 
+      }
+    `),t.glassBlur&&e.style.setProperty("--glass-blur",t.glassBlur+"px"),t.shadowDepth&&e.style.setProperty("--shadow-depth",t.shadowDepth+"px"),t.shadowOpacity&&e.style.setProperty("--shadow-opacity",t.shadowOpacity),t.animSpeed&&e.style.setProperty("--anim-speed-multiplier",t.animSpeed),t.cardStyle==="solid")r+=`
+      body[data-theme="dark"] .car-card-premium, body[data-theme="dark"] .modal-inner, body[data-theme="dark"] .stat-premium-card, body[data-theme="dark"] .admin-item-row {
+         background: var(--bg-alt) !important;
+         border: 1px solid rgba(255,255,255,0.05) !important;
+         backdrop-filter: none !important;
+         -webkit-backdrop-filter: none !important;
+      }
+      body[data-theme="light"] .car-card-premium, body[data-theme="light"] .modal-inner, body[data-theme="light"] .stat-premium-card, body[data-theme="light"] .admin-item-row {
+         background: var(--bg-alt) !important;
+         border: 1px solid rgba(0,0,0,0.05) !important;
+         backdrop-filter: none !important;
+         -webkit-backdrop-filter: none !important;
+      }
+    `;else{let B=t.glassOpacity!==void 0?t.glassOpacity:.75,z=t.glassBlur!==void 0?t.glassBlur:20;r+=`
+      body[data-theme="dark"] .car-card-premium, body[data-theme="dark"] .modal-inner, body[data-theme="dark"] .stat-premium-card, body[data-theme="dark"] .nav-premium, body[data-theme="dark"] .admin-item-row {
+         background: rgba(17, 24, 39, ${B}) !important;
+         backdrop-filter: blur(${z}px) !important;
+         -webkit-backdrop-filter: blur(${z}px) !important;
+      }
+      body[data-theme="light"] .car-card-premium, body[data-theme="light"] .modal-inner, body[data-theme="light"] .stat-premium-card, body[data-theme="light"] .nav-premium, body[data-theme="light"] .admin-item-row {
+         background: rgba(255, 255, 255, ${B}) !important;
+         backdrop-filter: blur(${z}px) !important;
+         -webkit-backdrop-filter: blur(${z}px) !important;
+         border: 1px solid rgba(0,0,0,0.05) !important;
+      }
+    `}t.logoBlend&&t.logoBlend!=="auto"&&(r+=`
+      .logo-wrap img, .sidebar-brand img, .splash-logo img, #footer-logo-img, #nav-logo-img, #splash-logo-img {
+         mix-blend-mode: ${t.logoBlend};
+      }
+    `),t.logoScale&&(r+=`
+      .logo-wrap img, .sidebar-brand img, .splash-logo img, #footer-logo-img, #nav-logo-img, #splash-logo-img {
+         transform: scale(${t.logoScale});
+      }
+    `),t.hoverEffect==="scale"?r+=`
+      .car-card-premium:hover, .btn-premium:hover, .stat-premium-card:hover { transform: scale(1.02) translateY(-3px); transition: all 0.3s; z-index: 20; position:relative; }
+    `:t.hoverEffect==="glow"&&(r+=`
+      .car-card-premium:hover, .btn-premium:hover, .stat-premium-card:hover { box-shadow: 0 0 20px var(--p-red-glow) !important; transition: box-shadow 0.3s; z-index: 20; position:relative; }
+    `),t.enableAnimations===!1?r+="* { transition: none !important; animation: none !important; }":t.enableAnimations===!0&&(r+=`
+      .car-card-premium, .stat-premium-card, .feature-card {
+        animation: fadeInUp 0.6s backwards calc(var(--anim-speed-multiplier) * 0.1s);
+      }
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+    `),l.innerHTML=r;const u=document.getElementById("about-text-display");u&&(u.innerText=t.aboutUs||"نقدم لكم تجربة استثنائية في عالم السيارات...");const x=document.getElementById("location-text-display");x&&(x.innerText=t.location||"الرياض - معارض القادسية");const m=document.getElementById("f-phone-admin");m&&(m.innerText=t.contactAdmin||"...");const h=document.getElementById("f-phone-sales");h&&(h.innerText=t.contactSales||"...");const c=document.getElementById("f-phone-info");c&&(c.innerText=t.contactComplaints||"...");const y=document.getElementById("f-email-display");y&&(y.innerText=t.contactEmail||"...");const I=document.getElementById("contact-location-link");I&&(I.href=t.locationUrl||"#");const k=document.getElementById("meta-title");k&&(k.innerText=`${o} | ${t.metaTitle||"الفخامة والجودة تليق بك"}`);const S=document.getElementById("meta-description");S&&S.setAttribute("content",t.metaDesc||"وجهتكم الرائدة للسيارات الفاخرة والمعتمدة.");const $={"f-insta":t.socialInsta,"f-snap":t.socialSnap,"f-twitter":t.socialTwitter};Object.entries($).forEach(([B,z])=>{const _=document.getElementById(B);_&&(_.href=z||"#")});const g={"set-name-ar":t.nameAr||"","set-name-en":t.nameEn||"","set-color-primary":t.primaryColor||"#a11d21","set-color-secondary":t.secondaryColor||"#1c7c8c","set-color-accent":t.accentColor||"#b8860b","set-color-bg":t.bgColor||"#05080c","set-color-text":t.textColor||"#f8fafc","set-hover-effect":t.hoverEffect||"scale","set-card-style":t.cardStyle||"glass","set-glass-opacity":t.glassOpacity!==void 0?t.glassOpacity:.75,"set-logo-blend":t.logoBlend||"auto","set-logo-scale":t.logoScale||"1","set-default-theme":t.defaultTheme||"dark","set-font-family":t.fontFamily||"'Cairo', sans-serif","set-border-radius":t.borderRadius||"16","set-glass-blur":t.glassBlur||20,"set-shadow-depth":t.shadowDepth||40,"set-anim-speed":t.animSpeed||1,"set-enable-animations":t.enableAnimations!==void 0?t.enableAnimations.toString():"true","set-contact-mgmt":t.contactAdmin||"","set-contact-sales":t.contactSales||"","set-contact-complaints":t.contactComplaints||"","set-contact-email":t.contactEmail||"","set-about-text":t.aboutUs||"","set-location-link":t.locationUrl||"","set-location-text":t.location||"","set-insta-link":t.socialInsta||"","set-snap-link":t.socialSnap||"","set-twitter-link":t.socialTwitter||""};Object.entries(g).forEach(([B,z])=>{const _=document.getElementById(B);if(_&&(_.value=z,_.type==="range"||_.type==="color")){let q=document.createEvent("HTMLEvents");q.initEvent("input",!1,!0),_.dispatchEvent(q)}});const v=document.getElementById("set-maintenance-mode");v&&(v.checked=t.maintenanceMode||!1);const E=document.getElementById("logo-preview-img");E&&(E.src=n),localStorage.setItem("luxury-settings-cache",JSON.stringify(t))};window.resetToDefaultSettings=async function(){if(confirm("هل أنت متأكد من إعادة ضبط كافة الإعدادات؟ سيتم فقدان الشعارات والألوان المخصصة.")){const t={nameAr:"ون كار",nameEn:"ONE CAR",primaryColor:"#a11d21",secondaryColor:"#1c7c8c",accentColor:"#b8860b",defaultTheme:"dark",borderRadius:"16px",logo:"logo.jpg",aboutUs:"تجربة استثنائية في عالم السيارات",location:"الرياض - معارض القادسية"};await D(C(A,"settings"),t),window.showLuxuryToast("تمت إعادة الضبط بنجاح")}};window.markAllNotificationsRead=async function(){try{const t=window.state.notifications.map(e=>j(C(A,`notifications/${e.id}`),{read:!0}));await Promise.all(t),window.showLuxuryToast("تم تحديد الكل كمقروء")}catch(t){console.error(t)}};window.switchSettingsTab=function(t,e){document.querySelectorAll(".set-pane").forEach(o=>o.classList.add("hidden")),document.querySelectorAll(".set-tab").forEach(o=>o.classList.remove("active"));const n=document.getElementById(t);n&&n.classList.remove("hidden"),e&&e.classList.add("active")};window.previewLogo=async function(t){if(t.files&&t.files[0])try{const e=await window.compressImage(t.files[0],400,400,.8);document.getElementById("logo-preview-img").src=e,document.getElementById("set-logo-b64").value=e}catch(e){console.error("Logo compression failed",e)}};window.saveAppSettings=async function(){var n,o,i,a,s,l,r,d,w,f,p,u,x,m,h,c,y,I,k,S,$,g,v,E,b,T,L,M,B,z,_;const t=document.querySelector('button[onclick="window.saveAppSettings()"]');t&&(t.disabled=!0,t.innerHTML='<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...');const e={nameAr:((n=document.getElementById("set-name-ar"))==null?void 0:n.value)||"",nameEn:((o=document.getElementById("set-name-en"))==null?void 0:o.value)||"",logo:((i=document.getElementById("set-logo-b64"))==null?void 0:i.value)||window.state.settings.logo||"logo.jpg",primaryColor:((a=document.getElementById("set-color-primary"))==null?void 0:a.value)||"",secondaryColor:((s=document.getElementById("set-color-secondary"))==null?void 0:s.value)||"",accentColor:((l=document.getElementById("set-color-accent"))==null?void 0:l.value)||"",bgColor:((r=document.getElementById("set-color-bg"))==null?void 0:r.value)||"",textColor:((d=document.getElementById("set-color-text"))==null?void 0:d.value)||"",hoverEffect:((w=document.getElementById("set-hover-effect"))==null?void 0:w.value)||"scale",cardStyle:((f=document.getElementById("set-card-style"))==null?void 0:f.value)||"glass",glassOpacity:parseFloat(((p=document.getElementById("set-glass-opacity"))==null?void 0:p.value)||"0.75"),logoBlend:((u=document.getElementById("set-logo-blend"))==null?void 0:u.value)||"auto",logoScale:((x=document.getElementById("set-logo-scale"))==null?void 0:x.value)||"1",defaultTheme:((m=document.getElementById("set-default-theme"))==null?void 0:m.value)||"",fontFamily:((h=document.getElementById("set-font-family"))==null?void 0:h.value)||"",borderRadius:((c=document.getElementById("set-border-radius"))==null?void 0:c.value)||"",glassBlur:parseInt(((y=document.getElementById("set-glass-blur"))==null?void 0:y.value)||"20"),shadowDepth:parseInt(((I=document.getElementById("set-shadow-depth"))==null?void 0:I.value)||"40"),animSpeed:parseFloat(((k=document.getElementById("set-anim-speed"))==null?void 0:k.value)||"1"),enableAnimations:((S=document.getElementById("set-enable-animations"))==null?void 0:S.value)==="true",contactAdmin:(($=document.getElementById("set-contact-mgmt"))==null?void 0:$.value)||"",contactSales:((g=document.getElementById("set-contact-sales"))==null?void 0:g.value)||"",contactComplaints:((v=document.getElementById("set-contact-complaints"))==null?void 0:v.value)||"",contactEmail:((E=document.getElementById("set-contact-email"))==null?void 0:E.value)||"",aboutUs:((b=document.getElementById("set-about-text"))==null?void 0:b.value)||"",locationUrl:((T=document.getElementById("set-location-link"))==null?void 0:T.value)||"",location:((L=document.getElementById("set-location-text"))==null?void 0:L.value)||"",socialInsta:((M=document.getElementById("set-insta-link"))==null?void 0:M.value)||"",socialSnap:((B=document.getElementById("set-snap-link"))==null?void 0:B.value)||"",socialTwitter:((z=document.getElementById("set-twitter-link"))==null?void 0:z.value)||"",maintenanceMode:((_=document.getElementById("set-maintenance-mode"))==null?void 0:_.checked)||!1,updatedAt:new Date().toISOString()};try{localStorage.removeItem("theme_manually_overridden"),await D(C(A,"settings"),e),window.showLuxuryToast("تم حفظ الإعدادات بنجاح"),window.createLog("تعديل إعدادات","تحديث شامل لإعدادات الموقع والمنصة","settings")}catch{window.showLuxuryToast("فشل الحفظ، تأكد من الصلاحيات","error")}finally{t&&(t.disabled=!1,t.innerHTML='<i class="fas fa-save"></i> حفظ التغييرات')}};window.filterUsersByRole=function(t,e){e&&(document.querySelectorAll("#users-roles-tabs .p-tab").forEach(n=>n.classList.remove("active")),e.classList.add("active")),window.state.userRoleFilter=t,window.syncAdminTables("users")};window.syncAdminTables=function(t){var i,a,s,l,r,d,w,f,p,u,x,m,h;if(t==="all"){["cars","ads","sales","bookings","users","plates","reviews","partners","brands","locations","blogs","whatsapp-monitor","quick-replies"].forEach(y=>window.syncAdminTables(y));return}if(t==="whatsapp-monitor"){window.renderWhatsAppMonitor();return}if(t==="quick-replies"||t==="quickReplies"){window.renderQuickRepliesAdmin&&window.renderQuickRepliesAdmin(),window.renderQuickRepliesBar&&window.renderQuickRepliesBar();return}const e=document.getElementById(`admin-${t}-table`);if(!e)return;let n=window.state[t]||[];const o=(((i=document.getElementById(`admin-${t}-search`))==null?void 0:i.value)||((a=document.getElementById(`${t}-search`))==null?void 0:a.value)||((s=document.getElementById(`${t.slice(0,-1)}-search`))==null?void 0:s.value)||"").toLowerCase();if(o&&(n=n.filter(c=>(c.make||c.title||c.name||c.model||c.phone||c.carRequested||c.carOrCompany||"").toLowerCase().includes(o))),t==="cars"){const c=document.getElementById("admin-filter-car-make");c&&c.options.length<=1&&window.state.cars.length>0&&[...new Set(window.state.cars.map(S=>S.make))].sort().forEach(S=>{const $=document.createElement("option");$.value=S,$.textContent=S,c.appendChild($)});const y=((l=document.getElementById("admin-filter-car-status"))==null?void 0:l.value)||"all",I=((r=document.getElementById("admin-filter-car-make"))==null?void 0:r.value)||"all";y!=="all"&&(n=n.filter(k=>k.status===y)),I!=="all"&&(n=n.filter(k=>k.make===I))}if(t==="bookings"){const c=document.getElementById("filter-booking-staff");c&&c.options.length<=1&&window.state.users&&window.state.users.forEach(v=>{if(v.email!=="zyrozyro98@gmail.com"&&(v.role==="admin"||v.role==="supervisor"||v.role==="staff")){const E=document.createElement("option");E.value=v.id,E.textContent=v.name||v.email||"مستخدم غير محدد",c.appendChild(E)}});const y=document.getElementById("filter-booking-sub-status");if(y&&y.options.length<=1){window.setBookingFilter(window.state.bookingFilter||"all",null,window.state.bookingSubStatusFilter||"all");return}const I=((d=document.getElementById("filter-booking-status"))==null?void 0:d.value)||window.state.bookingFilter||"all",k=((w=document.getElementById("filter-booking-sub-status"))==null?void 0:w.value)||window.state.bookingSubStatusFilter||"all",S=((f=document.getElementById("filter-booking-staff"))==null?void 0:f.value)||"all",$=((p=document.getElementById("filter-booking-type"))==null?void 0:p.value)||"all";window.state.bookingFilter=I,window.state.bookingSubStatusFilter=k,I!=="all"&&(n=n.filter(v=>{let E=v.status||"new";return I==="cancelled"&&(E==="rejected"||E==="cancelled")?!0:E===I})),k!=="all"&&(n=n.filter(v=>v.subStatus===k)),S!=="all"&&(n=n.filter(v=>v.assignedTo===S)),$!=="all"&&(n=n.filter(v=>(v.customerType||"individual")===$)),!(((u=window.state.userProfile)==null?void 0:u.role)==="admin"||((x=window.state.userProfile)==null?void 0:x.role)==="supervisor")&&window.state.user&&(n=n.filter(v=>v.assignedTo===window.state.user.uid))}if(t==="users"){n=n.filter(S=>S.email!=="zyrozyro98@gmail.com");const c=window.state.userRoleFilter||"all";c!=="all"&&(n=n.filter(S=>S.role===c));const y=document.getElementById("stat-users-total"),I=document.getElementById("stat-users-active"),k=document.getElementById("stat-users-admins");if(y&&(y.innerText=n.length),I){I.innerText=n.filter($=>$.isAvailable).length;const S=I.nextElementSibling;S&&(S.innerText="متواجد حالياً")}if(k){const S=k.nextElementSibling;if(c==="all")k.innerText=n.filter($=>$.role==="admin").length,S&&(S.innerText="مدراء النظام");else{k.innerText=n.length;const $={admin:"مدراء النظام",supervisor:"مشرفين",staff:"المندوبين"};S&&(S.innerText="إجمالي الـ "+($[c]||""))}}}if(t==="bookings"?(((m=document.getElementById("filter-booking-sort"))==null?void 0:m.value)||"newest")==="oldest"?n.sort((y,I)=>new Date(y.createdAt||0)-new Date(I.createdAt||0)):n.sort((y,I)=>new Date(I.createdAt||0)-new Date(y.createdAt||0)):n.sort((c,y)=>new Date(y.createdAt||0)-new Date(c.createdAt||0)),n.length===0){e.innerHTML='<div class="no-data-admin" style="padding:40px; text-align:center; opacity:0.5;">لا توجد بيانات لهذه الفئة</div>';return}if(t==="users"){const c=window.state.bookings||[],y=((h=window.state.userProfile)==null?void 0:h.role)==="admin";let I=`<table class="admin-table-v2" style="width:100%; border-collapse:collapse; min-width:800px; font-size:14px;">
+          <thead>
+              <tr style="border-bottom: 2px solid var(--glass-border); text-align:right;">
+                  <th style="padding:15px; color:var(--text-dim);">الموظف</th>
+                  <th style="padding:15px; color:var(--text-dim);">الدور</th>
+                  <th style="padding:15px; color:var(--text-dim);">الحالة</th>
+                  <th style="padding:15px; color:var(--text-dim); text-align:center;">مكتمل</th>
+                  <th style="padding:15px; color:var(--text-dim); text-align:center;">جاري</th>
+                  <th style="padding:15px; color:var(--text-dim); text-align:center;">مرفوض</th>
+                  <th style="padding:15px; color:var(--text-dim); text-align:center;">إجراءات</th>
+              </tr>
+          </thead>
+          <tbody>`;n.forEach(k=>{const S=c.filter(B=>B.assignedTo===k.id),$=S.filter(B=>B.status==="sold"||B.status==="done").length,g=S.filter(B=>B.status==="new"||B.status==="waiting"||B.status==="inquiry"||!B.status).length,v=S.filter(B=>B.status==="cancelled").length,b={admin:"مسؤول",supervisor:"مشرف",staff:"مندوب"}[k.role]||"مندوب",T=k.image||"logo.jpg",L=k.phone||"";let M="";if(L){let B=L.replace(/\D/g,"");B=window.normalizePhone(B),M=`<a href="https://wa.me/${B}" target="_blank" class="icon-btn-lite success" title="مراسلة واتساب"><i class="fab fa-whatsapp"></i></a>`}I+=`<tr style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+              <td style="padding:15px;">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                      <div style="width:40px; height:40px; border-radius:50%; overflow:hidden; background:#222; flex-shrink:0;">
+                          <img src="${T}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='logo.jpg'">
+                      </div>
+                      <div>
+                          <strong style="display:block; font-size:15px;">${k.name||k.email}</strong>
+                          ${L?`<span style="font-size:12px; color:var(--text-dim);">${L}</span>`:""}
+                      </div>
+                  </div>
+              </td>
+              <td style="padding:15px;"><span style="color:var(--p-copper); font-size:13px;">${b}</span></td>
+              <td style="padding:15px;"><span class="status-badge ${k.isAvailable?"online":"busy"}" style="font-size:11px;">● ${k.isAvailable?"متاح":"غير متاح"}</span></td>
+              <td style="padding:15px; text-align:center;"><span style="color:#00a884; font-weight:bold; font-size:15px;">${$}</span></td>
+              <td style="padding:15px; text-align:center;"><span style="color:var(--p-gold); font-weight:bold; font-size:15px;">${g}</span></td>
+              <td style="padding:15px; text-align:center;"><span style="color:#e02424; font-weight:bold; font-size:15px;">${v}</span></td>
+              <td style="padding:15px; text-align:center;">
+                  <div style="display:flex; justify-content:center; gap:8px;">
+                      ${M}
+                      <button class="icon-btn-lite" onclick="window.editLuxuryItem('users', '${k.id}')" title="تعديل"><i class="fas fa-edit"></i></button>
+                      ${y?`<button class="icon-btn-lite danger" onclick="window.deleteLuxuryItem('users', '${k.id}')" title="حذف"><i class="fas fa-trash"></i></button>`:""}
+                  </div>
+              </td>
+          </tr>`}),I+="</tbody></table>",e.innerHTML=I;return}e.innerHTML=n.map(c=>Se(t,c)).join("")};function Se(t,e){var w,f,p,u,x;((w=window.state.userProfile)==null?void 0:w.role)==="admin"||((f=window.state.userProfile)==null||f.role);const n=((p=window.state.userProfile)==null?void 0:p.role)==="admin",o=((u=window.state.userProfile)==null?void 0:u.role)==="supervisor",a=n||o&&["bookings","notifications"].includes(t),s=e.status==="sold"?"danger":e.status==="available"?"success":"warning",l=e.status==="sold"?"مباع":e.status==="available"?"متاح":"محجوز";if(t==="bookings"){const m=((x=window.state.users.find(k=>k.id===e.assignedTo))==null?void 0:x.name)||"غير محدد",h={new:"جديد",waiting:"بالانتظار",inquiry:"استفسار",sold:"مكتمل",done:"تم",cancelled:"مرفوض",rejected:"مرفوض"},c={not_contacted:"لم يتم التواصل",contacted:"تم التواصل",docs_received:"تم استلام الاوراق",waiting_calc:"انتظار رد العميل",waiting_docs:"إنتظار إكمال الاوراق",waiting_signature:"إنتظار توقيع العميل",docs_not_received:"لم يتم استلام الاوراق",signed:"تم التوقيع",delivered:"تم التسليم",done:"تم",no_response:"لم يتم رد العميل",obligations:"التزامات",calc_rejected:"رفض الحسبة",ineligible:"غير مسموح له",duplicate:"مكرر"},y=e.status==="cancelled"||e.status==="rejected"?"danger":e.status==="sold"||e.status==="done"?"success":"warning",I=e.subStatus?c[e.subStatus]||e.subStatus:"";return`
+            <div class="admin-item-row" style="background:rgba(255,255,255,0.02); padding:15px; border-radius:12px; border:1px solid var(--glass-border); margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                <div class="admin-item-info">
+                    <strong style="display:block; font-size:16px;">${e.name||e.phone}</strong>
+                    <div class="meta-row" style="font-size:12px; color:var(--text-dim); margin-top:5px; display:flex; gap:10px; flex-wrap:wrap;">
+                        <span><i class="fas fa-car"></i> ${e.carOrCompany||e.carRequested||"-"}</span> | 
+                        <span><i class="fas fa-user-tie"></i> ${m}</span>
+                        ${I?`| <span style="color:var(--p-copper);"><i class="fas fa-info-circle"></i> ${I}</span>`:""}
+                    </div>
+                </div>
+                <div class="admin-actions" style="display:flex; gap:10px; align-items:center;">
+                    <span class="badge-${y}" style="font-size:10px; padding:3px 8px; border-radius:5px;">${h[e.status]||e.status||"جديد"}</span>
+                    <button class="icon-btn-lite view" onclick="window.viewBookingDetails('${e.id}')" title="عرض التفاصيل"><i class="fas fa-eye"></i></button>
+                    <button class="icon-btn-lite" onclick="window.editLuxuryItem('bookings', '${e.id}')" title="تعديل الحجز" aria-label="Edit Booking"><i class="fas fa-edit"></i></button>
+                    ${a?`<button class="icon-btn-lite danger" onclick="window.deleteLuxuryItem('bookings', '${e.id}')" title="حذف الحجز" aria-label="Delete Booking"><i class="fas fa-trash"></i></button>`:""}
+                </div>
+            </div>
+        `}if(t==="cars")return`
+            <div class="admin-item-row car-admin-row" style="background:rgba(255,255,255,0.02); padding:12px; border-radius:16px; border:1px solid var(--glass-border); margin-bottom:12px; display:flex; align-items:center; gap:20px; transition:all 0.3s ease;">
+                <div class="admin-item-thumb" style="width:80px; height:60px; border-radius:10px; overflow:hidden; flex-shrink:0; background:#000;">
+                    <img src="${e.image||"logo.jpg"}" style="width:100%; height:100%; object-fit:cover; opacity:0.8;" onerror="this.src='logo.jpg'">
+                </div>
+                <div class="admin-item-info" style="flex-grow:1;">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+                        <strong style="font-size:16px;">${e.make} ${e.model}</strong>
+                        <span style="font-size:12px; color:var(--p-copper); font-weight:700;">${e.year}</span>
+                    </div>
+                    <div class="meta-row" style="font-size:12px; color:var(--text-dim); display:flex; gap:15px; flex-wrap:wrap;">
+                        <span><i class="fas fa-tachometer-alt"></i> ${Number(e.mileage||0).toLocaleString()} كم</span>
+                        <span><i class="fas fa-paint-brush"></i> ${e.color||"-"}</span>
+                        <span style="color:var(--p-red); font-weight:800;">${e.price?Number(e.price).toLocaleString()+" ريال":e.monthlyInstallment?"قسط: "+Number(e.monthlyInstallment).toLocaleString()+" ريال":"عند التواصل"}</span>
+                    </div>
+                </div>
+                <div class="admin-actions" style="display:flex; gap:8px; align-items:center;">
+                    <span class="badge-${s}" style="font-size:10px; padding:4px 10px; border-radius:6px; font-weight:700;">${l}</span>
+                    <button class="icon-btn-lite view" onclick="window.viewLuxuryCar('${e.id}')" title="عرض التفاصيل"><i class="fas fa-eye"></i></button>
+                    ${a?`
+                        <button class="icon-btn-lite" onclick="window.editLuxuryItem('cars', '${e.id}')" title="تعديل"><i class="fas fa-edit"></i></button>
+                        <button class="icon-btn-lite danger" onclick="window.deleteLuxuryItem('cars', '${e.id}')" title="حذف"><i class="fas fa-trash"></i></button>
+                    `:""}
+                </div>
+            </div>
+        `;if(t==="users")return e.email==="zyrozyro98@gmail.com"?"":`
+            <div class="admin-item-row" style="background:rgba(255,255,255,0.02); padding:15px; border-radius:12px; border:1px solid var(--glass-border); margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                <div class="admin-item-info">
+                    <strong style="display:block;">${e.name||e.email}</strong>
+                    <div style="font-size:12px;">
+                        <span style="color:var(--p-copper);">${e.role||"staff"}</span> | 
+                        <span class="status-badge ${e.isAvailable?"online":"busy"}">● ${e.isAvailable?"متاح":"غير متاح"}</span>
+                    </div>
+                </div>
+                <div class="admin-actions">
+                    <button class="icon-btn-lite" onclick="window.editLuxuryItem('users', '${e.id}')" title="تعديل المستخدم" aria-label="Edit User"><i class="fas fa-edit"></i></button>
+                    ${a?`<button class="icon-btn-lite danger" onclick="window.deleteLuxuryItem('users', '${e.id}')" title="حذف المستخدم" aria-label="Delete User"><i class="fas fa-trash"></i></button>`:""}
+                </div>
+            </div>
+        `;if(t==="plates")return`
+            <div class="admin-item-row" style="background:rgba(255,255,255,0.02); padding:15px; border-radius:12px; border:1px solid var(--glass-border); margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                <div class="admin-item-info">
+                    <strong style="display:block; font-size:18px; letter-spacing:2px;">${e.number} ${e.letters}</strong>
+                    <span style="font-size:12px; color:var(--p-copper);">${Number(e.price).toLocaleString()} ريال</span>
+                </div>
+                <div class="admin-actions" style="display:flex; gap:10px; align-items:center;">
+                    <span class="badge-${s}" style="font-size:10px; padding:3px 8px; border-radius:5px;">${l}</span>
+                    ${a?`
+                        <button class="icon-btn-lite" onclick="window.editLuxuryItem('plates', '${e.id}')" title="تعديل"><i class="fas fa-edit"></i></button>
+                        <button class="icon-btn-lite danger" onclick="window.deleteLuxuryItem('plates', '${e.id}')" title="حذف"><i class="fas fa-trash"></i></button>
+                    `:""}
+                </div>
+            </div>
+        `;if(t==="notifications"){const m=!!e.read;return`
+            <div class="admin-item-row" style="background:${m?"rgba(255,255,255,0.01)":"rgba(28, 124, 140, 0.05)"}; padding:15px; border-radius:12px; border:1px solid ${m?"var(--glass-border)":"var(--p-teal)"}; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                <div class="admin-item-info">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        ${m?"":'<span style="width:8px; height:8px; background:var(--p-teal); border-radius:50%;"></span>'}
+                        <strong style="display:block; font-size:15px;">${e.title||"تنبيه بالنظام"}</strong>
+                    </div>
+                    <p style="font-size:13px; opacity:0.8; margin-top:4px;">${e.text||e.message||""}</p>
+                    <span style="font-size:11px; opacity:0.5; margin-top:5px; display:block;"><i class="far fa-clock"></i> ${new Date(e.timestamp).toLocaleString()}</span>
+                </div>
+                ${a?`
+                <div class="admin-actions">
+                    <button class="icon-btn-lite danger" onclick="window.deleteLuxuryItem('notifications', '${e.id}')" title="حذف"><i class="fas fa-trash"></i></button>
+                </div>
+                `:""}
+            </div>
+        `}if(t==="logs")return`
+            <div class="admin-item-row" style="background:rgba(255,255,255,0.02); padding:10px; border-radius:10px; font-size:12px; border-bottom:1px solid rgba(255,255,255,0.05);">
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                    <strong style="color:var(--p-teal);">${e.action}</strong>
+                    <span style="opacity:0.5;">${new Date(e.timestamp).toLocaleString()}</span>
+                </div>
+                <p style="opacity:0.8;">${e.details}</p>
+                <div style="margin-top:5px; font-size:10px; opacity:0.6;">بواسطة: ${e.user}</div>
+            </div>
+        `;if(t==="sales"){const m=(e.url||"").trim();let h=m.includes("youtube.com")||m.includes("youtu.be"),c=e.poster||e.image||null;if(h&&!c){let y="";try{m.includes("v=")?y=m.split("v=")[1].split("&")[0]:m.includes("youtu.be/")?y=m.split("youtu.be/")[1].split("?")[0]:m.includes("embed/")?y=m.split("embed/")[1].split("?")[0]:y=m.split("/").pop().split("?")[0]}catch{y=""}y&&(c=`https://img.youtube.com/vi/${y}/mqdefault.jpg`)}return c=c||"logo.jpg",`
+            <div class="admin-item-row" style="background:rgba(255,255,255,0.02); padding:12px; border-radius:16px; border:1px solid var(--glass-border); margin-bottom:12px; display:flex; align-items:center; gap:20px;">
+                <div class="admin-item-thumb" style="width:80px; height:50px; border-radius:10px; overflow:hidden; flex-shrink:0; background:#000;">
+                    <img src="${c}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='logo.jpg'">
+                </div>
+                <div class="admin-item-info" style="flex-grow:1;">
+                    <strong style="display:block; font-size:16px;">${e.title||e.name||"لحظة تسليم"}</strong>
+                    <div style="font-size:11px; color:var(--text-dim); margin-top:4px; max-width:400px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                        <i class="fas fa-link"></i> ${m}
+                    </div>
+                </div>
+                <div class="admin-actions">
+                    <button class="icon-btn-lite view" onclick="window.openVideoLightbox('${m}')" title="معاينة"><i class="fas fa-eye"></i></button>
+                    ${a?`
+                        <button class="icon-btn-lite" onclick="window.editLuxuryItem('sales', '${e.id}')" title="تعديل"><i class="fas fa-edit"></i></button>
+                        <button class="icon-btn-lite danger" onclick="window.deleteLuxuryItem('sales', '${e.id}')" title="حذف"><i class="fas fa-trash"></i></button>
+                    `:""}
+                </div>
+            </div>
+        `}if(t==="reviews"){const m=Number(e.rating||5),h=e.text?e.text.length>60?e.text.substring(0,60)+"...":e.text:"لا يوجد نص",c=e.avatar||e.image||"";return`
+        <div class="admin-item-row" style="background:rgba(255,255,255,0.02); padding:15px; border-radius:16px; border:1px solid var(--glass-border); margin-bottom:12px; display:flex; align-items:center; gap:20px;">
+            <div class="admin-item-avatar" style="width:50px; height:50px; border-radius:50%; overflow:hidden; flex-shrink:0; background:var(--bg-alt); border:2px solid var(--p-copper); display:flex; align-items:center; justify-content:center; color:var(--p-copper); font-weight:900;">
+                ${c?`<img src="${c}" style="width:100%; height:100%; object-fit:cover;">`:(e.name||"U").charAt(0)}
+            </div>
+            <div class="admin-item-info" style="flex-grow:1;">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+                    <strong style="font-size:16px;">${e.name||"عميل مجهول"}</strong>
+                    <div class="review-stars-lite" style="color:#ffd700; font-size:11px;">
+                        ${'<i class="fas fa-star"></i>'.repeat(m)}
+                    </div>
+                </div>
+                <p style="font-size:13px; color:var(--text-dim); margin-top:2px;">"${h}"</p>
+                ${e.car?`<span style="font-size:11px; color:var(--p-copper); opacity:0.8; display:block; margin-top:5px;"><i class="fas fa-car-side"></i> ${e.car}</span>`:""}
+            </div>
+            <div class="admin-actions">
+                ${isAdmin?`
+                    <button class="icon-btn-lite" onclick="window.editLuxuryItem('reviews', '${e.id}')" title="تعديل"><i class="fas fa-edit"></i></button>
+                    <button class="icon-btn-lite danger" onclick="window.deleteLuxuryItem('reviews', '${e.id}')" title="حذف"><i class="fas fa-trash"></i></button>
+                `:""}
+            </div>
+        </div>
+    `}const r=e.make?`${e.make} ${e.model}`:e.title||e.name||"بدون عنوان",d=e.image||e.logo||e.poster||null;return`
+        <div class="admin-item-row" onclick="window.editLuxuryItem('${t}', '${e.id}')" style="cursor:pointer;">
+            <div style="display:flex; align-items:center; gap:15px;">
+                ${d?`
+                    <div style="width:50px; height:40px; border-radius:8px; overflow:hidden; flex-shrink:0;">
+                        <img src="${d}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='logo.jpg'">
+                    </div>
+                `:""}
+                <div class="admin-item-info">
+                    <strong style="display:block;">${r}</strong>
+                    ${e.price?`<span style="font-size:12px; color:var(--p-copper); font-weight:700;">${Number(e.price).toLocaleString()} ريال</span>`:""}
+                </div>
+            </div>
+            <div class="admin-actions" style="display:flex; gap:8px; align-items:center;" onclick="event.stopPropagation()">
+                ${e.status?`<span class="badge-${s}" style="font-size:10px; padding:3px 8px; border-radius:5px;">${l}</span>`:""}
+                <button class="icon-btn-lite" onclick="window.editLuxuryItem('${t}', '${e.id}')" title="تعديل"><i class="fas fa-edit"></i></button>
+                ${isAdmin?`<button class="icon-btn-lite danger" onclick="window.deleteLuxuryItem('${t}', '${e.id}')" title="حذف"><i class="fas fa-trash"></i></button>`:""}
+            </div>
+        </div>
+    `}window.updateStatistics=function(){var I,k,S,$;const t=document.getElementById("stat-cars-count-v2"),e=document.getElementById("stat-bookings-count-v2"),n=document.getElementById("stat-total-value-v2"),o=window.state.cars||[];let i=window.state.bookings||[];if(!(((I=window.state.userProfile)==null?void 0:I.role)==="admin"||((k=window.state.userProfile)==null?void 0:k.role)==="supervisor")&&window.state.user&&(i=i.filter(g=>g.assignedTo===window.state.user.uid)),t&&(t.innerText=o.length),e&&(e.innerText=i.length),n){const g=o.reduce((v,E)=>v+(parseFloat(E.price)||0),0);n.innerText=g.toLocaleString()+" ريال"}const s={all:i.length,new:i.filter(g=>g.status==="new"||!g.status).length,waiting:i.filter(g=>g.status==="waiting").length,inquiry:i.filter(g=>g.status==="inquiry").length,sold:i.filter(g=>g.status==="sold").length,done:i.filter(g=>g.status==="done").length,cancelled:i.filter(g=>g.status==="cancelled"||g.status==="rejected").length,sub:{not_contacted:i.filter(g=>g.subStatus==="not_contacted").length,contacted:i.filter(g=>g.subStatus==="contacted").length,docs_received:i.filter(g=>g.subStatus==="docs_received").length,waiting_calc:i.filter(g=>g.subStatus==="waiting_calc").length,waiting_docs:i.filter(g=>g.subStatus==="waiting_docs").length,waiting_signature:i.filter(g=>g.subStatus==="waiting_signature").length,docs_not_received:i.filter(g=>g.subStatus==="docs_not_received").length,signed:i.filter(g=>g.subStatus==="signed").length,delivered:i.filter(g=>g.subStatus==="delivered").length,done:i.filter(g=>g.subStatus==="done").length,no_response:i.filter(g=>g.subStatus==="no_response").length,obligations:i.filter(g=>g.subStatus==="obligations").length,calc_rejected:i.filter(g=>g.subStatus==="calc_rejected").length,ineligible:i.filter(g=>g.subStatus==="ineligible").length,duplicate:i.filter(g=>g.subStatus==="duplicate").length}};Object.entries(s).forEach(([g,v])=>{const E=document.getElementById(`count-${g}`);E&&(E.innerText=v)}),Object.entries(s.sub).forEach(([g,v])=>{const E=document.getElementById(`count-sub-${g}`);E&&(E.innerText=v)});const l=document.getElementById("bookings-badge");l&&(l.innerText=s.new,l.classList.toggle("hidden",s.new===0));const r=(S=window.state.user)==null?void 0:S.uid;if((($=window.state.userProfile)==null?void 0:$.role)==="staff"&&r){const g=document.getElementById("staff-quick-stats");g&&g.classList.remove("hidden");const v=(window.state.bookings||[]).filter(q=>q.assignedTo===r),E=v.filter(q=>q.status==="new"||!q.status).length,b=v.length,T=v.filter(q=>q.status==="sold").length,L=b>0?Math.round(T/b*100):0,M=document.getElementById("staff-waiting-count"),B=document.getElementById("staff-total-assigned"),z=document.getElementById("staff-conversion-rate"),_=document.getElementById("availability-toggle");M&&(M.innerText=E),B&&(B.innerText=b),z&&(z.innerText=L+"%"),_&&(_.checked=window.state.userProfile.isAvailable!==!1)}const w=document.getElementById("total-inventory-value"),f=document.getElementById("overall-conversion-rate"),p=document.getElementById("active-bookings-count"),u=document.getElementById("conversion-bar");if(w){const g=(window.state.cars||[]).reduce((v,E)=>v+(parseFloat(E.price)||0),0);w.innerText=g.toLocaleString()+" ريال"}if(p&&(p.innerText=s.new+s.waiting+s.inquiry),f){const g=(window.state.bookings||[]).length,v=(window.state.bookings||[]).filter(b=>b.status==="sold"||b.status==="done").length,E=g>0?Math.round(v/g*100):0;f.innerText=E+"%",u&&(u.style.width=E+"%")}const x=document.getElementById("monthly-goal-percent"),m=document.getElementById("monthly-goal-fill");if(x&&m){const g=(window.state.bookings||[]).filter(b=>{if(b.status!=="sold"&&b.status!=="done")return!1;const T=new Date(b.createdAt||0),L=new Date;return T.getMonth()===L.getMonth()&&T.getFullYear()===L.getFullYear()}).length,E=Math.min(100,Math.round(g/50*100));x.innerText=E+"%",m.style.width=E+"%"}const h=document.getElementById("supervisor-recent-logs");if(h&&window.state.logs){const g=[...window.state.logs].sort((v,E)=>new Date(E.timestamp)-new Date(v.timestamp)).slice(0,10);h.innerHTML=g.map(v=>`
+      <div class="log-entry-lite">
+        <div class="le-icon"><i class="fas ${v.type==="auth"?"fa-key":v.type==="data"?"fa-database":"fa-info-circle"}"></i></div>
+        <div class="le-body">
+          <div class="le-top"><strong>${v.action}</strong> <span>${new Date(v.timestamp).toLocaleTimeString()}</span></div>
+          <p>${v.details}</p>
+          <small>بواسطة: ${v.user}</small>
+        </div>
+      </div>
+    `).join("")}const c=document.getElementById("status-donut-chart");if(c){const g=s.sold+s.done,v=s.new+s.waiting+s.inquiry,E=s.cancelled,b=g+v+E||1,T=Math.round(g/b*100),L=Math.round(v/b*100);c.style.background=`conic-gradient(
+      #00a884 0% ${T}%, 
+      var(--p-gold) ${T}% ${T+L}%, 
+      #e02424 ${T+L}% 100%
+    )`,c.setAttribute("data-pct",`${T}% ناجح`)}const y=document.getElementById("supervisor-leaderboard");if(y&&window.state.users&&window.state.bookings){const g=new Date,v=window.state.bookings.filter(b=>{const T=new Date(b.createdAt||0);return T.getMonth()===g.getMonth()&&T.getFullYear()===g.getFullYear()}),E=window.state.users.filter(b=>b.role==="staff"||b.role==="supervisor").map(b=>{const T=v.filter(M=>M.assignedTo===b.id&&(M.status==="sold"||M.status==="done")).length,L=v.filter(M=>M.assignedTo===b.id).length;return{...b,soldCount:T,totalAssigned:L}}).sort((b,T)=>T.soldCount-b.soldCount).slice(0,5);y.innerHTML=E.map((b,T)=>`
+      <div class="leader-item">
+        <div class="leader-rank">${T+1}</div>
+        <div class="leader-avatar"><img src="${b.image||"logo.jpg"}" onerror="this.src='logo.jpg'"></div>
+        <div class="leader-info">
+          <strong>${b.name||b.email}</strong>
+          <span>${b.soldCount} مبيعات / ${b.totalAssigned} طلبات</span>
+        </div>
+        <div class="leader-score">${b.soldCount>0?Math.round(b.soldCount/(b.totalAssigned||1)*100):0}%</div>
+      </div>
+    `).join("")}window.state.currentPeriodReport?window.switchPeriodReport(window.state.currentPeriodReport):window.switchPeriodReport("day")};window.switchPeriodReport=function(t,e){if(window.state.currentPeriodReport=t,e)document.querySelectorAll(".p-tab").forEach(u=>u.classList.remove("active")),e.classList.add("active");else{const u=document.querySelectorAll(".p-tab"),m={day:0,week:1,month:2,year:3}[t]||0;u[m]&&(u.forEach(h=>h.classList.remove("active")),u[m].classList.add("active"))}const n=new Date;let o=new Date;t==="day"?o.setHours(0,0,0,0):t==="week"?o.setDate(n.getDate()-7):t==="month"?o.setMonth(n.getMonth()-1):t==="year"&&o.setFullYear(n.getFullYear()-1);const i=(window.state.bookings||[]).filter(u=>new Date(u.createdAt||0)>=o),a=(window.state.cars||[]).filter(u=>new Date(u.createdAt||0)>=o).length,s=(window.state.plates||[]).filter(u=>new Date(u.createdAt||0)>=o).length,l=i.length,r=i.filter(u=>u.status==="sold"||u.status==="done").length,d=i.filter(u=>u.status==="new"||u.status==="waiting"||u.status==="inquiry").length,w=l>0?Math.round(r/l*100):0,f=i.filter(u=>u.status==="sold"||u.status==="done").reduce((u,x)=>{const m=(window.state.cars||[]).find(h=>h.id===x.carId);return u+parseFloat((m==null?void 0:m.price)||0)},0),p={"period-total-count":l,"period-sold-count":r,"period-active-count":d,"period-conv-rate":w+"%","period-sold-value":f.toLocaleString()+" ريال","period-inventory-added":a+s};Object.entries(p).forEach(([u,x])=>{const m=document.getElementById(u);m&&(m.innerText=x)})};window.deleteLuxuryItem=async function(t,e){var n;if(confirm("هل أنت متأكد من الحذف؟ لا يمكن التراجع عن هذه العملية."))try{if(t==="users"){const o=(window.state.users||[]).find(a=>a.id===e);if((o==null?void 0:o.email)==="zyrozyro98@gmail.com"){window.showLuxuryToast("لا يمكن حذف هذا المطور الأساسي للنظام","error");return}if(((n=window.state.userProfile)==null?void 0:n.role)==="supervisor"&&(o==null?void 0:o.role)==="admin"){window.showLuxuryToast("لا يملك المشرف صلاحية حذف المدير","error");return}}await W(C(A,`${t}/${e}`)),window.showLuxuryToast("تم الحذف بنجاح"),window.createLog("حذف",`حذف عنصر من ${t} (ID: ${e})`,"data")}catch{window.showLuxuryToast("فشل الحذف","error")}};window.editLuxuryItem=function(t,e){const n=(window.state[t]||[]).find(i=>i.id===e);if(!n)return;if(t==="users"&&n.email==="zyrozyro98@gmail.com"){window.showLuxuryToast("لا يمكن تعديل بيانات هذا المستخدم الأساسي","error");return}window.state.currentEdit={type:t,id:e},document.getElementById("item-form")&&(t==="cars"&&(window.state.carImages=[],n.image&&window.state.carImages.push({type:"url",value:n.image,isMain:!0}),n.images&&Array.isArray(n.images)&&n.images.forEach(i=>{i!==n.image&&window.state.carImages.push({type:"url",value:i,isMain:!1})})),ae(t,n),window.setModalTitle("item-modal",`تعديل: ${n.make||n.title||t}`),window.openModal("item-modal"))};window.insertQRVariable=function(t){const e=document.querySelector('#item-form textarea[name="content"]');if(e){const n=e.selectionStart,o=e.selectionEnd,i=e.value;e.value=i.substring(0,n)+t+i.substring(o),e.selectionStart=e.selectionEnd=n+t.length,e.focus()}};window.openCRUDModal=function(t,e=null){var i;if(window.state.currentEdit={type:t,id:e},!document.getElementById("item-form"))return;const o=e?((i=window.state[t])==null?void 0:i.find(a=>a.id===e))||{}:{};t==="cars"&&(window.state.carImages=[],o.image&&window.state.carImages.push({type:"url",value:o.image,isMain:!0}),o.images&&Array.isArray(o.images)&&o.images.forEach(a=>{a!==o.image&&window.state.carImages.push({type:"url",value:a,isMain:!1})})),ae(t,o),window.setModalTitle("item-modal",e?`تعديل: ${t}`:`إضافة: ${t}`),window.openModal("item-modal")};function ae(t,e={}){const n=document.getElementById("dynamic-form-fields");if(!n)return;let o=[];if(t==="cars"){const i=(window.state.brands||[]).map(a=>({v:a.name,t:a.name}));o=[{name:"make",label:"الماركة",type:"select",options:[{v:"",t:"اختر الماركة"},...i],required:!0},{name:"model",label:"الموديل",type:"text",required:!0},{name:"year",label:"السنة",type:"number",required:!0},{name:"price",label:"سعر الكاش",type:"number"},{name:"monthlyInstallment",label:"قسط شهري يبدأ بـ",type:"number"},{name:"mileage",label:"الممشى (كم)",type:"number"},{name:"engine",label:"المحرك",type:"text",placeholder:"مثال: 8 سليندر، 4.0L"},{name:"gearbox",label:"ناقل الحركة",type:"select",options:[{v:"عادي",t:"عادي"},{v:"أوتوماتيكي",t:"أوتوماتيكي"},{v:"CVT",t:"CVT"}]},{name:"fuelType",label:"نوع الوقود",type:"select",options:[{v:"بنزين",t:"بنزين"},{v:"ديزل",t:"ديزل"},{v:"هايبرد",t:"هايبرد"},{v:"كهرباء",t:"كهرباء"}]},{name:"bodyType",label:"فئة السيارة",type:"select",options:[{v:"sedan",t:"سيدان"},{v:"suv",t:"SUV"},{v:"coupe",t:"كوبيه"},{v:"luxury",t:"فاخرة"},{v:"pickup",t:"بيك آب"}]},{name:"color",label:"اللون خارجي",type:"text"},{name:"interiorColor",label:"اللون داخلي",type:"text"},{name:"status",label:"الحالة في المخزون",type:"select",options:[{v:"available",t:"متاح"},{v:"reserved",t:"محجوز"},{v:"sold",t:"مباع"},{v:"incoming",t:"قادم قريباً"}]},{name:"isFeatured",label:"عرض في قسم المميز؟",type:"select",options:[{v:!1,t:"لا"},{v:!0,t:"نعم"}]},{name:"desc",label:"وصف إضافي ومواصفات",type:"textarea"},{name:"_image_manager",label:"صور السيارة (المعرض)",type:"custom",html:`
+        <div class="f-group full-width">
+          <label>إدارة صور السيارة (المعرض والصورة الرئيسية)</label>
+          <div class="img-manager-v2" id="car-image-manager">
+            <!-- Rendered by window.renderCarImageManager -->
+          </div>
+          <input type="file" id="car-file-input" multiple accept="image/*" style="display:none;" onchange="window.handleCarFileSelect(this.files)">
+        </div>
+      `}],setTimeout(()=>window.renderCarImageManager(),100)}else t==="ads"?o=[{name:"title",label:"العنوان",type:"text"},{name:"subtitle",label:"العنوان الفرعي",type:"text"},{name:"image",label:"صورة الإعلان (من الجهاز)",type:"file"},{name:"link",label:"الرابط (اختياري)",type:"text"}]:t==="sales"?o=[{name:"title",label:"العنوان",type:"text"},{name:"description",label:"وصف قصير",type:"textarea"},{name:"url",label:"رابط الفيديو (MP4 أو YouTube)",type:"text"},{name:"poster",label:"رابط صورة الغلاف",type:"text"}]:t==="reviews"?o=[{name:"name",label:"اسم العميل",type:"text",required:!0,placeholder:"مثال: عبدالله محمد"},{name:"car",label:"السيارة المشتراة (اختياري)",type:"text",placeholder:"مثال: تويوتا كامري 2024"},{name:"rating",label:"التقييم من 5 نجوم",type:"number",required:!0,placeholder:"5"},{name:"avatar",label:"رابط صورة العميل (اختياري)",type:"text",placeholder:"https://..."},{name:"text",label:"محتوى الرأي",type:"textarea",required:!0,placeholder:"لقد كانت تجربة رائعة مع هذا المعرض..."}]:t==="partners"?o=[{name:"name",label:"اسم الشريك",type:"text"},{name:"logo",label:"شعار الشريك (من الجهاز)",type:"file"},{name:"link",label:"رابط خارجي (اختياري)",type:"text"}]:t==="brands"?o=[{name:"name",label:"اسم العلامة التجارية",type:"text"},{name:"logo",label:"شعار البراند (من الجهاز)",type:"file"}]:t==="blogs"?o=[{name:"title",label:"عنوان المقال",type:"text"},{name:"image",label:"صورة المقال (من الجهاز)",type:"file"},{name:"content",label:"محتوى المقال",type:"textarea"}]:t==="locations"?o=[{name:"name",label:"اسم المدينة/الدولة",type:"text"},{name:"status",label:"الحالة",type:"select",options:[{v:"active",t:"نشط"},{v:"inactive",t:"غير نشط"}]}]:t==="plates"?o=[{name:"number",label:"رقم اللوحة",type:"text"},{name:"letters",label:"حروف اللوحة",type:"text"},{name:"price",label:"السعر",type:"number"},{name:"status",label:"الحالة",type:"select",options:[{v:"available",t:"متاح"},{v:"sold",t:"مباع"}]}]:t==="specs"?o=[{name:"name",label:"اسم المواصفة",type:"text"},{name:"icon",label:"أيقونة (FontAwesome)",type:"text"}]:t==="packages"?o=[{name:"name",label:"اسم الباقة",type:"text"},{name:"price",label:"السعر",type:"number"},{name:"features",label:"المميزات (فاصلة بين كل ميزة)",type:"textarea"}]:t==="bookings"?o=[{name:"name",label:"اسم العميل",type:"text"},{name:"phone",label:"الجوال",type:"text"},{name:"carRequested",label:"السيارة المطلوبة",type:"text"},{name:"status",label:"حالة الطلب",type:"select",options:[{v:"new",t:"جديد"},{v:"waiting",t:"بالانتظار"},{v:"inquiry",t:"استفسار"},{v:"sold",t:"مكتمل"},{v:"done",t:"تم"},{v:"cancelled",t:"مرفوض"}]},{name:"subStatus",label:"الحالة التفصيلية",type:"select",options:[{v:"not_contacted",t:"لم يتم التواصل"},{v:"contacted",t:"تم التواصل"},{v:"docs_received",t:"تم استلام الاوراق"},{v:"waiting_calc",t:"انتظار رد العميل"},{v:"waiting_docs",t:"إنتظار إكمال الاوراق"},{v:"waiting_signature",t:"إنتظار توقيع العميل"},{v:"docs_not_received",t:"لم يتم استلام الاوراق"},{v:"signed",t:"تم التوقيع"},{v:"delivered",t:"تم التسليم"},{v:"done",t:"تم"},{v:"no_response",t:"لم يتم رد العميل"},{v:"obligations",t:"التزامات"},{v:"calc_rejected",t:"رفض الحسبة"},{v:"ineligible",t:"غير مسموح له"},{v:"duplicate",t:"مكرر"}]},{name:"assignedTo",label:"الموظف المسؤول",type:"select",options:[{v:"",t:"غير محدد"},...window.state.users.filter(i=>i.email!=="zyrozyro98@gmail.com"&&(i.role==="staff"||i.role==="admin"||i.role==="supervisor")).map(i=>({v:i.id,t:i.name||(i.role==="admin"?"المدير: ":"المشرف: ")+(i.name||i.email)}))]},{name:"notes",label:"ملاحظات",type:"textarea"}]:t==="users"?o=[{name:"name",label:"الاسم الكامل",type:"text"},{name:"email",label:"البريد الإلكتروني",type:"text"},{name:"password",label:"كلمة المرور (اختياري عند التعديل)",type:"password"},{name:"role",label:"الصلاحية",type:"select",options:[{v:"staff",t:"موظف"},{v:"supervisor",t:"مشرف"},{v:"admin",t:"مدير"}]},{name:"isAvailable",label:"متاح لاستلام الطلبات؟",type:"select",options:[{v:!0,t:"نعم"},{v:!1,t:"لا"}]}]:t==="quickReplies"?o=[{name:"title",label:"عنوان الرد السريع",type:"text",required:!0,placeholder:"مثال: ترحيب بالعملاء الجدد"},{type:"custom",html:`
+        <div class="f-group full-width" style="margin-bottom: 20px;">
+            <label style="margin-bottom:8px; display:block; color:var(--text-bright); font-weight:600;">المتغيرات المتاحة (انقر لإضافتها في الرسالة):</label>
+            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                <button type="button" onclick="window.insertQRVariable('(اسم الموظف)')" style="background:var(--p-gold); border:none; padding:6px 12px; border-radius:12px; font-size:13px; font-weight:bold; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">(اسم الموظف)</button>
+                <button type="button" onclick="window.insertQRVariable('(اسم العميل)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(اسم العميل)</button>
+                <button type="button" onclick="window.insertQRVariable('(اسم السيارة)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(اسم السيارة)</button>
+                <button type="button" onclick="window.insertQRVariable('(الماركة)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(الماركة)</button>
+                <button type="button" onclick="window.insertQRVariable('(الموديل)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(الموديل)</button>
+                <button type="button" onclick="window.insertQRVariable('(سنة الصنع)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(سنة الصنع)</button>
+                <button type="button" onclick="window.insertQRVariable('(السعر)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(السعر)</button>
+                <button type="button" onclick="window.insertQRVariable('(المحرك)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(المحرك)</button>
+                <button type="button" onclick="window.insertQRVariable('(الممشى)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(الممشى)</button>
+                <button type="button" onclick="window.insertQRVariable('(نوع الوقود)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(نوع الوقود)</button>
+                <button type="button" onclick="window.insertQRVariable('(فئة السيارة)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(فئة السيارة)</button>
+                <button type="button" onclick="window.insertQRVariable('(اللون الخارجي)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(اللون الخارجي)</button>
+                <button type="button" onclick="window.insertQRVariable('(اللون الداخلي)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(اللون الداخلي)</button>
+                <button type="button" onclick="window.insertQRVariable('(طريقة الشراء)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(طريقة الشراء)</button>
+                <button type="button" onclick="window.insertQRVariable('(اسم البنك)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(اسم البنك)</button>
+                <button type="button" onclick="window.insertQRVariable('(مدة الأقساط)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(مدة الأقساط)</button>
+                <button type="button" onclick="window.insertQRVariable('(الراتب)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(الراتب)</button>
+                <button type="button" onclick="window.insertQRVariable('(الإلتزامات)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(الإلتزامات)</button>
+                <button type="button" onclick="window.insertQRVariable('(جهة العمل)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(جهة العمل)</button>
+                <button type="button" onclick="window.insertQRVariable('(حالة الجهة)')" style="background:#2b2b2b; color:white; border:1px solid #444; padding:6px 12px; border-radius:12px; font-size:13px; cursor:pointer; font-family:var(--font-luxury);" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#2b2b2b'">(حالة الجهة)</button>
+            </div>
+            <p style="font-size:12px; color:var(--text-dim); margin-top:8px;">ستتم ترجمة هذه المتغيرات إلى بيانات العميل الفعلية تلقائياً عند إرسالها.</p>
+        </div>
+      `},{name:"content",label:"محتوى الرسالة الكامل",type:"textarea",required:!0,placeholder:"اكتب هنا نص الرسالة التي ستظهر للموظف لاستخدامها..."}]:t==="sales"?o=[{name:"title",label:"عنوان الفيديو",type:"text",required:!0,placeholder:"مثال: تسليم سيارة مرسيدس G-Class"},{name:"url",label:"رابط الفيديو (YouTube أو مباشر)",type:"text",required:!0,placeholder:"https://youtube.com/watch?v=..."},{name:"poster",label:"رابط صورة الغلاف (اختياري)",type:"text",placeholder:"https://..."},{name:"description",label:"وصف مبسط",type:"textarea",placeholder:"يسعدنا دائماً مشاركة لحظات نجاحنا..."}]:o=[{name:"name",label:"الاسم / العنوان",type:"text"},{name:"desc",label:"الوصف",type:"textarea"}];n.innerHTML=`
+    <div class="form-grid-v3">
+      ${o.map(i=>{if(i.type==="custom")return i.html;let a=e[i.name]!==void 0&&e[i.name]!==null?e[i.name]:"";i.name==="desc"&&!a&&(a=e.description||e.details||"");const s=i.required?"required":"",l=i.placeholder||i.label;let r="";return i.type==="select"?r=`
+            <select name="${i.name}" class="filter-select" ${s}>
+              ${i.options.map(d=>`<option value="${d.v}" ${d.v.toString()===a.toString()?"selected":""}>${d.t}</option>`).join("")}
+            </select>
+          `:i.type==="textarea"?r=`<textarea name="${i.name}" placeholder="${l}" ${s}>${a}</textarea>`:i.type==="file"?r=`
+            <input type="file" name="${i.name}" ${i.multiple?"multiple":""} ${s} accept="image/*" class="filter-select">
+            ${a?`<div class="file-path-hint" title="${a}">الملف الحالي: ${a.split("/").pop()}</div>`:""}
+          `:r=`<input type="${i.type}" name="${i.name}" value="${a}" placeholder="${l}" ${s}>`,`
+          <div class="f-group ${i.type==="textarea"||i.type==="custom"?"full-width":""}">
+            <label>${i.label} ${i.required?'<span class="req">*</span>':""}</label>
+            ${r}
+          </div>
+        `}).join("")}
+    </div>
+  `}window.handleCarFileSelect=function(t){if(t){for(let e=0;e<t.length;e++){const n=t[e];window.state.carImages.push({type:"file",value:n,preview:URL.createObjectURL(n),isMain:window.state.carImages.length===0})}window.renderCarImageManager()}};window.renderCarImageManager=function(){const t=document.getElementById("car-image-manager");if(!t)return;let n=`
+    <div class="img-grid-v2">
+      ${(window.state.carImages||[]).map((o,i)=>{const a=o.type==="url"?o.value:o.preview;return`
+          <div class="img-item-v2 ${o.isMain?"is-main":""}">
+            ${o.isMain?'<span class="main-badge">الرئيسية</span>':""}
+            <img src="${a}" alt="Car image">
+            <div class="img-actions-lite">
+              <button type="button" class="img-action-btn-lite" onclick="window.reorderCarImage(${i}, -1)" title="نقل لليمين">
+                <i class="fas fa-arrow-right"></i>
+              </button>
+              <button type="button" class="img-action-btn-lite" onclick="window.reorderCarImage(${i}, 1)" title="نقل لليسار">
+                <i class="fas fa-arrow-left"></i>
+              </button>
+              <button type="button" class="img-action-btn-lite" onclick="window.setCarMainImage(${i})" title="تعيين كرئيسية">
+                <i class="fas fa-star"></i>
+              </button>
+              <button type="button" class="img-action-btn-lite danger" onclick="window.removeCarImage(${i})" title="حذف">
+                <i class="fas fa-trash-alt"></i>
+              </button>
+            </div>
+          </div>
+        `}).join("")}
+      <div class="add-img-btn-v2" onclick="document.getElementById('car-file-input').click()">
+        <i class="fas fa-plus"></i>
+        <span>أضف صور</span>
+      </div>
+    </div>
+  `;t.innerHTML=n};window.reorderCarImage=function(t,e){const n=window.state.carImages,o=t+e;if(o>=0&&o<n.length){const i=n[t];n[t]=n[o],n[o]=i,window.renderCarImageManager()}};window.removeCarImage=function(t){if(t<0||t>=window.state.carImages.length)return;const e=window.state.carImages[t].isMain;window.state.carImages.splice(t,1),e&&window.state.carImages.length>0&&(window.state.carImages[0].isMain=!0),window.renderCarImageManager()};window.setCarMainImage=function(t){window.state.carImages.forEach((e,n)=>e.isMain=n===t),window.renderCarImageManager()};window.saveLuxuryItem=async function(t){t&&t.preventDefault();const e=window.state.currentEdit;if(!e)return;const{type:n,id:o}=e,i=document.getElementById("item-form");if(!i)return;const a=i.querySelector('button[type="submit"]'),s=a.innerText;a&&(a.disabled=!0,a.innerText="جاري الحفظ والمعالجة...");const l=new FormData(i),r={};l.forEach((d,w)=>{if(w!=="main_img_file"&&w!=="gallery_files"){if(w==="password"&&!d)return;r[w]=d}});try{if(n==="cars"){const f=[];let p="";const u=window.state.carImages||[];for(let x=0;x<u.length;x++){const m=u[x];let h="";m.type==="url"?h=m.value:m.type==="file"&&(h=await window.compressImage(m.value,1e3,1e3,.6)),h&&(f.push(h),m.isMain&&(p=h))}!p&&f.length>0&&(p=f[0]),r.image=p,r.images=f}const d=["image","logo","avatar","poster"];for(const f of d)r[f]instanceof File&&r[f].size>0?r[f]=await window.compressImage(r[f],1e3,1e3,.7):r[f]instanceof File&&r[f].size===0&&delete r[f];if(["price","year","mileage","rating","installmentPeriod","monthlyInstallment"].forEach(f=>{r[f]!==void 0&&r[f]!==""&&r[f]!==null&&(r[f]=Number(r[f]))}),r.isFeatured!==void 0&&(r.isFeatured=r.isFeatured==="true"||r.isFeatured===!0),o||(r.createdAt=new Date().toISOString()),r.updatedAt=new Date().toISOString(),n==="users"&&!o){if(!r.password){window.showLuxuryToast("كلمة المرور مطلوبة للموظف الجديد","error"),a&&(a.disabled=!1,a.innerText=s);return}const f=te(oe,"Secondary"),p=ne(f);try{const x=(await fe(p,r.email,r.password)).user.uid,m=C(A,`users/${x}`);delete r.password,await D(m,r),await K(f)}catch(u){throw await K(f),u}}else{n==="users"&&delete r.password;const f=o?C(A,`${n}/${o}`):F(C(A,n));await(o?j(f,r):D(f,r))}window.showLuxuryToast(o?"تم تحديث البيانات بنجاح":"تم إضافة العنصر بنجاح"),window.closeModal("item-modal"),window.createLog(o?"تعديل":"إضافة",`${o?"تعديل":"إضافة"} في ${n} - ${r.make||r.title||o}`,"data")}catch(d){console.error("Save Error:",d),window.showLuxuryToast("حدث خطأ أثناء الحفظ: "+(d.message||"خطأ غير معروف"),"error")}finally{a&&(a.disabled=!1,a.innerText=s)}};window.openQuickReplyModal=function(){window.openCRUDModal("quickReplies")};window.renderQuickRepliesAdmin=function(){var o;const t=document.getElementById("quick-replies-list");if(!t)return;const e=(((o=document.getElementById("qr-search"))==null?void 0:o.value)||"").toLowerCase().trim(),n=(window.state.quickReplies||[]).filter(i=>(i.title||"").toLowerCase().includes(e)||(i.content||"").toLowerCase().includes(e));if(n.length===0){t.innerHTML='<div class="no-results-v2" style="grid-column:1/-1;"><p>لا توجد نتائج مطابقة لبحثك</p></div>';return}t.innerHTML=n.map(i=>`
+        <div class="admin-item-card-v2 animate-fade-in" data-aos="fade-up">
+            <div class="item-card-content">
+                <div class="item-card-header">
+                    <div class="item-icon-circle"><i class="fas fa-bolt"></i></div>
+                    <strong>${i.title}</strong>
+                </div>
+                <div class="item-card-body">
+                    <p class="qr-content-preview">${i.content}</p>
+                </div>
+            </div>
+            <div class="item-card-actions">
+                <button class="icon-btn-lite" onclick="window.editLuxuryItem('quickReplies', '${i.id}')" title="تعديل"><i class="fas fa-edit"></i></button>
+                <button class="icon-btn-lite danger" onclick="window.deleteLuxuryItem('quickReplies', '${i.id}')" title="حذف"><i class="fas fa-trash"></i></button>
+            </div>
+        </div>
+    `).join("")};window.renderAdsSlider=function(){const t=document.getElementById("slider-track"),e=document.getElementById("slider-dots");if(!t)return;const n=window.state.ads||[];if(n.length===0){t.innerHTML='<div class="no-ads"></div>',e&&(e.innerHTML="");return}t.innerHTML=n.map(o=>`
+        <div class="ad-slide">
+            <img src="${o.image||"logo.jpg"}" class="ad-bg-img" alt="${o.title||"عرض خاص"}">
+            <div class="ad-content">
+                <h2 class="luxury-font">${o.title||""}</h2>
+                <p>${o.subtitle||""}</p>
+                ${o.link?`<a href="${o.link}" class="btn-premium"><span>اكتشف المزيد</span> <i class="fas fa-arrow-left" style="margin-right: 10px;"></i></a>`:""}
+            </div>
+        </div>
+    `).join(""),e&&(e.innerHTML=n.map((o,i)=>`<div class="dot ${i===0?"active":""}" onclick="window.goToLuxurySlide(${i})"></div>`).join("")),window.state.sliderIndex=0,window.moveLuxurySlider(0)};window.goToLuxurySlide=function(t){window.state.sliderIndex=t,window.moveLuxurySlider(0)};window.moveLuxurySlider=function(t){var s;const e=document.getElementById("slider-track");if(!e)return;const n=((s=window.state.ads)==null?void 0:s.length)||0;if(n<=1){e.style.transform="translateX(0)";return}window.state.sliderIndex=(window.state.sliderIndex+t+n)%n;const o=window.state.sliderIndex*100,i=document.body.dir==="rtl";e.style.transform=`translateX(${i?o:-o}%)`,document.querySelectorAll(".slider-dots .dot").forEach((l,r)=>{l.classList.toggle("active",r===window.state.sliderIndex)})};window.calculateLuxuryFinancing=function(){var r,d,w;const t=Number((r=document.getElementById("calc-car-price"))==null?void 0:r.value)||0,e=Number((d=document.getElementById("calc-down-pay"))==null?void 0:d.value)||0,n=Number((w=document.getElementById("calc-years"))==null?void 0:w.value)||5,o=document.getElementById("calc-result-val");if(!o)return;const i=t-e;if(i<=0){o.innerText="0 ريال";return}const s=i*(1+.045*n),l=Math.round(s/(n*12));o.innerText=l.toLocaleString()+" ريال"};window.renderSalesVideos=function(){const t=document.getElementById("sales-container");if(!t)return;const e=window.state.sales||[];if(e.length===0){t.innerHTML='<div class="no-results-v2"><p>لا توجد مقاطع فيديو متاحة حالياً</p></div>';return}t.innerHTML=e.map(n=>{const o=(n.url||"").trim();let i=o.includes("youtube.com")||o.includes("youtu.be")||o.includes("youtube-nocookie.com"),a=o.includes("tiktok.com"),s=o.includes("instagram.com"),l=o.includes("snapchat.com"),r=n.poster||n.image||null;if(i&&!r){let d="";try{o.includes("v=")?d=o.split("v=")[1].split("&")[0]:o.includes("youtu.be/")?d=o.split("youtu.be/")[1].split("?")[0]:o.includes("embed/")?d=o.split("embed/")[1].split("?")[0]:d=o.split("/").pop().split("?")[0]}catch{d=""}d&&(r=`https://img.youtube.com/vi/${d}/hqdefault.jpg`)}return r=r||"logo.jpg",`
+            <div class="video-card-v2" data-aos="zoom-in" onclick="window.openVideoLightbox('${o}')">
+                <div class="video-player-wrap">
+                    <div class="video-inner">
+                        <img src="${r}" alt="${n.title||"Success Moment"}" onerror="this.src='logo.jpg'" style="width:100%; height:100%; object-fit:cover;">
+                        <div class="v-play-overlay">
+                            <div class="v-play-btn"><i class="fas fa-play"></i></div>
+                        </div>
+                        ${i?'<div class="v-platform-icon"><i class="fab fa-youtube"></i></div>':a?'<div class="v-platform-icon"><i class="fab fa-tiktok"></i></div>':s?'<div class="v-platform-icon"><i class="fab fa-instagram"></i></div>':l?'<div class="v-platform-icon"><i class="fab fa-snapchat"></i></div>':""}
+                    </div>
+                </div>
+                <div class="video-info-v2">
+                    <span class="v-badge-gold"><i class="fas fa-award"></i> مبيعات ناجحة</span>
+                    <h3>${n.title||n.name||"لحظة تسليم"}</h3>
+                    <p>${n.description||"يسعدنا دائماً مشاركة لحظات نجاحنا مع عملائنا الكرام."}</p>
+                </div>
+            </div>`}).join("")};window.openVideoLightbox=function(t){let e="";if(t.includes("youtube.com")||t.includes("youtu.be")){let o="";try{t.includes("v=")?o=t.split("v=")[1].split("&")[0]:t.includes("youtu.be/")?o=t.split("youtu.be/")[1].split("?")[0]:t.includes("embed/")?o=t.split("embed/")[1].split("?")[0]:o=t.split("/").pop().split("?")[0]}catch{o=""}e=`<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${o}?autoplay=1&modestbranding=1&rel=0" frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe>`}else e=`<video controls autoplay style="width:100%; height:100%; border-radius:15px; background:#000;">
+                        <source src="${t}" type="video/mp4">
+                        متصفحك لا يدعم تشغيل الفيديو.
+                    </video>`;const n=document.createElement("div");n.className="luxury-lightbox",n.id="video-lightbox",n.innerHTML=`
+        <button class="lb-close" onclick="this.parentElement.remove()">&times;</button>
+        <div class="lb-content animate-fade-in" style="max-width:1000px; width:95%; aspect-ratio:16/9; margin-top:0;">
+            ${e}
+        </div>
+    `,document.body.appendChild(n)};window.toggleWAWidget=function(){const t=document.getElementById("wa-widget");t&&t.classList.toggle("hidden")};window.sendWAWidgetMsg=function(){var o;const t=document.getElementById("wa-input"),e=(o=t==null?void 0:t.value)==null?void 0:o.trim();if(!e)return;const n=window.state.settings.contactSales||"0500000000";window.open(`https://wa.me/${window.normalizePhone(n)}?text=${encodeURIComponent(e)}`,"_blank"),t&&(t.value=""),window.toggleWAWidget()};window.createLog=async function(t,e,n="general"){var o,i;try{const a=F(C(A,"logs"));await D(a,{user:((o=window.state.user)==null?void 0:o.email)||"Visitor",userId:((i=window.state.user)==null?void 0:i.uid)||null,action:t,details:e,category:n,timestamp:new Date().toISOString()})}catch(a){console.error("Log Error:",a)}};window.submitBooking=async function(t){var l,r,d,w,f,p,u,x,m,h,c,y,I,k,S,$,g,v,E,b,T,L,M,B,z;t.preventDefault();const e=t.target,n=e.querySelector('button[type="submit"]');let o=(((l=document.getElementById("b-phone-code"))==null?void 0:l.value)==="other"?(r=document.getElementById("b-phone-code-other"))==null?void 0:r.value:(d=document.getElementById("b-phone-code"))==null?void 0:d.value)||"966",i=((w=document.getElementById("b-phone"))==null?void 0:w.value)||"";o=o.replace(/\D/g,""),i=i.replace(/\D/g,""),i.startsWith("05")||i.startsWith("5")&&i.length===9||i.startsWith("9665")?(o="966",i.startsWith("05")&&(i=i.substring(1)),i.startsWith("966")&&(i=i.substring(3))):i.startsWith("07")||i.startsWith("7")&&i.length===9||i.startsWith("9677")?(o="967",i.startsWith("07")&&(i=i.substring(1)),i.startsWith("967")&&(i=i.substring(3))):(o&&i.startsWith(o)&&(i=i.substring(o.length)),o&&i.startsWith("00"+o)&&(i=i.substring(o.length+2)));const a=window.normalizePhone(o+i),s={customerType:((f=e.querySelector('[name="customer-type"]:checked'))==null?void 0:f.value)||"individual",carRequested:((p=document.getElementById("b-car"))==null?void 0:p.value)||"",name:((u=document.getElementById("b-name"))==null?void 0:u.value)||"",phone:a,age:((x=document.getElementById("b-age"))==null?void 0:x.value)||"",email:((m=document.getElementById("b-email"))==null?void 0:m.value)||"",nationality:((h=document.getElementById("b-nationality"))==null?void 0:h.value)==="مقيم"?((c=document.getElementById("b-nationality-other"))==null?void 0:c.value)||"مقيم":((y=document.getElementById("b-nationality"))==null?void 0:y.value)||"سعودي",city:((I=document.getElementById("b-city"))==null?void 0:I.value)==="أخرى"?((k=document.getElementById("b-city-other"))==null?void 0:k.value)||"أخرى":((S=document.getElementById("b-city"))==null?void 0:S.value)||"",paymentMethod:(($=e.querySelector('[name="payment-method"]:checked'))==null?void 0:$.value)||"كاش",bankName:((g=document.getElementById("b-bank-name"))==null?void 0:g.value)||"",installmentPeriod:((v=document.getElementById("b-installment-period"))==null?void 0:v.value)||"",salary:((E=document.getElementById("b-salary"))==null?void 0:E.value)||"",commitments:((b=document.getElementById("b-commitments"))==null?void 0:b.value)||"",workEntity:((T=document.getElementById("b-work-entity"))==null?void 0:T.value)||"حكومي",workStatus:((L=document.getElementById("b-work-status"))==null?void 0:L.value)||"معتمد",contactMethod:((M=e.querySelector('[name="contact-method"]:checked'))==null?void 0:M.value)||"الجوال",preferredTime:((B=e.querySelector('[name="preferred-time"]:checked'))==null?void 0:B.value)||"10am - 1pm",notes:((z=document.getElementById("b-notes"))==null?void 0:z.value)||"",status:"new",subStatus:"not_contacted",createdAt:new Date().toISOString()};n.disabled=!0,n.innerText="جاري الإرسال...";try{const _=C(A,"config/lastAssignedStaffIndex_v2"),q=window.state.users.filter(U=>U.role==="staff"&&U.isAvailable!==!1);q.length>0&&await J(_,U=>{let Q=U||0;Q>=q.length&&(Q=0);const se=q[Q];return s.assignedTo=se.id,(Q+1)%q.length});const X=F(C(A,"bookings"));await D(X,s),s.assignedTo&&await F(C(A,"notifications"),{userId:s.assignedTo,type:"new_booking",title:"طلب جديد مسند إليك",body:`لديك طلب جديد من ${s.name} للسيارة ${s.carRequested}`,bookingId:X.key,read:!1,createdAt:new Date().toISOString()}),window.showLuxuryToast("تم إرسال طلبك بنجاح، سنتواصل معك قريباً"),e.reset()}catch(_){console.error(_),window.showLuxuryToast("حدث خطأ أثناء الإرسال، يرجى المحاولة لاحقاً","error")}finally{n.disabled=!1,n.innerText="تأكيد طلب حجز الخدمة"}};window.fillAIInput=function(t){const e=document.getElementById("ai-chat-input");e&&(e.value=t)};window.clearAIChat=function(){const t=document.getElementById("ai-messages-area");t&&(t.innerHTML="")};window.askLuxuryAI=function(){var o;const t=document.getElementById("ai-chat-input"),e=(o=t==null?void 0:t.value)==null?void 0:o.trim();if(!e)return;G("user",e),t.value="";const n="ai-typing-"+Date.now();G("bot","جاري التفكير...",n),setTimeout(()=>{const i=document.getElementById(n);i&&i.remove();const a=Te(e);G("bot",a)},1e3)};function G(t,e,n=null){const o=document.getElementById("ai-messages-area");if(!o)return;const i=document.createElement("div");i.className=`ai-msg ${t}`,n&&(i.id=n),i.innerHTML=`
+        <div class="msg-icon"><i class="fas ${t==="bot"?"fa-robot":"fa-user"}"></i></div>
+        <div class="msg-content">
+            <p>${e}</p>
+        </div>
+    `,o.appendChild(i),o.scrollTop=o.scrollHeight}function Te(t){const e=t.toLowerCase(),n=window.state.cars||[],o=window.state.bookings||[];return e.includes("قيمة")||e.includes("مخزون")?`إجمالي قيمة المخزون الحالي هو ${n.reduce((a,s)=>a+(parseFloat(s.price)||0),0).toLocaleString()} ريال سعودي لعدد ${n.length} سيارة.`:e.includes("موظف")||e.includes("أفضل")?"بناءً على البيانات الحالية، يتميز فريق المبيعات بنشاط عالٍ، والمنافسة قوية بين الموظفين لهذا الشهر.":e.includes("ملخص")||e.includes("أداء")?`حالة اليوم: يوجد ${o.filter(a=>a.status==="new"||!a.status).length} طلبات جديدة لم يتم معالجتها بعد، وإجمالي الطلبات في النظام هو ${o.length}.`:"أنا هنا لمساعدتك في إدارة المعرض. يمكنك سؤالي عن المخزون، الطلبات، أو الإحصائيات العامة."}window.renderWhatsAppMonitor=function(){var o,i;const t=document.getElementById("admin-wa-monitor-table");if(!t)return;const e=(((o=document.getElementById("wa-monitor-search"))==null?void 0:o.value)||"").toLowerCase();(i=document.getElementById("wa-monitor-filter"))!=null&&i.value;let n=(window.state.logs||[]).filter(a=>a.category==="whatsapp"||a.details.includes("WhatsApp"));if(e&&(n=n.filter(a=>a.details.toLowerCase().includes(e)||a.user.toLowerCase().includes(e))),n.length===0){t.innerHTML='<div class="no-data-admin" style="padding:40px; text-align:center;">لا توجد سجلات مراقبة حالياً</div>';return}t.innerHTML=n.map(a=>`
+        <div class="admin-item-row" style="background:rgba(255,255,255,0.02); padding:15px; border-radius:12px; border:1px solid var(--glass-border); margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between;">
+                <strong>${a.user}</strong>
+                <span style="opacity:0.5; font-size:11px;">${new Date(a.timestamp).toLocaleString()}</span>
+            </div>
+            <p style="font-size:13px; margin:10px 0;">${a.details}</p>
+            ${a.proofUrl?`<a href="${a.proofUrl}" target="_blank" class="btn-premium btn-sm" style="display:inline-block;">عرض الإثبات</a>`:""}
+        </div>
+    `).join("")};let R=null;const O="https://whatsapp-server-tq4f.onrender.com";window.WA_SERVER_URL_OVERRIDE||localStorage.getItem("wa_server_url");window.saveWAServerURL=async function(){const t=document.getElementById("wa-server-url-config");if(!t)return;let e=t.value.trim().replace(/\/$/,"");if(!e)return window.showLuxuryToast("يرجى إدخال الرابط","error");try{await D(C(A,"settings/waServerUrl"),e),localStorage.setItem("wa_server_url",e),window.showLuxuryToast("تم حفظ الرابط وبثه للجميع، سيتم تحديث الصفحة","success"),setTimeout(()=>location.reload(),1500)}catch{window.showLuxuryToast("خطأ في الصلاحيات لرفع الرابط","error")}};window.startStaffWASession=function(){const t=document.getElementById("wa-staff-select");if(!t||!t.value)return window.showLuxuryToast("يرجى اختيار موظف للربط","error");R&&(document.getElementById("wa-server-status").innerText="يتم الآن توليد كود الاستجابة للموظف...",document.getElementById("wa-server-status").style.color="var(--text-dim)",document.getElementById("wa-qr-container").style.display="none",R.emit("start_session",{userId:t.value}))};window.logoutStaffWASession=function(){const t=document.getElementById("wa-staff-select");if(!t||!t.value)return window.showLuxuryToast("يرجى اختيار الموظف أولاً","error");confirm("هل أنت متأكد من فصل رقم الواتساب لهذا الموظف وسجل المحادثة الخاصة به من السيرفر؟")&&R&&R.emit("logout_session",{userId:t.value})};window.initWhatsAppServer=async function(){const t=document.getElementById("wa-server-url-config");let e=null;window.location.hostname.includes("app.github.dev")&&(e=`https://${window.location.hostname.replace("-5173","-3001")}`,console.log("تم اكتشاف GitHub Codespaces، استخدام الرابط التلقائي:",e));let n=null;try{const a=await we(C(A,"settings/waServerUrl"));a.exists()&&(n=a.val(),localStorage.setItem("wa_server_url",n))}catch(a){console.error("Firebase config error:",a)}const o=e||n||localStorage.getItem("wa_server_url")||O;window._waServerActiveUrl=o,t&&(t.value=o);const i=document.getElementById("wa-staff-select");if(i&&window.state&&window.state.users){const a=i.value;i.innerHTML='<option value="">-- اختر الموظف --</option>',window.state.users.filter(s=>s.role==="staff"||s.role==="admin"||s.role==="supervisor").forEach(s=>{const l=s.role==="admin"?"مدير":s.role==="supervisor"?"مشرف":"موظف";i.innerHTML+=`<option value="${s.id}" ${s.id===a?"selected":""}>${s.name||s.email||"موظف"} (${l})</option>`}),i.onchange=function(){this.value&&(R&&R.emit("join_room",this.value),window.startStaffWASession())},i.value&&(R&&R.emit("join_room",i.value),window.startStaffWASession())}typeof io<"u"&&!R&&(fetch(`${o}/ping`).catch(()=>{}),R=io(o,{reconnection:!0,reconnectionAttempts:10,reconnectionDelay:2e3,transports:["websocket","polling"],secure:!0}),R.on("connect_error",a=>{console.error("Connection Error:",a),a.message!=="websocket error"&&(window._waAlerted||(alert("عذراً، المتصفح لم يستطع الاتصال بخادم الواتساب. تأكد من أن الرابط يعمل في صفحة منفصلة. الخطأ: "+a.message),window._waAlerted=!0))}),R.on("connect",()=>{console.log("Connected to WhatsApp Server!");const a=document.getElementById("wa-connection-dot");a&&(a.style.background="#4de265",a.style.boxShadow="0 0 5px #4de265",a.title="متصل بالسيرفر"),window.state.user&&R.emit("join_room",window.state.user.uid),window.state.user&&window.startCurrentWASession&&setTimeout(()=>window.startCurrentWASession(),1500)}),R.on("qr",a=>{const s=document.getElementById("wa-staff-select"),l=document.getElementById("wa-server-status"),r=document.getElementById("wa-qr-container"),d=document.getElementById("wa-qr-canvas");if(s&&s.value===a.userId&&(l&&(l.innerText="في انتظار مسح كود الـ QR...",l.style.color="var(--text-color)"),r&&(r.style.display="block"),typeof QRCode<"u"&&d&&QRCode.toCanvas(d,a.qr,function(w){w&&console.error(w)})),window.state.user&&a.userId===window.state.user.uid){const w=document.getElementById("wa-my-status-title"),f=document.getElementById("wa-my-status-desc"),p=document.getElementById("wa-my-qr-container"),u=document.getElementById("wa-my-qr-canvas"),x=document.getElementById("btn-start-my-wa"),m=document.getElementById("btn-logout-my-wa");w&&(w.innerText="بانتظار مسح رمز QR..."),f&&(f.innerText="افتح واتساب على هاتفك وامسح الرمز الظاهر أدناه ليتم ربط حسابك."),p&&(p.style.display="block"),x&&(x.innerText="تحديث الرمز"),m&&(m.style.display="none"),typeof QRCode<"u"&&u&&QRCode.toCanvas(u,a.qr,{width:250,margin:2},function(h){h&&console.error(h)})}}),R.on("ready",a=>{const s=document.getElementById("wa-staff-select"),l=document.getElementById("wa-connection-dot");if(l&&(l.style.background="#4de265",l.style.boxShadow="0 0 8px #4de265",l.title="واتساب جاهز للعمل"),s&&s.value===a.userId){const r=document.getElementById("wa-server-status"),d=document.getElementById("wa-qr-container");r&&(r.innerText=a.msg,r.style.color="#00a884"),d&&(d.style.display="none")}if(window.state.user&&a.userId===window.state.user.uid){const r=document.getElementById("wa-my-status-title"),d=document.getElementById("wa-my-status-desc"),w=document.getElementById("wa-my-qr-container"),f=document.getElementById("btn-start-my-wa"),p=document.getElementById("btn-logout-my-wa");r&&(r.innerText="واتساب متصل بنجاح"),d&&(d.innerText="حسابك الآن مرتبط بالنظام، يمكنك البدء في استقبال وإرسال الرسائل للعملاء."),w&&(w.style.display="none"),f&&(f.style.display="none"),p&&(p.style.display="inline-block"),window.showLuxuryToast("تم ربط حساب واتساب الخاص بك بنجاح","success")}}),R.on("disconnected",a=>{console.log("Disconnected Event:",a);const s=document.getElementById("wa-connection-dot");s&&(s.style.background="#ff4b4b",s.style.boxShadow="0 0 5px #ff4b4b",s.title="تم قطع الاتصال بالسيرفر");const l=a.msg||"تم قطع الاتصال بالسيرفر. يرجى إعادة الربط لتفعيل خدمات الدردشة.",r=document.getElementById("wa-staff-select");if(r&&r.value===a.userId){const d=document.getElementById("wa-server-status");d&&(d.innerText=l,d.style.color="red")}if(window.state.user&&a.userId===window.state.user.uid){const d=document.getElementById("wa-my-status-title"),w=document.getElementById("wa-my-status-desc"),f=document.getElementById("btn-start-my-wa"),p=document.getElementById("btn-logout-my-wa"),u=document.getElementById("wa-my-qr-container");d&&(d.innerText="الواتساب غير متصل"),w&&(w.innerText=l),u&&(u.style.display="none"),f&&(f.style.display="inline-block",f.innerText="إعادة الربط الآن"),p&&(p.style.display="none")}}),R.on("jid_resolved",({oldJid:a,newJid:s})=>{console.log(`JID Resolution detected: ${a} -> ${s}`);const r=(window.state.bookings||[]).find(d=>d.waJid===a);r&&(console.log(`Updating booking ${r.id} JID due to resolution`),j(C(A,`bookings/${r.id}`),{waJid:s,phone:window.normalizePhone(s)}).catch(d=>{}),window._currentWaPhone===a&&(window._currentWaPhone=s,typeof window.openStaffChat=="function"&&window.openStaffChat(s)))}),R.on("message",async a=>{var x,m,h;console.log("Real-time WA message received:",a);const s=window.normalizePhone,l=s(a.from),r=s(window._currentWaPhone),d=document.getElementById("details-modal"),w=d&&!d.classList.contains("hidden"),f=document.getElementById("wa-connection-dot");f&&(f.style.transform="scale(1.2)",setTimeout(()=>f.style.transform="scale(1)",300));const p=window.state.bookings||[];let u=p.find(c=>c.waJid===a.from);if(u||(u=p.find(c=>{if(!c.phone)return!1;const y=window.normalizePhone(c.phone);return!l.includes("@")&&y===l}),u&&!u.waJid&&(console.log(`Smart Pinning JID ${a.from} to booking ${u.id}`),j(C(A,`bookings/${u.id}`),{waJid:a.from}).catch(c=>{}),u.waJid=a.from)),w&&r&&l===r)setTimeout(()=>{window.fetchServerWAChat(window._currentWaPhone,a.userId)},500);else{if(a.isMe)return;const c=a.userId===((x=window.state.userProfile)==null?void 0:x.id),y=((m=window.state.userProfile)==null?void 0:m.role)==="admin"||((h=window.state.userProfile)==null?void 0:h.role)==="supervisor";(c||y)&&u&&window.showWAPushNotification&&window.showWAPushNotification(l,a.body,a.userId)}}))};window.showWAPushNotification=async function(t,e,n){let o=document.getElementById("wa-push-notifications-container");o||(o=document.createElement("div"),o.id="wa-push-notifications-container",o.style.cssText="position:fixed; bottom:30px; left:25px; z-index:999999; display:flex; flex-direction:column-reverse; gap:12px; width:340px; pointer-events:none;",document.body.appendChild(o));const a=(window.state.bookings||[]).find(u=>u.phone&&window.normalizePhone(u.phone)===window.normalizePhone(t)),s=a&&a.name?a.name:t;let l=e||"رسالة جديدة";l.length>70&&(l=l.substring(0,70)+"...");const r=document.createElement("div");r.style.cssText="background:rgba(255,255,255,0.98); border-right:4px solid #00a884; border-radius:12px; padding:12px 15px; box-shadow:0 6px 20px rgba(0,0,0,0.15); pointer-events:auto; cursor:pointer; transform:translateX(-120%); transition:transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s, margin 0.3s; opacity:0; overflow:hidden; position:relative; direction:rtl;",r.innerHTML=`
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
+           <div style="display:flex; align-items:center; gap:10px;">
+               <div style="background:#d9fdd3; width:30px; height:30px; border-radius:50%; display:flex; justify-content:center; align-items:center;">
+                   <i class="fab fa-whatsapp" style="color:#00a884; font-size:16px;"></i>
+               </div>
+               <strong style="color:#111b21; font-size:13.5px; margin:0; line-height:1.2;">${s}</strong>
+           </div>
+           <button class="fa-times-btn" style="background:none; border:none; color:#999; cursor:pointer; font-size:16px; padding:0; margin:0; line-height:1; transition:color 0.2s;"><i class="fas fa-times"></i></button>
+        </div>
+        <p style="margin:0; font-size:12.5px; color:#54656f; line-height:1.5; padding-right:40px;">${l}</p>
+    `;const d=r.querySelector(".fa-times-btn");d.onmouseover=()=>d.style.color="#e02424",d.onmouseout=()=>d.style.color="#999";const w=async()=>{var u;try{await F(C(A,"notifications"),{userId:n||((u=window.state.userProfile)==null?void 0:u.id)||"admin",type:"wa_message",title:"رسالة واتساب من "+s,body:l,phone:t,read:!1,createdAt:new Date().toISOString()})}catch(x){console.warn("Could not save to notifications DB",x)}};let f=setTimeout(()=>{p(),w()},1e4);const p=()=>{r.style.transform="translateX(-120%)",r.style.opacity="0",r.style.marginTop=`-${r.offsetHeight}px`,setTimeout(()=>{r.parentNode&&r.parentNode.removeChild(r)},400)};d.onclick=u=>{u.stopPropagation(),clearTimeout(f),p()},r.onclick=()=>{clearTimeout(f),p(),a?(window.viewBookingDetails(a.id),setTimeout(()=>{const u=document.getElementById("details-modal").querySelector(".dash-tab.admin-only");u&&u.click()},100)):window.showLuxuryToast("الرسالة من رقم غير مسجل في أي طلب مفتوح","info")},o.insertBefore(r,o.firstChild),requestAnimationFrame(()=>{r.style.transform="translateX(0)",r.style.opacity="1"})};window.startCurrentWASession=function(){if(!window.state.user)return;const t=()=>{R.emit("start_session",{userId:window.state.user.uid});const e=document.getElementById("wa-my-status-title"),n=document.getElementById("wa-my-status-desc");e&&(e.innerText="جاري الاتصال..."),n&&(n.innerText="يتم الآن التواصل مع خادم الواتساب لتوليد رمز الاستجابة السريعة...")};R?R.connected?t():(R.once("connect",t),R.connect()):window.initWhatsAppServer()};window.logoutCurrentWASession=function(){window.state.user&&confirm("هل أنت متأكد من تسجيل الخروج من واتساب؟ لن تتمكن من المراسلة من هنا.")&&R&&R.emit("logout_session",{userId:window.state.user.uid})};window._waMediaCache=window._waMediaCache||{};window.fetchServerWAChat=async function(t,e){var i,a,s;if(!t)return;const n=document.getElementById("wa-server-chat-box");if(!n)return;let o=(i=window.state.userProfile)==null?void 0:i.id;if(((a=window.state.userProfile)==null?void 0:a.role)==="admin"||((s=window.state.userProfile)==null?void 0:s.role)==="supervisor")if(e)o=e;else{const r=(window.state.bookings||[]).find(d=>d.phone&&window.normalizePhone(d.phone)===window.normalizePhone(t));if(r&&r.assignedTo)o=r.assignedTo;else{n.innerHTML=`
+                <div style="text-align:center; margin-top:auto; margin-bottom:auto;">
+                    <div style="background:rgba(255,255,255,0.95); display:inline-block; padding:20px; border-radius:15px; font-size:13px; color:#555; box-shadow:0 10px 30px rgba(0,0,0,0.1); max-width:85%;">
+                        <i class="fas fa-user-slash" style="color:#00a884; font-size:32px; margin-bottom:15px; display:block;"></i>
+                        هذا الحجز غير مسند لموظف.<br>
+                        سجل المحادثات متاح فقط للحجوزات المسندة.
+                    </div>
+                </div>`;return}}window._currentWaPhone=t,(!n.hasChildNodes()||n.innerHTML.includes("fa-circle-notch")||n.innerHTML.includes("fa-comment-dots"))&&(n.innerHTML='<div style="text-align:center; margin-top:auto; margin-bottom:auto;"><i class="fas fa-circle-notch fa-spin" style="font-size: 30px; color: #00a884; margin-bottom: 12px;"></i><br><div style="background: rgba(255,255,255,0.9); display: inline-block; padding: 8px 16px; border-radius: 12px; font-size: 12px; color: #555; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">جاري مزامنة الرسائل...</div></div>');try{const l=window._waServerActiveUrl||O,r=await fetch(`${l}/api/chat/${o}/${t}`);if(r.ok){const d=await r.json();if(d.messages&&d.messages.length>0){const w=n.scrollHeight-n.scrollTop-n.clientHeight<50;n.innerHTML="";const f=document.createElement("div");f.style.cssText="text-align:center; margin:10px 0 15px;",f.innerHTML='<span style="background:#fefed7; color:#54656f; font-size:11px; padding:6px 12px; border-radius:8px; box-shadow:0 1px 1px rgba(0,0,0,0.05); display:inline-block;"><i class="fas fa-lock" style="margin-left:4px; font-size:10px;"></i> الرسائل محمية ومسجلة عبر الخادم الداخلي</span>',n.appendChild(f),d.messages.forEach(p=>{const u=p.timestamp?new Date(Number(p.timestamp)*1e3).toLocaleTimeString("ar-SA",{hour:"numeric",minute:"2-digit",hour12:!0}):"";let x=(p.body||"").replace(/</g,"&lt;").replace(/>/g,"&gt;");x=x.replace(/(https?:\/\/[^\s]+)/g,'<a href="$1" target="_blank" style="color:#027eb5; text-decoration:underline;">$1</a>');const m=document.createElement("div");m.style.padding="6px 8px 8px 10px",m.style.maxWidth="75%",m.style.fontSize="14.5px",m.style.marginBottom="4px",m.style.position="relative",m.style.boxShadow="0 1px 1.5px rgba(11,20,26,0.1)",m.style.whiteSpace="pre-wrap",m.style.lineHeight="1.4",m.style.wordBreak="break-word",m.style.overflowWrap="anywhere",p.isMe?(m.style.alignSelf="flex-end",m.style.background="#d9fdd3",m.style.color="#111b21",m.style.borderRadius="12px 0 12px 12px"):(m.style.alignSelf="flex-start",m.style.background="#ffffff",m.style.color="#111b21",m.style.borderRadius="0 12px 12px 12px");let h=`<div>${x}</div>`;if(p.media)if(window._waMediaCache[p.id]&&(p.media.data=window._waMediaCache[p.id]),p.media.data===null){const y=`btn-dl-${p.id}`,I=`cont-dl-${p.id}`;let k="مرفق";p.media.mimetype.startsWith("image/")?k="صورة":p.media.mimetype.startsWith("video/")?k="فيديو":(p.media.mimetype.startsWith("audio/")||p.type==="ptt")&&(k="مقطع صوتي"),h=`<div id="${I}" style="margin-bottom:8px; display:flex; align-items:center; gap:10px; background:rgba(0,0,0,0.05); padding:10px; border-radius:8px;">
+                                <i class="fas fa-file-download" style="font-size:24px; color:#54656f;"></i>
+                                <div style="flex:1;">
+                                    <strong style="display:block; font-size:13px;">${k} سابق</strong>
+                                    <span style="font-size:11px; opacity:0.7;">${p.media.filename||"اضغط للتحميل من السيرفر"}</span>
+                                </div>
+                                <button id="${y}" class="btn-premium btn-sm" onclick="window.downloadWAMedia('${o}', '${t}', '${p.id}', '${I}', '${p.media.mimetype}', '${p.type}')" style="padding:4px 10px; min-width:40px;"><i class="fas fa-download"></i></button>
+                            </div>`+(x?`<div>${x}</div>`:"")}else p.media.mimetype.startsWith("image/")?h=`<div style="margin:-4px -6px 4px -8px; background:rgba(0,0,0,0.02); border-radius:10px 10px 0 0; overflow:hidden; text-align:center;"><img src="data:${p.media.mimetype};base64,${p.media.data}" style="max-width:100%; max-height:220px; border-radius:8px; display:inline-block; cursor:pointer; object-fit:cover;" onclick="window.viewFullImage(this.src)"></div>`+(x?`<div>${x}</div>`:""):p.media.mimetype.startsWith("audio/")||p.type==="ptt"?h=`<div style="display:flex; align-items:center; gap:10px;"><div style="background:#00a884; width:40px; height:40px; border-radius:50%; display:flex; justify-content:center; align-items:center; flex-shrink:0;"><i class="fas fa-play" style="color:white; margin-right:-2px; font-size:14px;"></i></div> <audio controls style="max-width:200px; height:35px;"><source src="data:${p.media.mimetype};base64,${p.media.data}" type="${p.media.mimetype}"></audio></div>`+(x?`<div style="margin-top:5px;">${x}</div>`:""):p.media.mimetype.startsWith("video/")?h=`<video controls style="max-width:100%; border-radius:8px; margin-bottom:5px;"><source src="data:${p.media.mimetype};base64,${p.media.data}" type="${p.media.mimetype}"></video>`+(x?`<div>${x}</div>`:""):h=`<div style="background:rgba(0,0,0,0.05); padding:10px; border-radius:8px; display:flex; align-items:center; gap:10px; margin-bottom:5px;"><i class="fas fa-file-alt" style="font-size:24px; color:#54656f;"></i> <div><strong style="display:block; font-size:13px;">ملف ${p.media.filename||"مرفق"}</strong><span style="font-size:11px; opacity:0.7;">تنزيل للعرض</span></div></div>`+(x?`<div>${x}</div>`:"");let c="";if(p.isMe){let y=p.ack!==void 0?p.ack:p.status==="read"?3:p.status==="delivered"?2:p.status==="sent"?1:void 0;y===1||y===0?c='<i class="fas fa-check" style="font-size:12px; margin-right:4px; color:#c7c7c7;"></i>':y===2?c='<i class="fas fa-check-double" style="font-size:12px; margin-right:4px; color:#c7c7c7;"></i>':y>=3?c='<i class="fas fa-check-double" style="font-size:12px; margin-right:4px; color:#53bdeb;"></i>':c='<i class="fas fa-check" style="font-size:12px; margin-right:4px; color:#c7c7c7;"></i>'}m.innerHTML=`${h} <div style="display:flex; justify-content:flex-end; align-items:center; margin-top:2px; float:left; margin-left:-5px; padding-left:10px; padding-top:2px;">
+                      <span style="font-size:11px; color:#667781;">${u}</span>
+                      ${c}
+                    </div><div style="clear:both;"></div>`,n.appendChild(m)}),(w||n.innerHTML.includes("fa-lock"))&&setTimeout(()=>{n.scrollTo({top:n.scrollHeight,behavior:"smooth"})},100)}else n.innerHTML='<div style="text-align:center; margin-top:auto; margin-bottom:auto;"><div style="background:rgba(255,255,255,0.95); display:inline-block; padding:15px 30px; border-radius:15px; font-size:13px; color:#555; box-shadow:0 3px 10px rgba(0,0,0,0.08);"><i class="fas fa-comment-dots" style="color:#00a884; font-size:24px; margin-bottom:10px; display:block;"></i>لا توجد رسائل سابقة مع هذا الرقم.<br>يمكنك بدء دردشة جديدة الآن.</div></div>'}else n.innerHTML=`
+                <div style="text-align:center; margin-top:auto; margin-bottom:auto;">
+                    <div style="background:rgba(255,255,255,0.95); display:inline-block; padding:25px; border-radius:15px; font-size:14px; color:#555; box-shadow:0 3px 10px rgba(0,0,0,0.08);">
+                        <i class="fab fa-whatsapp" style="font-size:50px; margin-bottom:15px; color:#8696a0;"></i>
+                        <p style="margin-bottom:15px;">خادم واتساب غير متصل لهذا الموظف</p>
+                        <button class="btn-premium btn-sm" onclick="window.closeModal('details-modal'); window.switchLuxuryTab('whatsapp-mgmt')">اذهب لإعدادات الواتساب</button>
+                    </div>
+                </div>
+            `}catch{n.innerHTML='<div style="text-align:center; margin-top:auto; margin-bottom:auto;"><div style="background:rgba(255,255,255,0.95); display:inline-block; padding:15px 25px; border-radius:15px; font-size:13px; color:#e02424; box-shadow:0 3px 10px rgba(0,0,0,0.08);"><i class="fas fa-exclamation-triangle" style="font-size:24px; margin-bottom:10px; display:block;"></i>فشل الاتصال بالخادم. يرجى التأكد من تشغيل السيرفر.</div></div>'}};let P,Y=[];window.startWARecording=async function(){window._waRecordingIntent=!0;try{const t=await navigator.mediaDevices.getUserMedia({audio:!0});if(!window._waRecordingIntent){t.getTracks().forEach(n=>n.stop());return}P=new MediaRecorder(t),Y=[],window._waRecordingStartTime=Date.now(),P.ondataavailable=n=>{n.data.size>0&&Y.push(n.data)},P.start();const e=document.getElementById("wa-mic-btn");e&&(e.style.color="red")}catch{window.showLuxuryToast("لم يتم السماح باستخدام الميكروفون","error"),window._waRecordingIntent=!1}};window.stopWARecording=function(t,e){window._waRecordingIntent&&(window._waRecordingIntent=!1,!(!P||P.state==="inactive")&&(P.onstop=async()=>{if(Date.now()-(window._waRecordingStartTime||Date.now())<500||Y.length===0){P.stream.getTracks().forEach(l=>l.stop());const s=document.getElementById("wa-mic-btn");s&&(s.style.color="#54656f");return}const o=new Blob(Y,{type:"audio/webm"}),i=new FileReader;i.readAsDataURL(o),i.onloadend=()=>{const s=i.result.split(",")[1];window.sendServerWAMessage(t,e,{data:s,mimetype:"audio/webm",filename:"voice_note.webm",ptt:!0},"")};const a=document.getElementById("wa-mic-btn");a&&(a.style.color="#54656f"),P.stream.getTracks().forEach(s=>s.stop())},P.stop()))};window.handleWAMediaSelect=function(t,e){const n=document.getElementById("wa-media-upload"),o=n.files&&n.files[0];if(!o)return;if(o.size>16*1024*1024){window.showLuxuryToast("حجم الملف كبير جداً، أقصى حد يسمح به الواتساب هو 16 ميجابايت","error");return}const i=new FileReader;i.onload=function(a){const s=a.target.result.split(",")[1],l=o.type||"application/octet-stream",r=o.name;let d=prompt("هل تريد إرفاق رسالة نصية مع هذا الملف؟ (اختياري)","");if(d===null){n.value="";return}window.sendServerWAMessage(t,e,{data:s,mimetype:l,filename:r},d)},i.readAsDataURL(o)};window.sendServerWAMessage=async function(t,e,n=null,o=null){const i=document.getElementById("wa-server-input");if(i&&i.disabled)return;const a=o!==null?o:i?i.value.trim():"";if(!n&&!a)return;let s=window.state.userProfile.id;window.state.userProfile.role==="admin"&&e&&(s=e),i&&o===null&&(i.value="",i.style.height="42px",i.focus());const l=document.getElementById("wa-server-chat-box");if(l){(l.innerHTML.includes("fa-comment-dots")||l.innerHTML.includes("fa-circle-notch")||!l.hasChildNodes())&&(l.innerHTML='<div style="text-align:center; margin:10px 0 15px;"><span style="background:#fefed7; color:#54656f; font-size:11px; padding:6px 12px; border-radius:8px; box-shadow:0 1px 1px rgba(0,0,0,0.05); display:inline-block;"><i class="fas fa-lock" style="margin-left:4px; font-size:10px;"></i> الرسائل محمية ومسجلة عبر الخادم الداخلي</span></div>');const r=new Date().toLocaleTimeString("ar-SA",{hour:"numeric",minute:"2-digit",hour12:!0});let d=(a||"").replace(/</g,"&lt;").replace(/>/g,"&gt;");d=d.replace(/(https?:\/\/[^\s]+)/g,'<a href="$1" target="_blank" style="color:#027eb5; text-decoration:underline;">$1</a>');const w=document.createElement("div");w.style.padding="6px 8px 8px 10px",w.style.maxWidth="75%",w.style.fontSize="14.5px",w.style.marginBottom="4px",w.style.position="relative",w.style.boxShadow="0 1px 1.5px rgba(11,20,26,0.1)",w.style.whiteSpace="pre-wrap",w.style.lineHeight="1.4",w.style.wordBreak="break-word",w.style.overflowWrap="anywhere",w.style.alignSelf="flex-end",w.style.background="#d9fdd3",w.style.color="#111b21",w.style.borderRadius="12px 0 12px 12px";let f=`<div>${d}</div>`;n&&(f='<div style="margin-bottom:5px; font-size:12px; color:#555;"><i class="fas fa-paperclip"></i> تم إرسال مرفق</div>'+f);let p='<i class="fas fa-clock" style="font-size:12px; margin-right:4px; color:#c7c7c7;"></i>';w.innerHTML=`${f} <div style="display:flex; justify-content:flex-end; align-items:center; margin-top:2px; float:left; margin-left:-5px; padding-left:10px; padding-top:2px;"><span style="font-size:11px; color:#667781;">${r}</span>${p}</div><div style="clear:both;"></div>`,l.appendChild(w),setTimeout(()=>{l.scrollTo({top:l.scrollHeight,behavior:"smooth"})},50)}try{const r=window._waServerActiveUrl||O,d={userId:s,phone:t,message:a};n&&(d.media=n),(await fetch(`${r}/api/send`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)})).ok?setTimeout(()=>window.fetchServerWAChat(t,s),1500):(window.showLuxuryToast("الواتساب غير متصل في الإدارة، المرجو فحص الاتصال","error"),i&&o===null&&!n&&(i.value=a))}catch{window.showLuxuryToast("الخادم البرمجي مغلق أو متوقف","error"),i&&o===null&&!n&&(i.value=a)}finally{const r=document.getElementById("wa-media-upload");r&&(r.value="")}};window.openQuickReplyModal=function(){window.openCRUDModal("quickReplies")};window.editQuickReply=function(t){window.openCRUDModal("quickReplies",t)};window.addQuickReply=async function(t){window.openQuickReplyModal()};window.deleteQuickReply=async function(t,e){if(confirm("هل أنت متأكد من الحذف؟")){let n="";e&&(n=e.innerHTML,e.disabled=!0,e.innerHTML='<i class="fas fa-spinner fa-spin"></i>');try{await W(C(A,`quickReplies/${t}`)),window.showLuxuryToast("تم الحذف بنجاح")}catch(o){console.error("Error deleting quick reply:",o),window.showLuxuryToast("فُقدت الصلاحية أو حدث خطأ أثناء الحذف","error"),e&&(e.disabled=!1,e.innerHTML=n)}}};window.renderQuickRepliesAdmin=function(){var o;const t=document.getElementById("quick-replies-list");if(!t)return;const e=(((o=document.getElementById("qr-search"))==null?void 0:o.value)||"").toLowerCase();let n=window.state.quickReplies||[];if(e&&(n=n.filter(i=>(i.title||"").toLowerCase().includes(e)||(i.content||"").toLowerCase().includes(e))),n.length===0){t.innerHTML=`
+            <div class="no-results-v2 full-width">
+                <i class="fas fa-search"></i>
+                <p>${e?"لا توجد نتائج تطابق بحثك":"لا توجد نماذج ردود سريعة حالياً"}</p>
+            </div>`;return}t.innerHTML=n.map(i=>`
+        <div class="admin-item-card-v2" data-aos="fade-up">
+            <div class="item-card-content" style="flex:1;">
+                <div class="item-card-header" style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                    <div class="item-icon-circle" style="background:var(--p-copper); color:white; width:35px; height:35px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <strong style="color:var(--text-bright); font-size:16px;">${i.title}</strong>
+                </div>
+                <div class="item-card-body">
+                    <p class="qr-content-preview" style="white-space: pre-wrap; margin:0; color:var(--text-dim); font-size:14px; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">${i.content}</p>
+                </div>
+            </div>
+            <div class="item-card-actions" style="display:flex; gap:10px;">
+                <button class="icon-btn-lite" onclick="window.editQuickReply('${i.id}')" title="تعديل">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="icon-btn-lite danger" onclick="window.deleteQuickReply('${i.id}', this)" title="حذف">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `).join("")};window._qrExpanded=!1;window.renderQuickRepliesBar=function(){const t=document.getElementById("wa-quick-replies-bar");if(!t)return;const e=window.state.quickReplies||[];if(e.length===0){t.style.display="none";return}t.style.display="flex";const n=window._qrExpanded;let o=e,i=!1;!n&&e.length>4&&(o=e.slice(0,4),i=!0);let a=o.map(s=>`
+        <button onclick="window.applyQuickReplyById('${s.id}')" style="background:white; border:1px solid var(--glass-border); padding:6px 12px; border-radius:16px; font-size:12px; color:#54656f; cursor:pointer; flex-shrink:0; white-space:nowrap; transition:all 0.2s; box-shadow:0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#f0f2f5'" onmouseout="this.style.background='white'">
+            ${s.title}
+        </button>
+    `).join("");i?a+='<button onclick="window._qrExpanded=true; window.renderQuickRepliesBar();" style="background:#00a884; color:white; border:none; padding:6px 12px; border-radius:16px; font-size:12px; cursor:pointer; flex-shrink:0;">عرض الكل <i class="fas fa-chevron-left" style="margin-right:4px;"></i></button>':n&&e.length>4&&(a+='<button onclick="window._qrExpanded=false; window.renderQuickRepliesBar();" style="background:#e02424; color:white; border:none; padding:6px 12px; border-radius:16px; font-size:12px; cursor:pointer; flex-shrink:0;">إخفاء <i class="fas fa-chevron-right" style="margin-right:4px;"></i></button>'),t.innerHTML=a};window.applyQuickReplyById=function(t){const e=(window.state.quickReplies||[]).find(n=>n.id===t);e&&e.content&&window.applyQuickReply(e.content)};window.applyQuickReply=function(t){var n;const e=document.getElementById("wa-server-input");if(e){let o=t;const i=((n=window.state.userProfile)==null?void 0:n.name)||"الموظف";o=o.replace(/\(اسم الموظف\)/g,i);let a="العميل",s="السيارة",l="غير محدد",r="غير محدد",d="غير محدد",w="غير محدد",f="غير محدد",p="غير محدد",u="غير محدد",x="غير محدد",m="غير محدد",h="غير محدد",c="",y="غير محدد",I="غير محدد",k="غير محدد",S="غير محدد",$="غير محدد",g="غير محدد";if(window._currentWaPhone){const v=window._currentWaPhone.toString(),E=(window.state.bookings||[]).filter(b=>b.phone&&b.phone.toString()===v||b.waJid&&b.waJid.toString()===v||b.phone&&v.includes(b.phone.toString()));if(E&&E.length>0){E.sort((L,M)=>(M.createdAt||0)-(L.createdAt||0));const b=E[0];b.name&&(a=b.name);let T=null;b.carId?T=(window.state.cars||[]).find(L=>L.id===b.carId):b.carRequested&&(T=(window.state.cars||[]).find(L=>{const M=`${L.make} ${L.model} ${L.year}`.toLowerCase();return M.includes(b.carRequested.toLowerCase())||b.carRequested.toLowerCase().includes(M)})),T?(l=T.make||l,r=T.model||r,d=T.year||d,w=T.price?Number(T.price).toLocaleString("ar-SA"):w,f=T.engine||f,p=T.mileage||p,u=T.fuelType||u,m=T.color||m,h=T.interiorColor||h,x={sedan:"سيدان",suv:"SUV",coupe:"كوبيه",luxury:"فاخرة",pickup:"بيك آب"}[T.bodyType]||T.bodyType||x,s=`${l} ${r} ${d}`.trim()):b.brand||b.model?(s=`${b.brand||""} ${b.model||""} ${b.year||""}`.trim(),l=b.brand||l,r=b.model||r,d=b.year||d):(b.carName||b.carRequested)&&(s=b.carName||b.carRequested),b.paymentMethod&&(c=b.paymentMethod==="cash"?"كاش":"تمويل"),b.bankName&&(y=b.bankName),b.installmentPeriod&&(I=b.installmentPeriod),b.salary&&(k=b.salary),b.commitments&&(S=b.commitments),b.workEntity&&($=b.workEntity),b.workStatus&&(g=b.workStatus)}}o=o.replace(/\(اسم العميل\)/g,a),o=o.replace(/\(اسم السيارة\)/g,s),o=o.replace(/\(الماركة\)/g,l),o=o.replace(/\(الموديل\)/g,r),o=o.replace(/\(سنة الصنع\)/g,d),o=o.replace(/\(السعر\)/g,w),o=o.replace(/\(المحرك\)/g,f),o=o.replace(/\(الممشى\)/g,p),o=o.replace(/\(نوع الوقود\)/g,u),o=o.replace(/\(فئة السيارة\)/g,x),o=o.replace(/\(اللون الخارجي\)/g,m),o=o.replace(/\(اللون الداخلي\)/g,h),o=o.replace(/\(طريقة الشراء\)/g,c),o=o.replace(/\(اسم السيارة وتفاصيلها وطريقة الشراء وتفاصيله كاملة\)/g,`${s} - الدفع: ${c}`),o=o.replace(/\(اسم البنك الراتب عليه أو المفضل\)/g,y),o=o.replace(/\(اسم البنك\)/g,y),o=o.replace(/\(مدة الأقساط المفضل\)/g,I),o=o.replace(/\(مدة الأقساط\)/g,I),o=o.replace(/\(الراتب الشهري \(صافي\)\)/g,k),o=o.replace(/\(الراتب الشهري\)/g,k),o=o.replace(/\(الراتب\)/g,k),o=o.replace(/\(الإلتزامات الشهرية\)/g,S),o=o.replace(/\(الإلتزامات\)/g,S),o=o.replace(/\(جهة العمل\)/g,$),o=o.replace(/\(حالة الجهة\)/g,g),e.value=o,e.style.height="42px",e.style.height=Math.min(e.scrollHeight,150)+"px",e.focus()}};window.downloadWAMedia=async function(t,e,n,o,i,a){const s=document.getElementById(o.replace("cont-dl-","btn-dl-"));s&&(s.disabled=!0,s.innerHTML='<i class="fas fa-spinner fa-spin"></i>');try{const l=window._waServerActiveUrl||O,r=await fetch(`${l}/api/media/${t}/${e}/${n}`);if(!r.ok)throw new Error("Failed");const d=await r.json();if(!d.data)throw new Error("No data");window._waMediaCache[n]=d.data;const w=document.getElementById(o);if(!w)return;let f="";i.startsWith("image/")?f=`<div style="margin:-4px -6px 4px -8px; background:rgba(0,0,0,0.02); border-radius:10px 10px 0 0; overflow:hidden; text-align:center;"><img src="data:${i};base64,${d.data}" style="max-width:100%; max-height:220px; border-radius:8px; display:inline-block; cursor:pointer; object-fit:cover;" onclick="window.viewFullImage(this.src)"></div>`:i.startsWith("audio/")||a==="ptt"?f=`<div style="display:flex; align-items:center; gap:10px;"><div style="background:#00a884; width:40px; height:40px; border-radius:50%; display:flex; justify-content:center; align-items:center; flex-shrink:0;"><i class="fas fa-play" style="color:white; margin-right:-2px; font-size:14px;"></i></div> <audio controls style="max-width:200px; height:35px;"><source src="data:${i};base64,${d.data}" type="${i}"></audio></div>`:i.startsWith("video/")?f=`<video controls style="max-width:100%; border-radius:8px; margin-bottom:5px;"><source src="data:${i};base64,${d.data}" type="${i}"></video>`:f='<div style="background:rgba(0,0,0,0.05); padding:10px; border-radius:8px; display:flex; align-items:center; gap:10px; margin-bottom:5px;"><i class="fas fa-check-circle" style="font-size:24px; color:#00a884;"></i> <div><strong style="display:block; font-size:13px;">تم التحميل بنجاح</strong></div></div>',w.outerHTML=f}catch{s&&(s.disabled=!1,s.innerHTML='<i class="fas fa-redo"></i>'),window.showLuxuryToast("فشل تحميل الوسائط","error")}};document.addEventListener("DOMContentLoaded",()=>{document.addEventListener("click",t=>{const e=t.target.closest(".dash-tab");e&&e.dataset.tab&&window.switchLuxuryTab(e.dataset.tab)}),setTimeout(()=>{window.initWhatsAppServer()},3e3)});window.viewFullImage=function(t){let e=document.getElementById("wa-full-image-overlay");if(!e){e=document.createElement("div"),e.id="wa-full-image-overlay",e.style.cssText="position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.9); z-index:999999; display:flex; justify-content:center; align-items:center; opacity:0; transition:opacity 0.25s ease-in-out; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);";const o=document.createElement("div");o.innerHTML='<i class="fas fa-times"></i>',o.style.cssText="position:absolute; top:25px; right:30px; font-size:24px; color:white; cursor:pointer; padding:10px; z-index:1000000; background:rgba(255,255,255,0.1); border-radius:50%; width:45px; height:45px; display:flex; justify-content:center; align-items:center; border: 1px solid rgba(255,255,255,0.2); transition: background 0.2s;",o.onmouseover=()=>o.style.background="rgba(255,255,255,0.2)",o.onmouseout=()=>o.style.background="rgba(255,255,255,0.1)";const i=document.createElement("img");i.id="wa-full-image-element",i.style.cssText="max-width:90%; max-height:90%; border-radius:12px; box-shadow:0 15px 40px rgba(0,0,0,0.5); object-fit:contain; transform:scale(0.85); transition:transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);",e.appendChild(o),e.appendChild(i),document.body.appendChild(e);const a=()=>{e.style.opacity="0",i.style.transform="scale(0.85)",setTimeout(()=>{e.style.display="none"},250)};o.onclick=a,e.onclick=s=>{s.target===e&&a()}}const n=document.getElementById("wa-full-image-element");n.src=t,e.style.display="flex",e.offsetWidth,e.style.opacity="1",n.style.transform="scale(1)"};setTimeout(()=>{const t=document.getElementById("luxury-splash");t&&!t.classList.contains("hidden")&&(console.warn("Safety timeout: removing loader"),t.style.opacity="0",setTimeout(()=>{t.classList.add("hidden");try{t.remove()}catch{}},800),window.state&&(window.state.firstLoadDone=!0))},7e3);const ee=window.updateAppUI;window.updateAppUI=function(){var n,o;ee&&ee();const t=document.getElementById("user-display-name"),e=((n=window.state.userProfile)==null?void 0:n.role)==="admin";t&&!((o=window.state.userProfile)!=null&&o.name)&&(t.innerText=e?"مسؤول النظام":"موظف مبيعات")};console.log("--- WhatsApp Server Debug ---");console.log("Configured URL:",window._waServerActiveUrl);console.log("-----------------------------");window.promoteToAdmin=async function(t){if(confirm("تأكيد ترقية الموظف لصلاحية مسؤول؟"))try{await admin.database().ref("users/"+t).update({role:"admin"}),window.showLuxuryToast("تم ترقية الموظف بنجاح"),window.syncAdminTables("users")}catch{window.showLuxuryToast("خطأ بالصلاحيات","error")}};window.FirebaseSDK={ref:C,db:A,push:F,set:D,update:j,remove:W,auth:H};

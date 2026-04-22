@@ -227,74 +227,172 @@
             background: rgba(0, 0, 0, 0.2);
         }
 
-        .staff-eval-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
+        /* Premium Staff Table & Metrics */
+        .staff-management-container {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            padding: 10px;
         }
 
-        .staff-eval-card {
+        .premium-table-container {
             background: var(--glass-bg);
             border: 1px solid var(--glass-border);
-            border-radius: 15px;
-            padding: 20px;
-            transition: transform 0.3s ease;
+            border-radius: 20px;
+            overflow-x: auto;
+            box-shadow: var(--shadow-main);
         }
 
-        .staff-eval-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--p-gold);
+        .staff-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: right;
+            min-width: 600px;
         }
 
-        .eval-card-header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
+        .staff-table th {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 18px 20px;
+            font-weight: 700;
+            color: var(--p-gold);
+            font-size: 14px;
+            border-bottom: 2px solid var(--p-gold);
         }
 
-        .staff-avatar {
-            width: 50px;
-            height: 50px;
+        .staff-table td {
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .staff-table tr {
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .staff-table tr:hover td {
+            background: rgba(255, 215, 0, 0.03);
+            color: var(--text-bright);
+        }
+
+        .staff-table tr.selected td {
+            background: rgba(255, 215, 0, 0.08);
+            border-bottom-color: var(--p-gold);
+        }
+
+        .staff-avatar-circle {
+            width: 35px;
+            height: 35px;
+            background: var(--p-red-grad);
             border-radius: 50%;
-            background: var(--grad-gold);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            color: var(--p-dark);
-            font-size: 20px;
+            font-weight: 800;
+            color: white;
+            font-size: 14px;
+            box-shadow: 0 4px 10px rgba(161, 29, 33, 0.3);
         }
 
-        .eval-metrics {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
+        .action-btns-cell {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .btn-action-lite {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .btn-action-lite:hover {
+            transform: scale(1.1);
+            background: var(--p-gold);
+            color: black;
+            border-color: var(--p-gold);
+        }
+
+        .btn-action-lite.whatsapp:hover {
+            background: #25D366;
+            color: white;
+            border-color: #25D366;
+        }
+
+        .btn-action-lite.call:hover {
+            background: #34b7f1;
+            color: white;
+            border-color: #34b7f1;
+        }
+
+        /* Staff Details Panel */
+        .staff-details-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 25px;
+            display: none; /* Shown via JS */
+            animation: slideDown 0.4s ease forwards;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .details-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 20px;
-            text-align: center;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 15px;
         }
 
-        .eval-stat {
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .mini-stat-box {
+            padding: 15px;
             background: rgba(255, 255, 255, 0.03);
-            padding: 10px;
-            border-radius: 10px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid transparent;
+            transition: all 0.3s ease;
         }
 
-        .eval-stat label {
+        .mini-stat-box:hover {
+            background: rgba(255, 215, 0, 0.05);
+            border-color: rgba(255, 215, 0, 0.2);
+        }
+
+        .mini-stat-box label {
             display: block;
             font-size: 11px;
-            color: var(--text-dim);
+            opacity: 0.6;
             margin-bottom: 5px;
         }
 
-        .eval-stat strong {
-            font-size: 16px;
+        .mini-stat-box strong {
+            font-size: 18px;
             color: var(--p-gold);
         }
 
-        .eval-actions {
-            display: flex;
-            gap: 10px;
+        .staff-eval-grid {
+            display: none;
         }
     </style>
 
@@ -1808,7 +1906,44 @@
                                             <i class="fas fa-users-cog"></i>
                                             <span>إدارة وتقييم الموظفين</span>
                                         </div>
-                                        <div id="supervisor-staff-list" class="staff-eval-grid"></div>
+                                        
+                                        <div class="staff-management-container">
+                                            <!-- Table Container -->
+                                            <div class="premium-table-container">
+                                                <table class="staff-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th style="width: 50px;">#</th>
+                                                            <th>الموظف</th>
+                                                            <th>البريد الإلكتروني</th>
+                                                            <th>الطلبات</th>
+                                                            <th>التحويل</th>
+                                                            <th style="text-align: left;">الإجراءات</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="supervisor-staff-list-v2">
+                                                        <!-- Dynamic Rows -->
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            <!-- Details Panel (Hidden by default) -->
+                                            <div id="staff-details-panel" class="staff-details-panel">
+                                                <div class="details-header">
+                                                    <div style="display:flex; align-items:center; gap:12px;">
+                                                        <div id="detail-staff-avatar" class="staff-avatar-circle">?</div>
+                                                        <div>
+                                                            <h4 id="detail-staff-name" style="margin:0; color:var(--p-gold);">اسم الموظف</h4>
+                                                            <p id="detail-staff-email" style="margin:0; font-size:12px; opacity:0.6;">email@example.com</p>
+                                                        </div>
+                                                    </div>
+                                                    <button class="btn-premium btn-xs" onclick="this.parentElement.parentElement.style.display='none'">إغلاق</button>
+                                                </div>
+                                                <div id="staff-stats-grid" class="details-grid">
+                                                    <!-- Dynamic Stats -->
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <!-- Section 5: Recent System Activity -->
