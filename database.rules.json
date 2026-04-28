@@ -13,7 +13,7 @@
       ".read": true,
       ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'staff')",
       "$car_id": {
-        ".validate": "newData.hasChildren(['make', 'price', 'status']) && newData.child('price').isNumber() && newData.child('price').val() >= 0"
+        ".validate": "newData.hasChildren(['make', 'status']) && (!newData.hasChild('price') || (newData.child('price').isNumber() && newData.child('price').val() >= 0))"
       },
       ".indexOn": ["type", "make", "year", "price", "status", "isFeatured", "createdAt"]
     },
