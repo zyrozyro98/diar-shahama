@@ -3715,6 +3715,8 @@ window.saveLuxuryItem = async function (e) {
     numFields.forEach(f => {
       if (data[f] !== undefined && data[f] !== "" && data[f] !== null) {
         data[f] = Number(data[f]);
+      } else {
+        delete data[f];
       }
     });
 
