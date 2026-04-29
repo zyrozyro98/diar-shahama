@@ -2575,25 +2575,28 @@ window.removeBlackFromLogo = function() {
       const maxChannel = Math.max(r, g, b);
 
       if (isBlackBg) {
-        // Higher strict threshold to completely destroy JPEG artifact stray pixels
-        if (maxChannel < 60) {
+        if (maxChannel < 35) {
+          // Strictly delete background and dark noise
           data[i + 3] = 0;
-        } else if (maxChannel < 180) {
-          // Smooth alpha for edge pixels and artifact remnants.
-          // This makes dark edges transparent and brightens them, eliminating black halos.
-          const factor = (maxChannel - 60) / (180 - 60); // 0.0 to 1.0
+        } else if (maxChannel < 85) {
+          // Narrow edge band: smoothly transition alpha
+          // This removes the black halo on white backgrounds without fading the main logo
+          const factor = (maxChannel - 35) / (85 - 35); // 0.0 to 1.0
           
-          // Use factor^2 for a thinner, cleaner edge (removes stray pixels better)
-          data[i + 3] = a * factor * factor; 
+          data[i + 3] = a * factor; 
           
-          // Boost color to maximum brightness to remove the black mix
-          data[i] = Math.min(255, (r / maxChannel) * 255);
-          data[i + 1] = Math.min(255, (g / maxChannel) * 255);
-          data[i + 2] = Math.min(255, (b / maxChannel) * 255);
+          // Boost the color to remove the black mix, preventing dark halos.
+          // We use Math.max(factor, 0.1) to avoid division by zero or extreme blooming
+          const boost = Math.max(factor, 0.1);
+          data[i] = Math.min(255, r / boost);
+          data[i + 1] = Math.min(255, g / boost);
+          data[i + 2] = Math.min(255, b / boost);
         }
+        // Any pixel with maxChannel >= 85 remains exactly as is (100% opaque, original color).
+        // This ensures the logo does NOT look faded in Light Mode!
       } else {
         // If background is not black, just do a simple strict threshold
-        if (maxChannel < 35) {
+        if (maxChannel < 30) {
           data[i + 3] = 0;
         }
       }
