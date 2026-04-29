@@ -2572,25 +2572,28 @@ window.removeBlackFromLogo = function() {
       
       if (a === 0) continue;
       
-      const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+      const maxChannel = Math.max(r, g, b);
 
       if (isBlackBg) {
-        if (luma < 25) {
-          // Pure black becomes completely transparent
+        // Higher strict threshold to completely destroy JPEG artifact stray pixels
+        if (maxChannel < 60) {
           data[i + 3] = 0;
-        } else if (luma < 90) {
-          // Smooth alpha for edges to prevent black halos on light backgrounds.
-          // We increase brightness of the pixel so it doesn't look dark gray, and lower alpha.
-          const factor = luma / 90;
-          data[i + 3] = a * factor; // lower alpha
-          // Boost color to remove the black mix
-          data[i] = Math.min(255, r / factor);
-          data[i + 1] = Math.min(255, g / factor);
-          data[i + 2] = Math.min(255, b / factor);
+        } else if (maxChannel < 180) {
+          // Smooth alpha for edge pixels and artifact remnants.
+          // This makes dark edges transparent and brightens them, eliminating black halos.
+          const factor = (maxChannel - 60) / (180 - 60); // 0.0 to 1.0
+          
+          // Use factor^2 for a thinner, cleaner edge (removes stray pixels better)
+          data[i + 3] = a * factor * factor; 
+          
+          // Boost color to maximum brightness to remove the black mix
+          data[i] = Math.min(255, (r / maxChannel) * 255);
+          data[i + 1] = Math.min(255, (g / maxChannel) * 255);
+          data[i + 2] = Math.min(255, (b / maxChannel) * 255);
         }
       } else {
         // If background is not black, just do a simple strict threshold
-        if (r < 25 && g < 25 && b < 25) {
+        if (maxChannel < 35) {
           data[i + 3] = 0;
         }
       }
@@ -2600,7 +2603,7 @@ window.removeBlackFromLogo = function() {
     const newB64 = canvas.toDataURL("image/png");
     imgElement.src = newB64;
     b64Input.value = newB64;
-    window.showLuxuryToast("تمت معالجة الشعار بنجاح وإزالة الخلفية السوداء بالكامل");
+    window.showLuxuryToast("تمت معالجة الشعار وتصفية الحواف بنجاح");
     
     // Apply immediately to the live preview HUD if available
     if (window.applySettings) {
