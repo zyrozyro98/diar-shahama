@@ -2558,8 +2558,11 @@ window.removeBlackFromLogo = function() {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     
-    // threshold for what is considered "black"
-    const threshold = 45;
+    // Determine if the background is likely black by checking the top-left pixel
+    const bgR = data[0];
+    const bgG = data[1];
+    const bgB = data[2];
+    const isBlackBg = (bgR < 50 && bgG < 50 && bgB < 50);
     
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i];
@@ -2567,11 +2570,29 @@ window.removeBlackFromLogo = function() {
       const b = data[i + 2];
       const a = data[i + 3];
       
-      if (r < threshold && g < threshold && b < threshold && a > 0) {
-        // completely remove or make highly transparent
-        const maxVal = Math.max(r, g, b);
-        // soft edge transition for aliased edges
-        data[i + 3] = (maxVal / threshold) * 255;
+      if (a === 0) continue;
+      
+      const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+
+      if (isBlackBg) {
+        if (luma < 25) {
+          // Pure black becomes completely transparent
+          data[i + 3] = 0;
+        } else if (luma < 90) {
+          // Smooth alpha for edges to prevent black halos on light backgrounds.
+          // We increase brightness of the pixel so it doesn't look dark gray, and lower alpha.
+          const factor = luma / 90;
+          data[i + 3] = a * factor; // lower alpha
+          // Boost color to remove the black mix
+          data[i] = Math.min(255, r / factor);
+          data[i + 1] = Math.min(255, g / factor);
+          data[i + 2] = Math.min(255, b / factor);
+        }
+      } else {
+        // If background is not black, just do a simple strict threshold
+        if (r < 25 && g < 25 && b < 25) {
+          data[i + 3] = 0;
+        }
       }
     }
     
@@ -2579,7 +2600,14 @@ window.removeBlackFromLogo = function() {
     const newB64 = canvas.toDataURL("image/png");
     imgElement.src = newB64;
     b64Input.value = newB64;
-    window.showLuxuryToast("تمت معالجة الشعار بنجاح وإزالة الخلفية السوداء");
+    window.showLuxuryToast("تمت معالجة الشعار بنجاح وإزالة الخلفية السوداء بالكامل");
+    
+    // Apply immediately to the live preview HUD if available
+    if (window.applySettings) {
+      let currentSettings = window.settings || {};
+      currentSettings.logo = newB64;
+      window.applySettings(currentSettings);
+    }
   };
   img.src = b64Input.value;
 };

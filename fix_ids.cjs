@@ -1,0 +1,6 @@
+const fs = require('fs');
+let html = fs.readFileSync('index.html', 'utf8');
+html = html.replace(/<div class="splash-logo splash-logo-wrap">\s*<img src=/g, '<div class="splash-logo splash-logo-wrap">\n            <img id="splash-logo-img" src=');
+html = html.replace(/<div class="logo-wrap flex-center-gap" onclick="location.href='#ads-section'" style="cursor: pointer;">\s*<img src=/g, '<div class="logo-wrap flex-center-gap" onclick="location.href=\'#ads-section\'" style="cursor: pointer;">\n                    <img id="nav-logo-img" src=');
+html = html.replace(/<div class="footer-logo-wrap">\s*<img src=/g, '<div class="footer-logo-wrap">\n                            <img id="footer-logo-img" src=');
+fs.writeFileSync('index.html', html);
