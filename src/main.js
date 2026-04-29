@@ -2288,17 +2288,20 @@ window.applySettings = function (s) {
     if (s.logoBlend === 'mask') {
       css += `
         .logo-wrap img, .sidebar-brand img, .splash-logo img, #footer-logo-img, #nav-logo-img, #splash-logo-img {
-           -webkit-mask-image: url(${logoUrl});
-           mask-image: url(${logoUrl});
+           -webkit-mask-image: url("${logoUrl}");
+           mask-image: url("${logoUrl}");
            -webkit-mask-size: contain;
            mask-size: contain;
            -webkit-mask-repeat: no-repeat;
            mask-repeat: no-repeat;
            -webkit-mask-position: center;
            mask-position: center;
-           background-color: var(--p-gold) !important;
-           content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"); /* Transparent pixel to hide original image but keep element */
+           ${s.enablePrimaryGradient ? `background: linear-gradient(135deg, ${s.primaryGradColor1 || "#a11d21"}, ${s.primaryGradColor2 || "#1c7c8c"}) !important;` : 'background-color: var(--p-gold) !important;'}
+           content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
            object-fit: contain;
+           display: inline-block;
+           min-width: 40px;
+           min-height: 40px;
         }
       `;
     } else {
