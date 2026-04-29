@@ -1090,6 +1090,37 @@ input:checked+.slider:before {
   font-weight: 500;
 }
 
+/* Floating Preview HUD */
+.floating-preview-hud {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  width: 280px;
+  z-index: 9999;
+  background: var(--bg-card);
+  border: 1px solid var(--p-gold);
+  border-radius: 20px;
+  padding: 15px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: all 0.5s var(--ease-out-expo);
+  user-select: none;
+}
+
+.floating-preview-hud.minimized {
+  width: 150px;
+  padding: 10px 15px;
+}
+
+.floating-preview-hud.minimized #preview-hud-content {
+  display: none;
+}
+
+.floating-preview-hud.minimized #preview-toggle-icon {
+  transform: rotate(180deg);
+}
+
 @media (max-width: 1100px) {
   .about-grid-v3 {
     grid-template-columns: repeat(2, 1fr);

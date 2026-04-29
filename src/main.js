@@ -41,7 +41,17 @@ window.state = {
   stockStatuses: [],
   user: null,
   userProfile: null,
-  settings: {},
+  settings: {
+    enableTextGradient: true,
+    textGradColor1: "#b8860b",
+    textGradColor2: "#ffffff",
+    enableTopbarGradient: true,
+    topbarGradColor1: "#a11d21",
+    topbarGradColor2: "#05080c",
+    enablePrimaryGradient: true,
+    primaryGradColor1: "#a11d21",
+    primaryGradColor2: "#1c7c8c"
+  },
   lang: localStorage.getItem("luxury_lang") || "ar",
   soundEnabled: localStorage.getItem("luxury_sound_enabled") !== "false",
   tempImages: [],
@@ -2334,6 +2344,47 @@ window.applySettings = function (s) {
     `;
   }
 
+  // Advanced Gradients & Creative Aesthetics
+  if (s.enableTextGradient) {
+    const c1 = s.textGradColor1 || "#b8860b";
+    const c2 = s.textGradColor2 || "#ffffff";
+    css += `
+      .logo-brand-name h1, .luxury-font, .hero-main-title, .section-title-v2, .car-title-v3, .p-amount, .hero-secondary-title {
+        background: linear-gradient(135deg, ${c1}, ${c2});
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        display: inline-block;
+      }
+    `;
+  }
+
+  if (s.enableTopbarGradient) {
+    const c1 = s.topbarGradColor1 || "#a11d21";
+    const c2 = s.topbarGradColor2 || "#05080c";
+    css += `
+      .top-bar-luxury {
+        background: linear-gradient(90deg, ${c1}, ${c2}) !important;
+      }
+    `;
+  }
+
+  if (s.enablePrimaryGradient) {
+    const c1 = s.primaryGradColor1 || "#a11d21";
+    const c2 = s.primaryGradColor2 || "#1c7c8c";
+    css += `
+      .btn-premium, .car-price-v3, .car-badge-v3.available, .badge-v3.year, .p-header, .stat-icon, .car-badge-v3.custom {
+        background: linear-gradient(135deg, ${c1}, ${c2}) !important;
+        border: none !important;
+        color: white !important;
+      }
+      .btn-premium:hover {
+        filter: brightness(1.2);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+      }
+    `;
+  }
+
   style.innerHTML = css;
 
   // 1. Guest-facing Dynamic UI
@@ -2400,7 +2451,13 @@ window.applySettings = function (s) {
     "set-location-text": s.location || "",
     "set-insta-link": s.socialInsta || "",
     "set-snap-link": s.socialSnap || "",
-    "set-twitter-link": s.socialTwitter || ""
+    "set-twitter-link": s.socialTwitter || "",
+    "set-text-grad-1": s.textGradColor1 || "#b8860b",
+    "set-text-grad-2": s.textGradColor2 || "#ffffff",
+    "set-topbar-grad-1": s.topbarGradColor1 || "#a11d21",
+    "set-topbar-grad-2": s.topbarGradColor2 || "#05080c",
+    "set-primary-grad-1": s.primaryGradColor1 || "#a11d21",
+    "set-primary-grad-2": s.primaryGradColor2 || "#1c7c8c"
   };
   Object.entries(formMapping).forEach(([id, val]) => {
     const el = document.getElementById(id);
@@ -2417,6 +2474,16 @@ window.applySettings = function (s) {
 
   const maintenanceEl = document.getElementById("set-maintenance-mode");
   if (maintenanceEl) maintenanceEl.checked = s.maintenanceMode || false;
+
+  const checkMapping = {
+    "set-enable-text-grad": s.enableTextGradient !== undefined ? s.enableTextGradient : true,
+    "set-enable-topbar-grad": s.enableTopbarGradient !== undefined ? s.enableTopbarGradient : true,
+    "set-enable-primary-grad": s.enablePrimaryGradient !== undefined ? s.enablePrimaryGradient : true
+  };
+  Object.entries(checkMapping).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el) el.checked = val;
+  });
 
   const logoPreview = document.getElementById("logo-preview-img");
   if (logoPreview) logoPreview.src = logo;
@@ -2507,6 +2574,15 @@ window.saveAppSettings = async function () {
     socialSnap: document.getElementById("set-snap-link")?.value || "",
     socialTwitter: document.getElementById("set-twitter-link")?.value || "",
     maintenanceMode: document.getElementById("set-maintenance-mode")?.checked || false,
+    enableTextGradient: document.getElementById("set-enable-text-grad")?.checked,
+    textGradColor1: document.getElementById("set-text-grad-1")?.value,
+    textGradColor2: document.getElementById("set-text-grad-2")?.value,
+    enableTopbarGradient: document.getElementById("set-enable-topbar-grad")?.checked,
+    topbarGradColor1: document.getElementById("set-topbar-grad-1")?.value,
+    topbarGradColor2: document.getElementById("set-topbar-grad-2")?.value,
+    enablePrimaryGradient: document.getElementById("set-enable-primary-grad")?.checked,
+    primaryGradColor1: document.getElementById("set-primary-grad-1")?.value,
+    primaryGradColor2: document.getElementById("set-primary-grad-2")?.value,
     updatedAt: new Date().toISOString()
   };
 
@@ -2522,6 +2598,40 @@ window.saveAppSettings = async function () {
       btn.disabled = false;
       btn.innerHTML = '<i class="fas fa-save"></i> حفظ التغييرات';
     }
+  }
+};
+
+window.toggleDesignPreview = function () {
+  const el = document.getElementById("design-preview-widget");
+  if (el) el.classList.toggle("minimized");
+};
+
+window.makeDraggable = function (el) {
+  if (!el || el.dataset.draggable) return;
+  el.dataset.draggable = "true";
+  let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+  const header = el.querySelector("div");
+  if (!header) return;
+  header.onmousedown = dragMouseDown;
+
+  function dragMouseDown(e) {
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'I') return;
+    e.preventDefault();
+    pos3 = e.clientX; pos4 = e.clientY;
+    document.onmouseup = closeDragElement;
+    document.onmousemove = elementDrag;
+  }
+  function elementDrag(e) {
+    e.preventDefault();
+    pos1 = pos3 - e.clientX; pos2 = pos4 - e.clientY;
+    pos3 = e.clientX; pos4 = e.clientY;
+    el.style.top = (el.offsetTop - pos2) + "px";
+    el.style.left = (el.offsetLeft - pos1) + "px";
+    el.style.bottom = "auto";
+    el.style.right = "auto";
+  }
+  function closeDragElement() {
+    document.onmouseup = null; document.onmousemove = null;
   }
 };
 
