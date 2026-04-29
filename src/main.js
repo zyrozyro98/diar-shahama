@@ -2538,6 +2538,51 @@ window.previewLogo = async function (input) {
   }
 };
 
+window.removeBlackFromLogo = function() {
+  const imgElement = document.getElementById("logo-preview-img");
+  const b64Input = document.getElementById("set-logo-b64");
+  if (!b64Input || !b64Input.value) {
+    window.showLuxuryToast("الرجاء رفع شعار أولاً");
+    return;
+  }
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  const img = new Image();
+  img.crossOrigin = "Anonymous";
+  img.onload = function() {
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+    
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    
+    // threshold for what is considered "black"
+    const threshold = 45;
+    
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const a = data[i + 3];
+      
+      if (r < threshold && g < threshold && b < threshold && a > 0) {
+        // completely remove or make highly transparent
+        const maxVal = Math.max(r, g, b);
+        // soft edge transition for aliased edges
+        data[i + 3] = (maxVal / threshold) * 255;
+      }
+    }
+    
+    ctx.putImageData(imageData, 0, 0);
+    const newB64 = canvas.toDataURL("image/png");
+    imgElement.src = newB64;
+    b64Input.value = newB64;
+    window.showLuxuryToast("تمت معالجة الشعار بنجاح وإزالة الخلفية السوداء");
+  };
+  img.src = b64Input.value;
+};
 
 window.saveAppSettings = async function () {
   const btn = document.querySelector('button[onclick="window.saveAppSettings()"]');
