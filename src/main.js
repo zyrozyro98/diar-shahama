@@ -2308,7 +2308,9 @@ window.applySettings = function (s) {
     } else {
       css += `
         .logo-wrap img, .sidebar-brand img, .splash-logo img, #footer-logo-img, #nav-logo-img, #splash-logo-img {
-           mix-blend-mode: ${s.logoBlend};
+           ${s.logoBlend === 'multiply' ? 'mix-blend-mode: multiply; filter: contrast(1.3) brightness(0.95);' : ''}
+           ${s.logoBlend === 'screen' ? 'mix-blend-mode: lighten; filter: contrast(2) brightness(0.9);' : ''}
+           ${(s.logoBlend !== 'multiply' && s.logoBlend !== 'screen') ? `mix-blend-mode: ${s.logoBlend};` : ''}
         }
       `;
     }
