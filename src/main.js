@@ -2288,6 +2288,7 @@ window.applySettings = function (s) {
     if (s.logoBlend === 'mask') {
       css += `
         .logo-wrap img, .sidebar-brand img, .splash-logo img, #footer-logo-img, #nav-logo-img, #splash-logo-img {
+           /* Mask works ONLY if the logo image is a transparent PNG */
            -webkit-mask-image: url("${logoUrl}");
            mask-image: url("${logoUrl}");
            -webkit-mask-size: contain;
@@ -2308,8 +2309,6 @@ window.applySettings = function (s) {
       css += `
         .logo-wrap img, .sidebar-brand img, .splash-logo img, #footer-logo-img, #nav-logo-img, #splash-logo-img {
            mix-blend-mode: ${s.logoBlend};
-           ${s.logoBlend === 'multiply' ? 'filter: contrast(1.2) brightness(1.1);' : ''}
-           ${s.logoBlend === 'screen' ? 'filter: invert(1) contrast(1.2) brightness(1.1);' : ''}
         }
       `;
     }

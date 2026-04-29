@@ -474,17 +474,20 @@ import{i as se,g as ue,a as pe,b as re,c as me,d as ge,s as fe,o as we,r as L,e 
       }
     `}if(t.logoBlend&&t.logoBlend!=="auto"){const A=t.logo||"logo.jpg";t.logoBlend==="mask"?s+=`
         .logo-wrap img, .sidebar-brand img, .splash-logo img, #footer-logo-img, #nav-logo-img, #splash-logo-img {
-           -webkit-mask-image: url(${A});
-           mask-image: url(${A});
+           -webkit-mask-image: url("${A}");
+           mask-image: url("${A}");
            -webkit-mask-size: contain;
            mask-size: contain;
            -webkit-mask-repeat: no-repeat;
            mask-repeat: no-repeat;
            -webkit-mask-position: center;
            mask-position: center;
-           background-color: var(--p-gold) !important;
-           content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"); /* Transparent pixel to hide original image but keep element */
+           ${t.enablePrimaryGradient?`background: linear-gradient(135deg, ${t.primaryGradColor1||"#a11d21"}, ${t.primaryGradColor2||"#1c7c8c"}) !important;`:"background-color: var(--p-gold) !important;"}
+           content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
            object-fit: contain;
+           display: inline-block;
+           min-width: 40px;
+           min-height: 40px;
         }
       `:s+=`
         .logo-wrap img, .sidebar-brand img, .splash-logo img, #footer-logo-img, #nav-logo-img, #splash-logo-img {
