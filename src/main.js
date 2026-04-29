@@ -2274,11 +2274,32 @@ window.applySettings = function (s) {
   }
 
   if (s.logoBlend && s.logoBlend !== 'auto') {
-    css += `
-      .logo-wrap img, .sidebar-brand img, .splash-logo img, #footer-logo-img, #nav-logo-img, #splash-logo-img {
-         mix-blend-mode: ${s.logoBlend};
-      }
-    `;
+    const logoUrl = s.logo || 'logo.jpg';
+    if (s.logoBlend === 'mask') {
+      css += `
+        .logo-wrap img, .sidebar-brand img, .splash-logo img, #footer-logo-img, #nav-logo-img, #splash-logo-img {
+           -webkit-mask-image: url(${logoUrl});
+           mask-image: url(${logoUrl});
+           -webkit-mask-size: contain;
+           mask-size: contain;
+           -webkit-mask-repeat: no-repeat;
+           mask-repeat: no-repeat;
+           -webkit-mask-position: center;
+           mask-position: center;
+           background-color: var(--p-gold) !important;
+           content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"); /* Transparent pixel to hide original image but keep element */
+           object-fit: contain;
+        }
+      `;
+    } else {
+      css += `
+        .logo-wrap img, .sidebar-brand img, .splash-logo img, #footer-logo-img, #nav-logo-img, #splash-logo-img {
+           mix-blend-mode: ${s.logoBlend};
+           ${s.logoBlend === 'multiply' ? 'filter: contrast(1.2) brightness(1.1);' : ''}
+           ${s.logoBlend === 'screen' ? 'filter: invert(1) contrast(1.2) brightness(1.1);' : ''}
+        }
+      `;
+    }
   }
 
   if (s.logoScale) {
