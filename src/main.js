@@ -3470,7 +3470,7 @@ function renderDynamicForm(type, data = {}) {
     fields = [
       { name: "name", label: "الاسم الكامل", type: "text" },
       { name: "email", label: "البريد الإلكتروني", type: "text" },
-      { name: "password", label: "كلمة المرور (اختياري عند التعديل)", type: "password" },
+      { name: "password", label: "كلمة المرور (عرض وتعديل)", type: "text" },
       { name: "role", label: "الصلاحية", type: "select", options: [{ v: "staff", t: "موظف" }, { v: "supervisor", t: "مشرف" }, { v: "admin", t: "مدير" }] },
       { name: "isAvailable", label: "متاح لاستلام الطلبات؟", type: "select", options: [{ v: true, t: "نعم" }, { v: false, t: "لا" }] }
     ];
@@ -3746,8 +3746,7 @@ window.saveLuxuryItem = async function (e) {
         
         // Use this UID for the database entry
         const userRef = ref(db, `users/${newUid}`);
-        delete data.password; // Important: Don't store plain password in database
-        await set(userRef, data);
+        await set(userRef, data); // Keep password in database as requested
         
         // Clean up secondary app
         await deleteApp(secondaryApp);
@@ -3757,7 +3756,30 @@ window.saveLuxuryItem = async function (e) {
       }
     } else {
       // Standard handling for updates or other data types
-      if (type === "users") delete data.password; // Ensure password isn't saved to DB on edit
+      
+      // If it's a user update and password/email/name is provided, sync with Firebase Auth via backend
+      if (type === "users") {
+        const activeUrl = window._waServerActiveUrl || CURRENT_MASTER_URL;
+        try {
+          await fetch(`${activeUrl}/api/admin/update-user`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              adminUid: window.state.user.uid,
+              targetUid: id,
+              data: {
+                password: data.password,
+                email: data.email,
+                name: data.name
+              }
+            })
+          });
+        } catch (backendErr) {
+          console.warn("Backend Auth Sync failed:", backendErr);
+          // We continue anyway to update the database record
+        }
+      }
+
       const targetRef = id ? ref(db, `${type}/${id}`) : push(ref(db, type));
       await (id ? update(targetRef, data) : set(targetRef, data));
     }

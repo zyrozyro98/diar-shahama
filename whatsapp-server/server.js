@@ -430,6 +430,33 @@ app.get('/health', (req, res) => {
     });
 });
 
+app.post('/api/admin/update-user', async (req, res) => {
+    const { adminUid, targetUid, data } = req.body;
+    try {
+        // Verify admin role
+        const adminRef = await db.ref(`users/${adminUid}`).get();
+        const adminData = adminRef.val();
+        if (!adminData || (adminData.role !== 'admin' && adminData.role !== 'supervisor')) {
+            return res.status(403).json({ error: 'Unauthorized: Admin or Supervisor role required' });
+        }
+
+        const updateData = {};
+        if (data.password) updateData.password = data.password;
+        if (data.email) updateData.email = data.email;
+        if (data.name) updateData.displayName = data.name;
+
+        if (Object.keys(updateData).length > 0) {
+            await admin.auth().updateUser(targetUid, updateData);
+            console.log(`[Admin API] Firebase Auth updated for user: ${targetUid}`);
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('[Admin API] Error updating user:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/api/send', async (req, res) => {
     const { userId, phone, message, media } = req.body;
     if (!userId || !sessions[userId]?.isReady) return res.status(403).json({ error: 'غير متصل' });
