@@ -33,6 +33,12 @@ window.state = {
   reviews: [],
   plates: [],
   sales: [],
+  gearboxes: [],
+  bodyTypes: [],
+  engines: [],
+  exteriorColors: [],
+  interiorColors: [],
+  stockStatuses: [],
   user: null,
   userProfile: null,
   settings: {},
@@ -165,8 +171,9 @@ window.compressImage = function (file, maxWidth = 1000, maxHeight = 1000, qualit
         canvas.height = height;
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
-        // Using image/jpeg for better compression
-        resolve(canvas.toDataURL("image/jpeg", quality));
+        // Preserve transparency for PNG/WebP by using webp format (fallback to png in old browsers)
+        const outputFormat = (file.type === "image/png" || file.type === "image/webp") ? "image/webp" : "image/jpeg";
+        resolve(canvas.toDataURL(outputFormat, quality));
       };
       img.onerror = reject;
     };
@@ -521,7 +528,7 @@ async function initFirebase() {
   await setPersistence(auth, browserLocalPersistence);
 
   // Define data paths
-  const publicPaths = ["users", "plates", "locations", "brands", "agents", "specs", "packages", "blogs", "reviews", "cars", "ads", "sales", "settings", "partners", "custom_presets"];
+  const publicPaths = ["users", "plates", "locations", "brands", "agents", "specs", "packages", "blogs", "reviews", "cars", "ads", "sales", "settings", "partners", "custom_presets", "gearboxes", "bodyTypes", "engines", "exteriorColors", "interiorColors", "stockStatuses"];
   const privatePaths = ["bookings", "notifications", "logs", "quickReplies"];
   const listeners = {};
 
@@ -1248,11 +1255,22 @@ window.applyInventoryFilters = function () {
     });
   }
   if (yearFilter && yearFilter.options.length <= 1) {
-    const years = [...new Set(window.state.cars.map(c => c.year))].sort((a, b) => b - a);
+    const years = [...new Set(window.state.cars.map(c => c.year))].filter(Boolean).sort((a, b) => b - a);
     years.forEach(y => {
       const opt = document.createElement("option");
       opt.value = y; opt.textContent = y;
       yearFilter.appendChild(opt);
+    });
+  }
+
+  const typeFilter = document.getElementById("filter-type");
+  if (typeFilter && typeFilter.options.length <= 1) {
+    const bodyMap = { sedan: 'سيدان', suv: 'SUV', coupe: 'كوبيه', luxury: 'فاخرة', pickup: 'بيك آب' };
+    const types = [...new Set(window.state.cars.map(c => c.bodyType))].filter(Boolean).sort();
+    types.forEach(t => {
+      const opt = document.createElement("option");
+      opt.value = t; opt.textContent = bodyMap[t] || t;
+      typeFilter.appendChild(opt);
     });
   }
 
@@ -1265,7 +1283,7 @@ window.applyInventoryFilters = function () {
   let results = window.state.cars?.filter(car => {
     const matchesSearch = !searchQuery || (car.make + " " + car.model).toLowerCase().includes(searchQuery);
     const matchesMake = filterMake === "all" || car.make === filterMake;
-    const matchesType = filterType === "all" || car.status === filterType;
+    const matchesType = filterType === "all" || car.bodyType === filterType;
     const matchesYear = filterYear === "all" || car.year === filterYear;
     return matchesSearch && matchesMake && matchesType && matchesYear;
   }) || [];
@@ -1402,7 +1420,9 @@ window.renderCarGrid = function (cars) {
       <div class="car-img-wrap">
         <img src="${car.image || "logo.jpg"}" alt="${car.make}" loading="lazy" onerror="this.src='logo.jpg'">
         <div class="car-price-v3">${car.price ? `${Number(car.price).toLocaleString()} <small>ريال</small>` : (car.monthlyInstallment ? `قسط من: ${Number(car.monthlyInstallment).toLocaleString()} <small>ريال</small>` : "عند التواصل")}</div>
-        <div class="car-badge-v3 ${car.status === "available" ? "available" : car.status === "reserved" ? "reserved" : "sold"}">${car.status === "available" ? "متاح" : car.status === "reserved" ? "محجوز" : "مباع"}</div>
+        <div class="car-badge-v3 ${car.status === 'available' ? 'available' : car.status === 'reserved' ? 'reserved' : car.status === 'sold' ? 'sold' : 'custom'}">
+          ${car.status === 'available' ? 'متاح' : car.status === 'reserved' ? 'محجوز' : car.status === 'sold' ? 'مباع' : (car.status || 'متاح')}
+        </div>
       </div>
       <div class="car-info-v3">
         <span class="car-year-v3">${car.year}</span>
@@ -1530,7 +1550,7 @@ window.viewLuxuryCar = function (id) {
             </div>
              <div class="spec-card-v5">
                <i class="fas fa-shield-alt"></i>
-               <div class="s-info"><span>الحالة</span><strong>${car.status === "available" ? "متاح" : car.status === "sold" ? "مباع" : "محجوز"}</strong></div>
+               <div class="s-info"><span>الحالة</span><strong>${car.status === 'available' ? 'متاح' : car.status === 'sold' ? 'مباع' : car.status === 'reserved' ? 'محجوز' : (car.status || 'متاح')}</strong></div>
             </div>
           </div>
 
@@ -3353,19 +3373,53 @@ function renderDynamicForm(type, data = {}) {
   if (type === "cars") {
     const brandOptions = (window.state.brands || []).map(b => ({ v: b.name, t: b.name }));
     fields = [
-      { name: "make", label: "الماركة", type: "select", options: [{ v: "", t: "اختر الماركة" }, ...brandOptions], required: true },
+      {
+        name: "make", label: "الماركة", type: "datalist", options: [
+          ...brandOptions
+        ], required: true
+      },
       { name: "model", label: "الموديل", type: "text", required: true },
       { name: "year", label: "السنة", type: "number" },
       { name: "price", label: "سعر الكاش", type: "number" },
       { name: "monthlyInstallment", label: "قسط شهري يبدأ بـ", type: "number" },
       { name: "mileage", label: "الممشى (كم)", type: "number" },
-      { name: "engine", label: "المحرك", type: "text", placeholder: "مثال: 8 سليندر، 4.0L" },
-      { name: "gearbox", label: "ناقل الحركة", type: "select", options: [{ v: "عادي", t: "عادي" }, { v: "أوتوماتيكي", t: "أوتوماتيكي" }, { v: "CVT", t: "CVT" }] },
+      {
+        name: "engine", label: "المحرك", type: "datalist", placeholder: "مثال: 8 سليندر، 4.0L", options: [
+          { v: "4 سليندر", t: "4 سليندر" }, { v: "6 سليندر", t: "6 سليندر" }, { v: "8 سليندر", t: "8 سليندر" },
+          ...(window.state.engines || []).map(e => ({ v: e.name, t: e.name }))
+        ].filter((v, i, a) => v.v && a.findIndex(t => t.v === v.v) === i)
+      },
+      {
+        name: "gearbox", label: "ناقل الحركة", type: "datalist", options: [
+          { v: "عادي", t: "عادي" }, { v: "أوتوماتيكي", t: "أوتوماتيكي" }, { v: "CVT", t: "CVT" },
+          ...(window.state.gearboxes || []).map(g => ({ v: g.name, t: g.name }))
+        ].filter((v, i, a) => v.v && a.findIndex(t => t.v === v.v) === i)
+      },
       { name: "fuelType", label: "نوع الوقود", type: "select", options: [{ v: "بنزين", t: "بنزين" }, { v: "ديزل", t: "ديزل" }, { v: "هايبرد", t: "هايبرد" }, { v: "كهرباء", t: "كهرباء" }] },
-      { name: "bodyType", label: "فئة السيارة", type: "select", options: [{ v: "sedan", t: "سيدان" }, { v: "suv", t: "SUV" }, { v: "coupe", t: "كوبيه" }, { v: "luxury", t: "فاخرة" }, { v: "pickup", t: "بيك آب" }] },
-      { name: "color", label: "اللون خارجي", type: "text" },
-      { name: "interiorColor", label: "اللون داخلي", type: "text" },
-      { name: "status", label: "الحالة في المخزون", type: "select", options: [{ v: "available", t: "متاح" }, { v: "reserved", t: "محجوز" }, { v: "sold", t: "مباع" }, { v: "incoming", t: "قادم قريباً" }] },
+      {
+        name: "bodyType", label: "فئة السيارة", type: "datalist", options: [
+          { v: "sedan", t: "سيدان" }, { v: "suv", t: "SUV" }, { v: "coupe", t: "كوبيه" }, { v: "luxury", t: "فاخرة" }, { v: "pickup", t: "بيك آب" },
+          ...(window.state.bodyTypes || []).map(b => ({ v: b.name, t: b.name }))
+        ].filter((v, i, a) => v.v && a.findIndex(t => t.v === v.v) === i)
+      },
+      {
+        name: "color", label: "اللون خارجي", type: "datalist", options: [
+          { v: "أبيض", t: "أبيض" }, { v: "أسود", t: "أسود" }, { v: "فضي", t: "فضي" }, { v: "رمادي", t: "رمادي" },
+          ...(window.state.exteriorColors || []).map(c => ({ v: c.name, t: c.name }))
+        ].filter((v, i, a) => v.v && a.findIndex(t => t.v === v.v) === i)
+      },
+      {
+        name: "interiorColor", label: "اللون داخلي", type: "datalist", options: [
+          { v: "بيج", t: "بيج" }, { v: "أسود", t: "أسود" }, { v: "جملي", t: "جملي" }, { v: "أحمر", t: "أحمر" },
+          ...(window.state.interiorColors || []).map(c => ({ v: c.name, t: c.name }))
+        ].filter((v, i, a) => v.v && a.findIndex(t => t.v === v.v) === i)
+      },
+      {
+        name: "status", label: "الحالة في المخزون", type: "datalist", options: [
+          { v: "available", t: "متاح" }, { v: "reserved", t: "محجوز" }, { v: "sold", t: "مباع" }, { v: "incoming", t: "قادم قريباً" },
+          ...(window.state.stockStatuses || []).map(s => ({ v: s.name, t: s.name }))
+        ].filter((v, i, a) => v.v && a.findIndex(t => t.v === v.v) === i)
+      },
       { name: "isFeatured", label: "عرض في قسم المميز؟", type: "select", options: [{ v: false, t: "لا" }, { v: true, t: "نعم" }] },
       { name: "desc", label: "وصف إضافي ومواصفات", type: "textarea" },
       {
@@ -3540,6 +3594,13 @@ function renderDynamicForm(type, data = {}) {
               ${f.options.map(opt => `<option value="${opt.v}" ${opt.v.toString() === val.toString() ? 'selected' : ''}>${opt.t}</option>`).join('')}
             </select>
           `;
+    } else if (f.type === "datalist") {
+      fieldHtml = `
+            <input type="text" name="${f.name}" list="list-${f.name}" value="${val}" class="filter-select" ${requiredAttr} autocomplete="off" placeholder="${placeholder}">
+            <datalist id="list-${f.name}">
+              ${f.options.map(opt => `<option value="${opt.v}">${opt.t}</option>`).join('')}
+            </datalist>
+          `;
     } else if (f.type === "textarea") {
       fieldHtml = `<textarea name="${f.name}" placeholder="${placeholder}" ${requiredAttr}>${val}</textarea>`;
     } else if (f.type === "file") {
@@ -3588,7 +3649,13 @@ window.renderCarImageManager = function () {
       ${images.map((img, idx) => {
     const src = img.type === 'url' ? img.value : img.preview;
     return `
-          <div class="img-item-v2 ${img.isMain ? 'is-main' : ''}">
+          <div class="img-item-v2 ${img.isMain ? 'is-main' : ''}" 
+               draggable="true" 
+               ondragstart="window.handleImageDragStart(event, ${idx})"
+               ondragover="window.handleImageDragOver(event)"
+               ondragleave="window.handleImageDragLeave(event)"
+               ondragend="window.handleImageDragEnd(event)"
+               ondrop="window.handleImageDrop(event, ${idx})">
             ${img.isMain ? '<span class="main-badge">الرئيسية</span>' : ''}
             <img src="${src}" alt="Car image">
             <div class="img-actions-lite">
@@ -3636,6 +3703,31 @@ window.removeCarImage = function (index) {
     window.state.carImages[0].isMain = true;
   }
   window.renderCarImageManager();
+};
+window.handleImageDragStart = function (e, index) {
+  e.dataTransfer.setData("text/plain", index);
+  e.currentTarget.classList.add("dragging");
+};
+window.handleImageDragOver = function (e) {
+  e.preventDefault();
+  e.currentTarget.classList.add("drag-over");
+};
+window.handleImageDragLeave = function (e) {
+  e.currentTarget.classList.remove("drag-over");
+};
+window.handleImageDragEnd = function (e) {
+  e.currentTarget.classList.remove("dragging");
+};
+window.handleImageDrop = function (e, targetIndex) {
+  e.preventDefault();
+  e.currentTarget.classList.remove("drag-over");
+  const sourceIndex = parseInt(e.dataTransfer.getData("text/plain"));
+  if (sourceIndex !== targetIndex) {
+    const arr = window.state.carImages;
+    const item = arr.splice(sourceIndex, 1)[0];
+    arr.splice(targetIndex, 0, item);
+    window.renderCarImageManager();
+  }
 };
 
 window.setCarMainImage = function (index) {
@@ -3782,6 +3874,38 @@ window.saveLuxuryItem = async function (e) {
 
       const targetRef = id ? ref(db, `${type}/${id}`) : push(ref(db, type));
       await (id ? update(targetRef, data) : set(targetRef, data));
+
+      // 3. Auto-save new presets for Gearbox and BodyType
+      if (type === "cars") {
+        if (data.gearbox && !(window.state.gearboxes || []).some(g => g.name === data.gearbox)) {
+          const isDefault = ["عادي", "أوتوماتيكي", "CVT"].includes(data.gearbox);
+          if (!isDefault) await push(ref(db, 'gearboxes'), { name: data.gearbox });
+        }
+        if (data.bodyType && !(window.state.bodyTypes || []).some(b => b.name === data.bodyType)) {
+          const isDefault = ["sedan", "suv", "coupe", "luxury", "pickup"].includes(data.bodyType) || 
+                          ["سيدان", "SUV", "كوبيه", "فاخرة", "بيك آب"].includes(data.bodyType);
+          if (!isDefault) await push(ref(db, 'bodyTypes'), { name: data.bodyType });
+        }
+        if (data.make && !(window.state.brands || []).some(b => b.name === data.make)) {
+          await push(ref(db, 'brands'), { name: data.make });
+        }
+        if (data.engine && !(window.state.engines || []).some(e => e.name === data.engine)) {
+          const isDefault = ["4 سليندر", "6 سليندر", "8 سليندر"].includes(data.engine);
+          if (!isDefault) await push(ref(db, 'engines'), { name: data.engine });
+        }
+        if (data.color && !(window.state.exteriorColors || []).some(c => c.name === data.color)) {
+          const isDefault = ["أبيض", "أسود", "فضي", "رمادي"].includes(data.color);
+          if (!isDefault) await push(ref(db, 'exteriorColors'), { name: data.color });
+        }
+        if (data.interiorColor && !(window.state.interiorColors || []).some(c => c.name === data.interiorColor)) {
+          const isDefault = ["بيج", "أسود", "جملي", "أحمر"].includes(data.interiorColor);
+          if (!isDefault) await push(ref(db, 'interiorColors'), { name: data.interiorColor });
+        }
+        if (data.status && !(window.state.stockStatuses || []).some(s => s.name === data.status)) {
+          const isDefault = ["available", "reserved", "sold", "incoming"].includes(data.status);
+          if (!isDefault) await push(ref(db, 'stockStatuses'), { name: data.status });
+        }
+      }
     }
 
     window.showLuxuryToast(id ? "تم تحديث البيانات بنجاح" : "تم إضافة العنصر بنجاح");

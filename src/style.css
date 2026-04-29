@@ -654,6 +654,16 @@ p {
   overflow: hidden;
   transition: all 0.3s;
   aspect-ratio: 4/3;
+  cursor: grab;
+}
+.img-item-v2.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+.img-item-v2.drag-over {
+  border: 2px dashed var(--p-copper);
+  transform: scale(1.05);
+  z-index: 10;
 }
 
 .img-item-v2:hover {
@@ -1343,8 +1353,8 @@ h3,
     box-shadow: -20px 0 60px rgba(0, 0, 0, 0.5);
     z-index: 2000;
     border-left: 1px solid var(--glass-border);
-    backdrop-filter: blur(40px);
     -webkit-backdrop-filter: blur(40px);
+    backdrop-filter: blur(40px);
   }
 
   .mobile-menu-header {
@@ -1546,8 +1556,8 @@ h3,
   width: 100%;
   height: 100vh;
   background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
   z-index: 1001; /* Above nav, below menu active state if needed */
   opacity: 0;
   visibility: hidden;
@@ -1949,7 +1959,7 @@ select option {
   .hero-v2 {
     padding: 80px 0;
    min-height: 0; /* Firefox fallback */
-  min-height: auto;
+  min-height: initial;
   }
 }
 
@@ -4405,8 +4415,8 @@ select option {
   cursor: pointer;
   z-index: 1000;
   transition: all 0.3s var(--ease-out-expo);
-  backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
   box-shadow: 0 4px 15px rgba(255, 70, 70, 0.1);
 }
 
@@ -4896,7 +4906,7 @@ body.is-logged-in #admin-modal>.modal-inner>.modal-close {
   display: flex;
   height: 100%;
   min-height: 0;
-  min-height: auto;
+  min-height: initial;
   background: var(--bg-main);
   border-radius: 20px;
   overflow: hidden;
@@ -7145,8 +7155,8 @@ body:not(.is-admin):not(.is-supervisor) .admin-only {
   padding: 5px 2px 15px 2px;
   scrollbar-width: thin;
   scrollbar-color: var(--p-copper) rgba(255,255,255,0.05);
-  mask-image: linear-gradient(to right, black 88%, transparent 100%);
   -webkit-mask-image: linear-gradient(to right, black 88%, transparent 100%);
+  mask-image: linear-gradient(to right, black 88%, transparent 100%);
 }
 
 .thumbs-view::-webkit-scrollbar { height: 4px; }
@@ -7622,8 +7632,8 @@ body:not(.is-admin):not(.is-supervisor) .admin-only {
   cursor: pointer;
   z-index: 1000;
   transition: all 0.3s var(--ease-out-expo);
-  backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
   box-shadow: 0 4px 15px rgba(255, 70, 70, 0.1);
 }
 
