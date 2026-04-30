@@ -50,7 +50,13 @@ window.state = {
     topbarGradColor2: "#05080c",
     enablePrimaryGradient: true,
     primaryGradColor1: "#a11d21",
-    primaryGradColor2: "#1c7c8c"
+    primaryGradColor2: "#1c7c8c",
+    enableSecondaryGradient: true,
+    secondaryGradColor1: "#1c7c8c",
+    secondaryGradColor2: "#0f172a",
+    enableAccentGradient: true,
+    accentGradColor1: "#b8860b",
+    accentGradColor2: "#ffd700"
   },
   lang: localStorage.getItem("luxury_lang") || "ar",
   soundEnabled: localStorage.getItem("luxury_sound_enabled") !== "false",
@@ -2353,12 +2359,17 @@ window.applySettings = function (s) {
     const c1 = s.textGradColor1 || "#b8860b";
     const c2 = s.textGradColor2 || "#ffffff";
     css += `
-      .logo-brand-name h1, .luxury-font, .hero-main-title, .section-title-v2, .car-title-v3, .p-amount, .hero-secondary-title {
-        background: linear-gradient(135deg, ${c1}, ${c2});
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        display: inline-block;
+      .logo-brand-name h1, .luxury-font, .hero-main-title, .section-title-v2, .car-title-v3, .p-amount, .hero-secondary-title,
+      .dynamic-name-ar, .dynamic-name-en, .luxury-logo-gold, #wa-widget-name,
+      .luxury-name-en-splash, .luxury-name-en-nav, .luxury-name-en-hero,
+      #luxury-splash .dynamic-name-ar, #luxury-splash .dynamic-name-en,
+      .top-bar-luxury .dynamic-name-ar, .top-bar-luxury .dynamic-name-en,
+      .nav-premium .dynamic-name-ar, .nav-premium .dynamic-name-en {
+        background: linear-gradient(135deg, ${c1}, ${c2}) !important;
+        -webkit-background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        background-clip: text !important;
+        display: inline-block !important;
       }
     `;
   }
@@ -2377,14 +2388,45 @@ window.applySettings = function (s) {
     const c1 = s.primaryGradColor1 || "#a11d21";
     const c2 = s.primaryGradColor2 || "#1c7c8c";
     css += `
-      .btn-premium, .car-price-v3, .car-badge-v3.available, .badge-v3.year, .p-header, .stat-icon, .car-badge-v3.custom {
+      .btn-premium, .car-price-v3, .car-badge-v3.available, .badge-v3.year, .p-header, .stat-icon, .car-badge-v3.custom, .hero-btn-v3 {
         background: linear-gradient(135deg, ${c1}, ${c2}) !important;
         border: none !important;
         color: white !important;
       }
-      .btn-premium:hover {
+      .btn-premium:hover, .hero-btn-v3:hover {
         filter: brightness(1.2);
         box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+      }
+    `;
+  }
+
+  if (s.enableSecondaryGradient) {
+    const c1 = s.secondaryGradColor1 || "#1c7c8c";
+    const c2 = s.secondaryGradColor2 || "#0f172a";
+    css += `
+      .btn-secondary, .secondary-badge, .p-tab.active, .bullet-point, .nav-item.active, .dash-tab.active {
+        background: linear-gradient(135deg, ${c1}, ${c2}) !important;
+        color: white !important;
+        border: none !important;
+      }
+    `;
+  }
+
+  if (s.enableAccentGradient) {
+    const c1 = s.accentGradColor1 || "#b8860b";
+    const c2 = s.accentGradColor2 || "#ffd700";
+    css += `
+      .accent-glow, .car-badge-v3.reserved, .main-badge, .floating-preview-hud, .btn-action-lite:hover {
+        border-color: ${c1} !important;
+      }
+      .accent-gradient-bg, .badge-v3.year, .main-badge, .stat-icon-v3 {
+        background: linear-gradient(135deg, ${c1}, ${c2}) !important;
+        color: white !important;
+      }
+      .accent-text {
+        background: linear-gradient(135deg, ${c1}, ${c2});
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
       }
     `;
   }
@@ -2666,6 +2708,12 @@ window.saveAppSettings = async function () {
     enablePrimaryGradient: document.getElementById("set-enable-primary-grad")?.checked,
     primaryGradColor1: document.getElementById("set-primary-grad-1")?.value,
     primaryGradColor2: document.getElementById("set-primary-grad-2")?.value,
+    enableSecondaryGradient: document.getElementById("set-enable-secondary-grad")?.checked,
+    secondaryGradColor1: document.getElementById("set-secondary-grad-1")?.value,
+    secondaryGradColor2: document.getElementById("set-secondary-grad-2")?.value,
+    enableAccentGradient: document.getElementById("set-enable-accent-grad")?.checked,
+    accentGradColor1: document.getElementById("set-accent-grad-1")?.value,
+    accentGradColor2: document.getElementById("set-accent-grad-2")?.value,
     updatedAt: new Date().toISOString()
   };
 
@@ -2695,26 +2743,54 @@ window.makeDraggable = function (el) {
   let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
   const header = el.querySelector("div");
   if (!header) return;
+
   header.onmousedown = dragMouseDown;
+  header.ontouchstart = dragMouseDown;
 
   function dragMouseDown(e) {
     if (e.target.tagName === 'BUTTON' || e.target.tagName === 'I') return;
-    e.preventDefault();
-    pos3 = e.clientX; pos4 = e.clientY;
+    
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+    
+    pos3 = clientX;
+    pos4 = clientY;
+    
     document.onmouseup = closeDragElement;
+    document.ontouchend = closeDragElement;
     document.onmousemove = elementDrag;
+    document.ontouchmove = elementDrag;
+    
+    el.classList.add("dragging");
   }
+
   function elementDrag(e) {
-    e.preventDefault();
-    pos1 = pos3 - e.clientX; pos2 = pos4 - e.clientY;
-    pos3 = e.clientX; pos4 = e.clientY;
-    el.style.top = (el.offsetTop - pos2) + "px";
-    el.style.left = (el.offsetLeft - pos1) + "px";
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+    pos1 = pos3 - clientX;
+    pos2 = pos4 - clientY;
+    pos3 = clientX;
+    pos4 = clientY;
+
+    // Use current position to calculate new one
+    const rect = el.getBoundingClientRect();
+    const newTop = rect.top - pos2;
+    const newLeft = rect.left - pos1;
+
+    el.style.top = newTop + "px";
+    el.style.left = newLeft + "px";
     el.style.bottom = "auto";
     el.style.right = "auto";
+    el.style.margin = "0"; // Ensure no margins interfere
   }
+
   function closeDragElement() {
-    document.onmouseup = null; document.onmousemove = null;
+    document.onmouseup = null;
+    document.onmousemove = null;
+    document.ontouchend = null;
+    document.ontouchmove = null;
+    el.classList.remove("dragging");
   }
 };
 
