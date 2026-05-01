@@ -9,8 +9,8 @@ admin.initializeApp({
 const db = admin.database();
 
 const defaultSettings = {
-  companyNameAr: "ون كار للسيارات",
-  companyNameEn: "One Car For Cars",
+  companyNameAr: "ديار كار للسيارات",
+  companyNameEn: "Diar Car For Cars",
   maintenanceMode: false,
   whatsappNumber: "966500000000",
   primaryColor: "#E31E24",

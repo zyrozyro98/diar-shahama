@@ -2206,8 +2206,8 @@ window.applySettings = function (s) {
     img.src = logo;
   });
 
-  const nameAr = s.nameAr || "ون كار";
-  const nameEn = s.nameEn || "ONE CAR";
+  const nameAr = s.nameAr || "ديار كار";
+  const nameEn = s.nameEn || "DIAR CAR";
   const currentName = window.state.lang === "ar" ? nameAr : nameEn;
 
   document.querySelectorAll(".dynamic-name-ar").forEach(el => el.innerText = nameAr);
@@ -2540,7 +2540,7 @@ window.applySettings = function (s) {
 window.resetToDefaultSettings = async function () {
   if (confirm("هل أنت متأكد من إعادة ضبط كافة الإعدادات؟ سيتم فقدان الشعارات والألوان المخصصة.")) {
     const defaults = {
-      nameAr: "ون كار", nameEn: "ONE CAR", primaryColor: "#a11d21", secondaryColor: "#1c7c8c",
+      nameAr: "ديار كار", nameEn: "DIAR CAR", primaryColor: "#a11d21", secondaryColor: "#1c7c8c",
       accentColor: "#b8860b", defaultTheme: "dark", borderRadius: "16px", logo: "logo.jpg",
       aboutUs: "تجربة استثنائية في عالم السيارات", location: "الرياض - معارض القادسية"
     };
