@@ -2,9 +2,9 @@
 
 :root {
   /* Common Palette */
-  --p-red: #907537;
-  --p-red-glow: #90753766;
-  --p-teal: #b39651;
+  --p-red: #ff4d4d;
+  --p-red-glow: rgba(255, 77, 77, 0.4);
+  --p-teal: #2dd4bf;
   --p-navy: #1a2b4b;
   --p-copper: #c8a95e;
   --p-obsidian: #05080c;
@@ -5512,6 +5512,8 @@ body.is-logged-in #admin-modal>.modal-inner>.modal-close {
   padding: 40px;
   overflow-y: auto;
   flex: 1;
+  display: flex;
+  flex-direction: column;
   scrollbar-width: thin;
   scrollbar-color: var(--p-copper) transparent;
 }
