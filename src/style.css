@@ -1102,9 +1102,10 @@ input:checked+.slider:before {
   border-radius: 20px;
   padding: 15px;
   box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-  backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   transition: all 0.5s var(--ease-out-expo), opacity 0.3s ease;
+  -webkit-user-select: none;
   user-select: none;
   will-change: top, left, transform;
 }
