@@ -1,4 +1,4 @@
-import { initializeApp, deleteApp } from "firebase/app";
+﻿import { initializeApp, deleteApp } from "firebase/app";
 import { db, auth, storage, analytics, firebaseConfig } from "./firebase-config.js";
 import {
   ref, onValue, set, push, update, remove, get, increment, runTransaction
@@ -554,11 +554,12 @@ async function initFirebase() {
       const data = s.val();
       if (p === "settings") {
         window.state.settings = data || {};
-        window.applySettings(data);      } else {
+        window.applySettings(data);
+      } else {
         const oldData = window.state[p] || [];
         const newData = data ? Object.entries(data).map(([id, v]) => ({ ...v, id })) : [];
         window.state[p] = newData;
-        
+
         if (p === "cars") window.applyInventoryFilters();
         if (p === "ads") window.renderAdsSlider();
         if (p === "sales") window.renderSalesVideos();
@@ -572,9 +573,9 @@ async function initFirebase() {
           const getMyUnread = (arr) => arr.filter(n => !n.read && (isAdmin || n.userId === window.state.user.uid || n.assignedTo === window.state.user.uid));
           const oldUnread = getMyUnread(oldData).length;
           const newUnread = getMyUnread(newData).length;
-          
+
           if (newUnread > oldUnread && window.playNotificationSound) {
-             window.playNotificationSound();
+            window.playNotificationSound();
           }
         }
 
@@ -690,12 +691,12 @@ function updateAppUI() {
 
     const nameLabel = document.getElementById("user-display-name");
     const roleLabel = document.getElementById("user-role-label");
-    
+
     // Set correct role-based labels
     if (nameLabel) {
       nameLabel.innerText = window.state.userProfile?.name || (isAdmin ? "المسؤول العام" : isSupervisor ? "المشرف العام" : "الموظف");
     }
-    
+
     if (roleLabel) {
       let roleText = "قسم المبيعات والمتابعة";
       if (isAdmin) roleText = "إدارة النظام (Admin)";
@@ -708,7 +709,7 @@ function updateAppUI() {
     if (!currentTab || currentTab.classList.contains("hidden")) {
       let targetTab = "bookings-mgmt"; // Default for Admin/Staff
       if (isSupervisor) targetTab = "supervisor-dash";
-      
+
       const tabBtn = document.querySelector(`.dash-tab[data-tab="${targetTab}"]`);
       if (tabBtn) tabBtn.click();
     }
@@ -730,7 +731,7 @@ window.handleSupervisorExport = async function (format) {
   const end = document.getElementById("sup-export-end").value;
 
   let rawData = window.state[type] || [];
-  
+
   if (!Array.isArray(rawData)) {
     // If it's an object (shouldn't be, but as a fallback)
     rawData = Object.values(rawData);
@@ -802,7 +803,7 @@ window.handleSupervisorExport = async function (format) {
     const translated = {};
     labelKeys.forEach(key => {
       let val = item[key];
-      
+
       // Handle special formatting
       if (key === 'createdAt' || key === 'timestamp' || key === 'lastLogin') {
         val = val ? new Date(val).toLocaleString('ar-SA') : "";
@@ -812,22 +813,22 @@ window.handleSupervisorExport = async function (format) {
         val = staff ? (staff.name || staff.email) : val;
       }
       else if (key === 'status') {
-        const statusMap = { 
-          available: "متاح", 
-          reserved: "محجوز", 
-          sold: "مباع", 
+        const statusMap = {
+          available: "متاح",
+          reserved: "محجوز",
+          sold: "مباع",
           incoming: "قادم قريباً",
-          new: "جديد", 
-          done: "تم", 
-          cancelled: "ملغى", 
-          rejected: "مرفوض" 
+          new: "جديد",
+          done: "تم",
+          cancelled: "ملغى",
+          rejected: "مرفوض"
         };
         val = statusMap[val] || val;
       }
       else if (key === 'isAvailable') {
         val = val ? "نعم" : "لا";
       }
-      
+
       // Ensure we don't treat 0 as empty string
       translated[currentLabels[key]] = (val !== undefined && val !== null) ? val : "";
     });
@@ -841,19 +842,19 @@ window.handleSupervisorExport = async function (format) {
 
   if (format === 'xlsx') {
     const ws = XLSX.utils.json_to_sheet(exportData);
-    ws['!views'] = [{RTL: true}];
-    
+    ws['!views'] = [{ RTL: true }];
+
     // Set column widths
     const wscols = Object.keys(exportData[0]).map(() => ({ wch: 20 }));
     ws['!cols'] = wscols;
-    
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "التقرير");
     XLSX.writeFile(wb, `تقرير_${type}_${new Date().toLocaleDateString('ar-EG').replace(/\//g, '-')}.xlsx`);
-    
+
     window.showLuxuryToast("تم تصدير ملف Excel بنجاح");
     window.createLog("تصدير بيانات", `تصدير تقرير ${type} بصيغة Excel`, "data");
-  } 
+  }
   else if (format === 'pdf') {
     window.showLuxuryToast("جاري معالجة ملف PDF...");
 
@@ -893,7 +894,7 @@ window.handleSupervisorExport = async function (format) {
         </div>
         <div style="background:#f9fafb; padding:15px; border-radius:10px; border:1px solid #eee;">
           <small style="color:#666;">المصدر</small>
-          <div style="font-size:14px; font-weight:bold;">نظام ديار الشهامة السحابي</div>
+          <div style="font-size:14px; font-weight:bold;">نظام ديار كار السحابي</div>
         </div>
       </div>
 
@@ -913,7 +914,7 @@ window.handleSupervisorExport = async function (format) {
       </table>
 
       <div style="margin-top:40px; border-top:1px solid #eee; padding-top:10px; font-size:10px; color:#999; text-align:center;">
-        هذا التقرير تم توليده آلياً من لوحة تحكم المشرف. جميع الحقوق محفوظة لشركة ${window.state.settings?.nameAr || 'ديار الشهامة'}.
+        هذا التقرير تم توليده آلياً من لوحة تحكم المشرف. جميع الحقوق محفوظة لشركة ${window.state.settings?.nameAr || 'ديار كار'}.
       </div>
     `;
 
@@ -944,7 +945,7 @@ window.populateStaffMonitorSelect = function () {
   const select = document.getElementById("sup-monitor-staff-select");
   if (!select) return;
   const staff = window.state.users.filter(u => u.role === "staff");
-  select.innerHTML = '<option value="">-- اختر موظف --</option>' + 
+  select.innerHTML = '<option value="">-- اختر موظف --</option>' +
     staff.map(u => `<option value="${u.id}">${u.name || u.email}</option>`).join("");
 };
 
@@ -952,7 +953,7 @@ window.monitorStaffChats = function (staffUid) {
   const chatsList = document.getElementById("monitor-active-chats-list");
   const chatBody = document.getElementById("monitor-chat-body");
   const chatHeader = document.getElementById("monitor-chat-header");
-  
+
   if (!chatsList || !chatBody || !chatHeader) return;
   if (!staffUid) {
     chatsList.innerHTML = "";
@@ -1004,7 +1005,7 @@ window.viewMonitorChat = function (chatId, title) {
   onValue(msgRef, (snapshot) => {
     const msgs = [];
     snapshot.forEach(child => msgs.push(child.val()));
-    
+
     chatBody.innerHTML = msgs.map(m => `
       <div class="chat-msg ${m.sender === 'staff' ? 'sent' : 'received'}">
         <div class="msg-bubble">
@@ -1033,7 +1034,7 @@ window.renderSupervisorStaffList = function () {
     const staffBookings = bookings.filter(b => b.assignedTo === s.id);
     const completed = staffBookings.filter(b => b.status === "sold" || b.status === "done").length;
     const convRate = staffBookings.length > 0 ? Math.round((completed / staffBookings.length) * 100) : 0;
-    
+
     // Clean phone for links
     const rawPhone = s.phone || "";
     const cleanPhone = rawPhone.replace(/\D/g, '');
@@ -1043,7 +1044,7 @@ window.renderSupervisorStaffList = function () {
         <td><div class="staff-avatar-circle">${(s.name || "S")[0]}</div></td>
         <td>
             <div style="font-weight:700;">${s.name || 'موظف بدون اسم'}</div>
-            <div style="font-size:10px; opacity:0.5;">ID: ${s.id.substring(0,8)}</div>
+            <div style="font-size:10px; opacity:0.5;">ID: ${s.id.substring(0, 8)}</div>
         </td>
         <td>${s.email}</td>
         <td><span class="badge-v2" style="background:rgba(255,215,0,0.1); color:var(--p-gold); border:none;">${staffBookings.length} طلب</span></td>
@@ -1099,7 +1100,7 @@ window.showStaffStats = function (staffUid) {
   avatarLabel.innerText = (staff.name || "S")[0];
 
   const bookings = (window.state.bookings || []).filter(b => b.assignedTo === staffUid);
-  
+
   const stats = {
     total: bookings.length,
     new: bookings.filter(b => b.status === 'new').length,
@@ -1148,12 +1149,12 @@ window.deleteStaff = async function (uid) {
   try {
     // 1. Remove from Database
     await remove(ref(db, `users/${uid}`));
-    
+
     // 2. Ideally remove from Firebase Auth using Admin SDK or our Secondary App trick
     // Note: Deleting a user from Auth in client side is tricky without a re-auth of THAT user.
     // However, removing them from the 'users' DB node effectively prevents them from seeing the dashboard
     // because our updateAppUI depends on state.userProfile which comes from the DB.
-    
+
     window.showLuxuryToast("تم حذف الموظف من النظام");
     window.renderSupervisorStaffList();
   } catch (e) {
@@ -2580,7 +2581,7 @@ window.previewLogo = async function (input) {
   }
 };
 
-window.removeBlackFromLogo = function() {
+window.removeBlackFromLogo = function () {
   const imgElement = document.getElementById("logo-preview-img");
   const b64Input = document.getElementById("set-logo-b64");
   if (!b64Input || !b64Input.value) {
@@ -2592,28 +2593,28 @@ window.removeBlackFromLogo = function() {
   const ctx = canvas.getContext("2d");
   const img = new Image();
   img.crossOrigin = "Anonymous";
-  img.onload = function() {
+  img.onload = function () {
     canvas.width = img.width;
     canvas.height = img.height;
     ctx.drawImage(img, 0, 0);
-    
+
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
-    
+
     // Determine if the background is likely black by checking the top-left pixel
     const bgR = data[0];
     const bgG = data[1];
     const bgB = data[2];
     const isBlackBg = (bgR < 50 && bgG < 50 && bgB < 50);
-    
+
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i];
       const g = data[i + 1];
       const b = data[i + 2];
       const a = data[i + 3];
-      
+
       if (a === 0) continue;
-      
+
       const maxChannel = Math.max(r, g, b);
 
       if (isBlackBg) {
@@ -2624,9 +2625,9 @@ window.removeBlackFromLogo = function() {
           // Narrow edge band: smoothly transition alpha
           // This removes the black halo on white backgrounds without fading the main logo
           const factor = (maxChannel - 35) / (85 - 35); // 0.0 to 1.0
-          
-          data[i + 3] = a * factor; 
-          
+
+          data[i + 3] = a * factor;
+
           // Boost the color to remove the black mix, preventing dark halos.
           // We use Math.max(factor, 0.1) to avoid division by zero or extreme blooming
           const boost = Math.max(factor, 0.1);
@@ -2643,13 +2644,13 @@ window.removeBlackFromLogo = function() {
         }
       }
     }
-    
+
     ctx.putImageData(imageData, 0, 0);
     const newB64 = canvas.toDataURL("image/png");
     imgElement.src = newB64;
     b64Input.value = newB64;
     window.showLuxuryToast("تمت معالجة الشعار وتصفية الحواف بنجاح");
-    
+
     // Apply immediately to the live preview HUD if available
     if (window.applySettings) {
       let currentSettings = window.settings || {};
@@ -2749,18 +2750,18 @@ window.makeDraggable = function (el) {
 
   function dragMouseDown(e) {
     if (e.target.tagName === 'BUTTON' || e.target.tagName === 'I') return;
-    
+
     const clientX = e.clientX || (e.touches && e.touches[0].clientX);
     const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-    
+
     pos3 = clientX;
     pos4 = clientY;
-    
+
     document.onmouseup = closeDragElement;
     document.ontouchend = closeDragElement;
     document.onmousemove = elementDrag;
     document.ontouchmove = elementDrag;
-    
+
     el.classList.add("dragging");
   }
 
@@ -3037,11 +3038,11 @@ function renderAdminItemRow(type, item) {
   const isSuperOrAdmin = window.state.userProfile?.role === "admin" || window.state.userProfile?.role === "supervisor";
   const isFullAdmin = window.state.userProfile?.role === "admin";
   const isSupervisor = window.state.userProfile?.role === "supervisor";
-  
+
   // Whitelist of types where Supervisor can edit/delete
   const supervisorCanEdit = ["bookings", "notifications"];
   const canEdit = isFullAdmin || (isSupervisor && supervisorCanEdit.includes(type));
-  
+
   const statusClass = item.status === "sold" ? "danger" : item.status === "available" ? "success" : "warning";
   const statusLabel = item.status === "sold" ? "مباع" : item.status === "available" ? "متاح" : "محجوز";
 
@@ -3151,7 +3152,7 @@ function renderAdminItemRow(type, item) {
     const staffId = item.userId || item.assignedTo;
     const staffMember = window.state.users?.find(u => u.id === staffId);
     const staffName = staffMember ? (staffMember.name || staffMember.email) : "نظام";
-    
+
     const icons = {
       wa_message: "fab fa-whatsapp",
       booking: "fas fa-calendar-check",
@@ -3389,7 +3390,7 @@ window.updateStatistics = function () {
   const supConvRate = document.getElementById("overall-conversion-rate");
   const supActiveBookings = document.getElementById("active-bookings-count");
   const supConvBar = document.getElementById("conversion-bar");
-  
+
   if (supTotalVal) {
     const total = (window.state.cars || []).reduce((sum, c) => sum + (parseFloat(c.price) || 0), 0);
     supTotalVal.innerText = total.toLocaleString() + " ريال";
@@ -3415,7 +3416,7 @@ window.updateStatistics = function () {
       const now = new Date();
       return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
     }).length;
-    const target = 50; 
+    const target = 50;
     const pct = Math.min(100, Math.round((soldThisMonth / target) * 100));
     goalPercent.innerText = pct + "%";
     goalFill.style.width = pct + "%";
@@ -3444,7 +3445,7 @@ window.updateStatistics = function () {
     const a = counters.new + counters.waiting + counters.inquiry;
     const c = counters.cancelled;
     const total = s + a + c || 1;
-    
+
     const pS = Math.round((s / total) * 100);
     const pA = Math.round((a / total) * 100);
     const pC = 100 - pS - pA;
@@ -4117,19 +4118,19 @@ window.saveLuxuryItem = async function (e) {
         if (btn) { btn.disabled = false; btn.innerText = originalBtnText; }
         return;
       }
-      
+
       // Create a secondary app to create the user without logging out the admin
       const secondaryApp = initializeApp(firebaseConfig, "Secondary");
       const secondaryAuth = getAuth(secondaryApp);
-      
+
       try {
         const userCredential = await createUserWithEmailAndPassword(secondaryAuth, data.email, data.password);
         const newUid = userCredential.user.uid;
-        
+
         // Use this UID for the database entry
         const userRef = ref(db, `users/${newUid}`);
         await set(userRef, data); // Keep password in database as requested
-        
+
         // Clean up secondary app
         await deleteApp(secondaryApp);
       } catch (authErr) {
@@ -4138,7 +4139,7 @@ window.saveLuxuryItem = async function (e) {
       }
     } else {
       // Standard handling for updates or other data types
-      
+
       // If it's a user update and password/email/name is provided, sync with Firebase Auth via backend
       if (type === "users") {
         const activeUrl = window._waServerActiveUrl || CURRENT_MASTER_URL;
@@ -4172,8 +4173,8 @@ window.saveLuxuryItem = async function (e) {
           if (!isDefault) await push(ref(db, 'gearboxes'), { name: data.gearbox });
         }
         if (data.bodyType && !(window.state.bodyTypes || []).some(b => b.name === data.bodyType)) {
-          const isDefault = ["sedan", "suv", "coupe", "luxury", "pickup"].includes(data.bodyType) || 
-                          ["سيدان", "SUV", "كوبيه", "فاخرة", "بيك آب"].includes(data.bodyType);
+          const isDefault = ["sedan", "suv", "coupe", "luxury", "pickup"].includes(data.bodyType) ||
+            ["سيدان", "SUV", "كوبيه", "فاخرة", "بيك آب"].includes(data.bodyType);
           if (!isDefault) await push(ref(db, 'bodyTypes'), { name: data.bodyType });
         }
         if (data.make && !(window.state.brands || []).some(b => b.name === data.make)) {
@@ -5917,7 +5918,7 @@ window.markNotificationRead = async function (id) {
 window.markAllNotificationsRead = async function () {
   const unread = (window.state.notifications || []).filter(n => !n.read);
   if (unread.length === 0) return;
-  
+
   try {
     const updates = {};
     unread.forEach(n => { updates['notifications/' + n.id + '/read'] = true; });
@@ -5944,12 +5945,12 @@ window.handleNotificationClick = function (id, link) {
   window.markNotificationRead(id);
   if (link) {
     if (link.startsWith('#')) {
-       const parts = link.substring(1).split('/');
-       if (parts[0] === 'booking' && parts[1]) {
-         window.viewBookingDetails(parts[1]);
-       }
+      const parts = link.substring(1).split('/');
+      if (parts[0] === 'booking' && parts[1]) {
+        window.viewBookingDetails(parts[1]);
+      }
     } else {
-       window.open(link, '_blank');
+      window.open(link, '_blank');
     }
   }
 };
@@ -5959,7 +5960,7 @@ window.formatDateRelative = function (ts) {
   const date = new Date(ts);
   const now = new Date();
   const diff = Math.floor((now - date) / 1000);
-  
+
   if (diff < 60) return 'الآن';
   if (diff < 3600) return 'منذ ' + Math.floor(diff / 60) + ' دقيقة';
   if (diff < 86400) return 'منذ ' + Math.floor(diff / 3600) + ' ساعة';
