@@ -1,4 +1,4 @@
-﻿import { initializeApp, deleteApp } from "firebase/app";
+import { initializeApp, deleteApp } from "firebase/app";
 import { db, auth, storage, analytics, firebaseConfig } from "./firebase-config.js";
 import {
   ref, onValue, set, push, update, remove, get, increment, runTransaction
@@ -236,7 +236,7 @@ window.switchLuxuryTab = function (tabId) {
   const allTabs = document.querySelectorAll(".pane, .admin-tab-content");
   const allBtns = document.querySelectorAll(".dash-tab, .admin-sidebar-nav li");
 
-  allTabs.forEach(t => t.classList.add("hidden"));
+  allTabs.forEach(t => { t.classList.add("hidden"); t.classList.remove("active"); });
   allBtns.forEach(b => b.classList.remove("active"));
 
   const targetTab = document.getElementById(tabId);
