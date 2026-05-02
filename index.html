@@ -1421,7 +1421,7 @@
                                 alt="Logo" class="h-40">
                             <div
                                 style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1; gap: 2px;">
-                                <span class="luxury-logo-gold dynamic-name-ar" class="fs-16"></span>
+                                <span class="luxury-logo-gold dynamic-name-ar fs-16"></span>
                                 <span class="dynamic-name-en"
                                     class="font-outfit fs-8 c-red ls-1 fw-800 uppercase"></span>
                                 <script>
@@ -1465,12 +1465,12 @@
                                     <label>بالانتظار</label>
                                 </div>
                                 <div class="m-stat" title="إجمالي الطلبات المسندة لك">
-                                    <i class="fas fa-folder-open" class="c-teal mb-5"></i>
+                                    <i class="fas fa-folder-open c-teal mb-5"></i>
                                     <span id="staff-total-assigned">0</span>
                                     <label>مسندة</label>
                                 </div>
                                 <div class="m-stat" title="نسبة المبيعات المكتملة">
-                                    <i class="fas fa-trophy" class="c-red mb-5"></i>
+                                    <i class="fas fa-trophy c-red mb-5"></i>
                                     <span id="staff-conversion-rate">0%</span>
                                     <label>إنجاز</label>
                                 </div>
@@ -1719,6 +1719,15 @@
                         </header>
 
                         <div class="dash-scroll-area">
+                            <div id="cars-mgmt" class="pane active">
+                                <div class="pane-header-v2">
+                                    <div class="pane-title">
+                                        <h3>إدارة المخزون</h3>
+                                        <p>إدارة وتسجيل كافة السيارات المتوفرة والواردة</p>
+                                    </div>
+                                    <button id="add-car-btn-v2" class="btn-premium btn-sm admin-strictly hidden"
+                                        onclick="window.openCRUDModal('cars')">إضافة للمخزون</button>
+                                </div>
                             
                             <!-- Stats bar returned to cars-mgmt -->
                             <div class="dash-stats-v2" style="margin-bottom: 30px;">
@@ -1787,15 +1796,6 @@
                                     </div>
                                 </div>
                             </div>
-                            <div id="cars-mgmt" class="pane active">
-                                <div class="pane-header-v2">
-                                    <div class="pane-title">
-                                        <h3>إدارة المخزون</h3>
-                                        <p>إدارة وتسجيل كافة السيارات المتوفرة والواردة</p>
-                                    </div>
-                                    <button id="add-car-btn-v2" class="btn-premium btn-sm admin-strictly hidden"
-                                        onclick="window.openCRUDModal('cars')">إضافة للمخزون</button>
-                                </div>
                                 <div class="advanced-filter-bar mb-20">
                                     <div class="search-box-wrap">
                                         <i class="fas fa-search"></i>
@@ -2617,7 +2617,7 @@
                                                     </div>
                                                 </div>
 
-                                                <div class="f-section-title" class="mt-40">ميزات إضافية
+                                                <div class="f-section-title mt-40">ميزات إضافية
                                                     للمظهر (New Features)
                                                 </div>
                                                 <div class="form-grid-v2">
@@ -2666,7 +2666,7 @@
                                                     </div>
                                                 </div>
 
-                                                <div class="f-section-title" class="mt-40">الألوان المتدرجة
+                                                <div class="f-section-title mt-40">الألوان المتدرجة
                                                     والتصميم الإبداعي (Creative Gradients)</div>
                                                 <div class="form-grid-v2">
                                                     <div class="f-group full-width">
@@ -2692,7 +2692,7 @@
                                                         </div>
                                                     </div>
 
-                                                    <div class="f-group full-width" class="mt-20">
+                                                    <div class="f-group full-width mt-20">
                                                         <div
                                                             class="flex items-center gap-10 mb-15">
                                                             <input type="checkbox" id="set-enable-topbar-grad" checked
@@ -2715,7 +2715,7 @@
                                                         </div>
                                                     </div>
 
-                                                    <div class="f-group full-width" class="mt-20">
+                                                    <div class="f-group full-width mt-20">
                                                         <div
                                                             class="flex items-center gap-10 mb-15">
                                                             <input type="checkbox" id="set-enable-primary-grad" checked
@@ -2738,7 +2738,7 @@
                                                         </div>
                                                     </div>
 
-                                                    <div class="f-group full-width" class="mt-20">
+                                                    <div class="f-group full-width mt-20">
                                                         <div
                                                             class="flex items-center gap-10 mb-15">
                                                             <input type="checkbox" id="set-enable-secondary-grad"
@@ -2762,7 +2762,7 @@
                                                         </div>
                                                     </div>
 
-                                                    <div class="f-group full-width" class="mt-20">
+                                                    <div class="f-group full-width mt-20">
                                                         <div
                                                             class="flex items-center gap-10 mb-15">
                                                             <input type="checkbox" id="set-enable-accent-grad" checked
@@ -2788,7 +2788,7 @@
                                             </div>
                                 </div>
 
-                                <div class="f-section-title" class="mt-40">التصميم والخطوط (Design & Fonts)
+                                <div class="f-section-title mt-40">التصميم والخطوط (Design & Fonts)
                                 </div>
                                 <div class="form-grid-v2">
                                     <div class="f-group">
@@ -2828,7 +2828,7 @@
                                     </div>
                                 </div>
 
-                                <div class="f-section-title" class="mt-40">إعدادات التصميم المتقدمة (Design
+                                <div class="f-section-title mt-40">إعدادات التصميم المتقدمة (Design
                                     v2)</div>
                                 <div class="form-grid-v2">
                                     <div class="f-group">
@@ -2861,7 +2861,7 @@
                                     </div>
                                 </div>
 
-                                <div class="f-section-title" class="mt-40">الأنماط الفاخرة الجاهزة (Presets)
+                                <div class="f-section-title mt-40">الأنماط الفاخرة الجاهزة (Presets)
                                 </div>
                                 <div class="preset-grid"
                                     style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:12px; margin-top:15px;">
@@ -3034,9 +3034,7 @@
                                 </div>
                             </div>
                             </form>
-                    </main>
-                </div>
-            </div>
+                        </div> <!-- Close settings-mgmt -->
             <div id="notifications-mgmt" class="pane hidden">
                 <div class="pane-header-v2">
                     <div class="pane-title">
@@ -3300,11 +3298,10 @@
     </div>
     </div>
     </div>
-    </div>
 
     <!-- Details Modal -->
     <div id="details-modal" class="modal hidden">
-        <div class="modal-inner extra-large" class="p-20">
+        <div class="modal-inner extra-large p-20">
             <button class="modal-close">&times;</button>
             <div id="details-modal-body"></div>
         </div>
@@ -3369,7 +3366,7 @@
     </div>
 
     <!-- Image Viewer Modal -->
-    <div id="image-viewer-modal" class="modal hidden" class="z-10000">
+    <div id="image-viewer-modal" class="modal hidden z-10000">
         <div class="modal-inner large image-viewer-inner">
             <button class="modal-close image-viewer-close" title="إغلاق" aria-label="Close Modal">&times;</button>
             <img id="image-viewer-img" src="" alt="صورة مكبرة" class="image-viewer-main-img">
