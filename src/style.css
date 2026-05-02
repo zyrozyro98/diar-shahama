@@ -8148,12 +8148,14 @@ body:not(.is-admin):not(.is-supervisor) .admin-only {
     white-space: pre-wrap;
     display: -webkit-box;
     -webkit-line-clamp: 3;
+    line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
 
 .admin-item-card-v2:hover .qr-content-preview {
     -webkit-line-clamp: unset;
+    line-clamp: unset;
     display: block;
 }
 
@@ -8412,3 +8414,88 @@ body:not(.is-admin):not(.is-supervisor) .admin-only {
         font-size: 14px;
     }
 }
+
+/* --- Utility Classes for Inline Style Extraction --- */
+.hidden-seo { display: none !important; }
+.fs-32 { font-size: 32px !important; }
+.fs-26 { font-size: 26px !important; }
+.ls-05 { letter-spacing: 0.5px !important; }
+.ls-1 { letter-spacing: 1px !important; }
+.m-0 { margin: 0 !important; }
+.mb-0 { margin-bottom: 0 !important; }
+.mb-5 { margin-bottom: 5px !important; }
+.mb-15 { margin-bottom: 15px !important; }
+.mb-20 { margin-bottom: 20px !important; }
+.mb-50 { margin-bottom: 50px !important; }
+.mt-10 { margin-top: 10px !important; }
+.p-0-5 { padding: 0 5px !important; }
+.cursor-pointer { cursor: pointer !important; }
+.opacity-0-1 { opacity: 0.1 !important; }
+.opacity-0-6 { opacity: 0.6 !important; }
+.bg-none { background: none !important; }
+.bg-hero-intro { background-image: url('https://images.unsplash.com/photo-1603386329225-868f9b1ee6c9?auto=format&fit=crop&w=1920&q=80'); }
+.text-center { text-align: center !important; }
+.text-dim { color: var(--text-dim) !important; }
+.text-gold { color: var(--p-gold) !important; }
+.fs-15 { font-size: 15px !important; }
+.flex-rev { flex-direction: row-reverse !important; }
+.dir-ltr { direction: ltr !important; }
+.gap-10 { gap: 10px !important; }
+.gap-15 { gap: 15px !important; }
+.gap-30 { gap: 30px !important; }
+.min-w-110 { min-width: 110px !important; }
+.w-110 { width: 110px !important; }
+.flex-1 { flex: 1 !important; }
+.flex-column { flex-direction: column !important; }
+.align-start { align-items: flex-start !important; }
+.line-height-1-1 { line-height: 1.1 !important; }
+.line-height-1 { line-height: 1 !important; }
+.list-none { list-style: none !important; }
+.d-inline-block { display: inline-block !important; }
+.h-40 { height: 40px !important; }
+.h-55 { height: 55px !important; }
+.w-auto { width: auto !important; }
+.obj-contain { object-fit: contain !important; }
+.toast-in-anim { animation: toast-in 0.3s ease !important; }
+.ml-5 { margin-left: 5px !important; }
+.c-copper { color: var(--p-copper) !important; }
+.c-teal { color: var(--p-teal) !important; }
+.c-red { color: var(--p-red) !important; }
+.flex { display: flex !important; }
+.d-none { display: none !important; }
+.flex-wrap { flex-wrap: wrap !important; }
+.items-center { align-items: center !important; }
+.justify-center { justify-content: center !important; }
+.w-full { width: 100% !important; }
+.h-full { height: 100% !important; }
+.object-cover { object-fit: cover !important; }
+.overflow-hidden { overflow: hidden !important; }
+.relative { position: relative !important; }
+.absolute { position: absolute !important; }
+.inline-block { display: inline-block !important; }
+.block { display: block !important; }
+.mt-20 { margin-top: 20px !important; }
+.mb-10 { margin-bottom: 10px !important; }
+.gap-5 { gap: 5px !important; }
+.gap-8 { gap: 8px !important; }
+.gap-20 { gap: 20px !important; }
+.uppercase { text-transform: uppercase !important; }
+.font-outfit { font-family: 'Outfit', sans-serif !important; }
+.fw-800 { font-weight: 800 !important; }
+.fs-11 { font-size: 11px !important; }
+.fs-28 { font-size: 28px !important; }
+.fs-16 { font-size: 16px !important; }
+.fs-8 { font-size: 8px !important; }
+.fs-14 { font-size: 14px !important; }
+.fs-10 { font-size: 10px !important; }
+.fs-12 { font-size: 12px !important; }
+.lh-1 { line-height: 1 !important; }
+.lh-1-1 { line-height: 1.1 !important; }
+.op-0-5 { opacity: 0.5 !important; }
+.op-0-8 { opacity: 0.8 !important; }
+.op-0-7 { opacity: 0.7 !important; }
+.mt-40 { margin-top: 40px !important; }
+.w-20 { width: 20px !important; }
+.h-20 { height: 20px !important; }
+.p-20 { padding: 20px !important; }
+.z-10000 { z-index: 10000 !important; }
