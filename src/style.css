@@ -4980,6 +4980,8 @@ body.is-logged-in #admin-modal>.modal-inner>.modal-close {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  overflow-y: auto; /* Ensure scrolling works inside the pane */
+  max-height: 100%;
 }
 
 .pane.active {
