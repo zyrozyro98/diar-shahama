@@ -2263,6 +2263,11 @@ select option {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 
 /* Featured Offers Grid */
 .grid-offers-v2 {
@@ -4968,6 +4973,24 @@ body.is-logged-in #admin-modal>.modal-inner>.modal-close {
   padding: 0;
   overflow: hidden;
   background: var(--bg-main);
+  display: flex; /* Added to ensure children like .admin-dash fill height */
+  flex-direction: column;
+}
+
+/* Ensure panes take full width and are stable */
+.pane {
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.pane.active {
+  display: flex !important;
+  animation: fade-up 0.5s var(--ease-out-expo) forwards;
 }
 
 @media (max-width: 850px) {
@@ -5309,6 +5332,7 @@ body.is-logged-in #admin-modal>.modal-inner>.modal-close {
   flex-direction: column;
   background: var(--bg-main);
   overflow: hidden;
+  min-width: 0; /* Critical for flex layouts */
 }
 
 .dash-header {
@@ -5401,6 +5425,7 @@ body.is-logged-in #admin-modal>.modal-inner>.modal-close {
   gap: 20px;
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   min-width: 250px;
+  flex-shrink: 0; /* Prevent cards from collapsing */
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255,255,255,0.1);
   position: relative;
   overflow: hidden;
@@ -5509,6 +5534,10 @@ body.is-logged-in #admin-modal>.modal-inner>.modal-close {
   padding: 25px;
   border-radius: 25px;
   border: 1px solid var(--glass-border);
+  gap: 20px;
+  flex-wrap: wrap;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .pane-title h3 {
@@ -5520,6 +5549,15 @@ body.is-logged-in #admin-modal>.modal-inner>.modal-close {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 25px;
+  width: 100%;
+  align-items: start;
+}
+
+/* Stability for all types of admin cards */
+.admin-grid-v2 > * {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 @media (max-width: 480px) {
@@ -5536,6 +5574,8 @@ body.is-logged-in #admin-modal>.modal-inner>.modal-close {
   display: flex;
   flex-direction: column;
   gap: 15px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Card Style for Admin Grid Items */
@@ -7301,6 +7341,8 @@ body:not(.is-admin):not(.is-supervisor) .admin-only {
   border-radius: 20px;
   border: 1px solid var(--glass-border);
   border-right: 4px solid var(--p-copper);
+  grid-column: 1 / -1; /* Ensure full width in grids */
+  width: 100%;
 }
 
 .desc-card-v5 h3 {
