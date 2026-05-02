@@ -2,11 +2,11 @@
 
 :root {
   /* Common Palette */
-  --p-red: #a11d21;
-  --p-red-glow: rgba(161, 29, 33, 0.4);
-  --p-teal: #1c7c8c;
+  --p-red: #907537;
+  --p-red-glow: #90753766;
+  --p-teal: #b39651;
   --p-navy: #1a2b4b;
-  --p-copper: #b8860b;
+  --p-copper: #c8a95e;
   --p-obsidian: #05080c;
   --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
   --transition-slow: all 0.8s var(--ease-out-expo);
