@@ -401,6 +401,12 @@ p {
   gap: 15px;
 }
 
+@media (max-width: 600px) {
+  .dash-header-welcome-meta p {
+    display: none;
+  }
+}
+
 .pane-actions-v2-flex {
   display: flex; 
   gap: 15px; 
@@ -567,6 +573,7 @@ p {
   border-bottom: 1px solid #eee;
 }
 
+.form-grid-v2,
 .form-grid-v3 {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -574,6 +581,7 @@ p {
 }
 
 @media (max-width: 640px) {
+  .form-grid-v2,
   .form-grid-v3 {
     grid-template-columns: 1fr;
   }
@@ -1776,7 +1784,7 @@ h3,
   display: flex;
   flex-direction: column;
   gap: 20px;
-  width: 60%;
+  width: 100%;
 }
 
 .search-box-wrap {
@@ -3875,8 +3883,8 @@ select option {
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.95);
-  overflow-y: auto; /* Allow backdrop scroll if needed */
-  padding: 20px;
+  overflow-y: auto;
+  padding: 40px 20px;
   box-sizing: border-box;
 }
 
@@ -4944,8 +4952,9 @@ body.is-logged-in #admin-modal>.modal-inner>.modal-close {
 .admin-dash.dashboard-v2 {
   display: flex;
   height: 100%;
+  width: 100%;
   min-height: 0;
-  min-height: initial;
+  flex: 1;
   background: var(--bg-main);
   border-radius: 20px;
   overflow: hidden;
@@ -5303,7 +5312,7 @@ body.is-logged-in #admin-modal>.modal-inner>.modal-close {
 }
 
 .dash-header {
-  padding: 24px 40px;
+  padding: 18px 40px;
   background: var(--bg-alt);
   border-bottom: 1px solid var(--glass-border);
   display: flex;
@@ -5313,6 +5322,7 @@ body.is-logged-in #admin-modal>.modal-inner>.modal-close {
   top: 0;
   z-index: 50;
   gap: 20px;
+  flex-shrink: 0; /* Prevent header from shrinking */
 }
 
 @media (max-width: 600px) {
@@ -5535,6 +5545,9 @@ body.is-logged-in #admin-modal>.modal-inner>.modal-close {
   border-radius: 25px;
   padding: 25px;
   transition: all 0.5s var(--ease-out-expo);
+  overflow: hidden; /* Prevent content scattering */
+  display: flex;
+  flex-direction: column;
 }
 
 .admin-card-item:hover {
@@ -5671,7 +5684,7 @@ body.is-logged-in #admin-modal>.modal-inner>.modal-close {
 @media (max-width: 850px) {
   .admin-dash.dashboard-v2 {
     flex-direction: column;
-    overflow: visible;
+    overflow: hidden;
   }
 
   .dash-sidebar {
