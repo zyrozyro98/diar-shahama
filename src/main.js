@@ -3046,8 +3046,9 @@ function renderAdminItemRow(type, item) {
   const supervisorCanEdit = ["bookings", "notifications"];
   const canEdit = isFullAdmin || (isSupervisor && supervisorCanEdit.includes(type));
 
-  const statusClass = item.status === "sold" ? "danger" : item.status === "available" ? "success" : "warning";
-  const statusLabel = item.status === "sold" ? "مباع" : item.status === "available" ? "متاح" : "محجوز";
+  const s = (item.status || "available").toLowerCase();
+  const statusClass = (s === "sold" || s === "مباع") ? "danger" : (s === "available" || s === "متاح") ? "success" : "warning";
+  const statusLabel = (s === "sold" || s === "مباع") ? "مباع" : (s === "available" || s === "متاح") ? "متاح" : "محجوز";
 
   if (type === "bookings") {
     const staff = window.state.users.find(u => u.id === item.assignedTo)?.name || "غير محدد";
@@ -3727,7 +3728,7 @@ function renderDynamicForm(type, data = {}) {
         ].filter((v, i, a) => v.v && a.findIndex(t => t.v === v.v) === i)
       },
       {
-        name: "status", label: "الحالة في المخزون", type: "datalist", options: [
+        name: "status", label: "الحالة في المخزون", type: "select", options: [
           { v: "available", t: "متاح" }, { v: "reserved", t: "محجوز" }, { v: "sold", t: "مباع" }, { v: "incoming", t: "قادم قريباً" },
           ...(window.state.stockStatuses || []).map(s => ({ v: s.name, t: s.name }))
         ].filter((v, i, a) => v.v && a.findIndex(t => t.v === v.v) === i)
