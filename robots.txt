@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://diar-shahamh.surge.sh/sitemap.xml
+Sitemap: https://onecar1.web.app/sitemap.xml
