@@ -4714,32 +4714,43 @@ body.is-logged-in #admin-modal>.modal-inner>.modal-close {
   justify-content: space-between;
   gap: 60px;
   margin-bottom: 60px;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  margin-bottom: 50px;
 }
 
-@media (max-width: 768px) {
-  .footer-main {
-    flex-direction: column;
-    text-align: center;
-    gap: 40px;
-  }
+.f-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
 
-  .f-brand {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
+.f-brand .flex {
+  justify-content: center;
+}
 
-  .f-social {
-    justify-content: center;
-  }
+.f-social {
+  justify-content: center;
+  margin-top: 10px;
+}
 
-  .f-contact-info {
-    text-align: center;
-  }
+.f-contact-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 
-  .f-contact-info ul {
-    align-items: center;
-  }
+.f-contact-info ul {
+  align-items: center;
+  padding: 0;
+}
+
+.f-bottom {
+  border-top: 1px solid var(--glass-border);
+  padding-top: 30px;
+  opacity: 0.6;
 }
 
 /* --- Image Selector Logic --- */
@@ -7340,76 +7351,6 @@ body:not(.is-admin):not(.is-supervisor) .admin-only {
 }
 
 .desc-card-v5 {
-  background: rgba(255, 255, 255, 0.02);
-  padding: 25px;
-  border-radius: 20px;
-  border: 1px solid var(--glass-border);
-  border-right: 4px solid var(--p-copper);
-  width: 100%;
-}
-
-.section-label-v2 {
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--p-copper);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.section-label-v2::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(to left, var(--p-copper), transparent);
-}
-
-.price-cash-wrap {
-  margin-bottom: 10px;
-}
-
-.price-finance-wrap {
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px solid rgba(255,255,255,0.1);
-}
-
-.p-main-sm {
-  font-size: 26px;
-  color: var(--p-teal);
-  font-weight: 900;
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
-}
-
-.p-main-sm span {
-  font-size: 14px;
-  font-weight: 400;
-  opacity: 0.8;
-  color: var(--text-main);
-}
-
-.whatsapp-direct-btn {
-  background: #25D366 !important;
-  border: none !important;
-}
-
-.whatsapp-direct-btn:hover {
-  background: #128C7E !important;
-  box-shadow: 0 5px 15px rgba(37, 211, 102, 0.3);
-}
-
-.desc-text-v5 {
-  color: var(--text-dim);
-  line-height: 1.8;
-  font-size: 15px;
-}
-
-
   background: rgba(0, 0, 0, 0.15);
   padding: 25px;
   border-radius: 20px;
