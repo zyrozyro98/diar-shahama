@@ -267,6 +267,9 @@ window.switchLuxuryTab = function (tabId) {
   if (tabId === "whatsapp-mgmt") {
     window.startCurrentWASession();
   }
+  if (tabId === "ads-mgmt") {
+    window.syncAdminTables("ads");
+  }
   if (tabId === "quick-replies-mgmt" && window.renderQuickRepliesAdmin) {
     window.renderQuickRepliesAdmin();
   }
@@ -2838,7 +2841,7 @@ window.syncAdminTables = function (type) {
 
   if (searchQuery) {
     items = items.filter(item => {
-      const content = (item.make || item.title || item.name || item.model || item.phone || item.carRequested || item.carOrCompany || "").toLowerCase();
+      const content = (item.make || item.title || item.name || item.model || item.phone || item.carRequested || item.carOrCompany || item.subtitle || "").toLowerCase();
       return content.includes(searchQuery);
     });
   }
@@ -3198,6 +3201,24 @@ function renderAdminItemRow(type, item) {
                 </div>
                 <p style="opacity:0.8;">${item.details}</p>
                 <div style="margin-top:5px; font-size:10px; opacity:0.6;">بواسطة: ${item.user}</div>
+            </div>
+        `;
+  }
+
+  if (type === "ads") {
+    return `
+            <div class="admin-item-row" style="background:rgba(255,255,255,0.02); padding:15px; border-radius:16px; border:1px solid var(--glass-border); margin-bottom:12px; display:flex; align-items:center; gap:20px;">
+                <div class="admin-item-thumb" style="width:100px; height:60px; border-radius:10px; overflow:hidden; flex-shrink:0; background:#000;">
+                    <img src="${item.image || 'logo.jpg'}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='logo.jpg'">
+                </div>
+                <div class="admin-item-info" style="flex-grow:1;">
+                    <strong style="display:block; font-size:16px;">${item.title || "بدون عنوان"}</strong>
+                    <p style="font-size:12px; color:var(--text-dim); margin-top:4px;">${item.subtitle || "لا يوجد عنوان فرعي"}</p>
+                </div>
+                <div class="admin-actions">
+                    <button class="icon-btn-lite" onclick="window.editLuxuryItem('ads', '${item.id}')" title="تعديل"><i class="fas fa-edit"></i></button>
+                    ${canEdit ? `<button class="icon-btn-lite danger" onclick="window.deleteLuxuryItem('ads', '${item.id}')" title="حذف"><i class="fas fa-trash"></i></button>` : ""}
+                </div>
             </div>
         `;
   }
