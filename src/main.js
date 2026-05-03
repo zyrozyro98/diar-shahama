@@ -3059,7 +3059,7 @@ function renderAdminItemRow(type, item) {
   const isSupervisor = window.state.userProfile?.role === "supervisor";
 
   // Whitelist of types where Supervisor can edit/delete
-  const supervisorCanEdit = ["bookings", "notifications"];
+  const supervisorCanEdit = ["bookings", "notifications", "reviews"];
   const canEdit = isFullAdmin || (isSupervisor && supervisorCanEdit.includes(type));
 
   const s = (item.status || "available").toLowerCase();
@@ -3299,7 +3299,7 @@ function renderAdminItemRow(type, item) {
                 ${item.car ? `<span style="font-size:11px; color:var(--p-copper); opacity:0.8; display:block; margin-top:5px;"><i class="fas fa-car-side"></i> ${item.car}</span>` : ""}
             </div>
             <div class="admin-actions">
-                ${isAdmin ? `
+                ${canEdit ? `
                     <button class="icon-btn-lite" onclick="window.editLuxuryItem('reviews', '${item.id}')" title="تعديل"><i class="fas fa-edit"></i></button>
                     <button class="icon-btn-lite danger" onclick="window.deleteLuxuryItem('reviews', '${item.id}')" title="حذف"><i class="fas fa-trash"></i></button>
                 ` : ""}
