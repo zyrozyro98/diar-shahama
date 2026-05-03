@@ -8551,11 +8551,12 @@ body:not(.is-admin):not(.is-supervisor) .admin-only {
 .h-20 { height: 20px !important; }
 .p-20 { padding: 20px !important; }
 .z-10000 { z-index: 10000 !important; }
-/* Custom Scrollbar for WhatsApp and Quick Replies */
+/* Custom Scrollbar for WhatsApp, Quick Replies and Logs */
 #admin-wa-monitor-table, 
 #whatsapp-mgmt,
 #whatsapp-monitor-mgmt,
-#quick-replies-mgmt {
+#quick-replies-mgmt,
+#logs-mgmt {
   scrollbar-width: thin;
   scrollbar-color: var(--p-copper) transparent;
 }
@@ -8563,14 +8564,16 @@ body:not(.is-admin):not(.is-supervisor) .admin-only {
 #admin-wa-monitor-table::-webkit-scrollbar,
 #whatsapp-mgmt::-webkit-scrollbar,
 #whatsapp-monitor-mgmt::-webkit-scrollbar,
-#quick-replies-mgmt::-webkit-scrollbar {
+#quick-replies-mgmt::-webkit-scrollbar,
+#logs-mgmt::-webkit-scrollbar {
   width: 6px;
 }
 
 #admin-wa-monitor-table::-webkit-scrollbar-track,
 #whatsapp-mgmt::-webkit-scrollbar-track,
 #whatsapp-monitor-mgmt::-webkit-scrollbar-track,
-#quick-replies-mgmt::-webkit-scrollbar-track {
+#quick-replies-mgmt::-webkit-scrollbar-track,
+#logs-mgmt::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 10px;
 }
@@ -8578,18 +8581,21 @@ body:not(.is-admin):not(.is-supervisor) .admin-only {
 #admin-wa-monitor-table::-webkit-scrollbar-thumb,
 #whatsapp-mgmt::-webkit-scrollbar-thumb,
 #whatsapp-monitor-mgmt::-webkit-scrollbar-thumb,
-#quick-replies-mgmt::-webkit-scrollbar-thumb {
+#quick-replies-mgmt::-webkit-scrollbar-thumb,
+#logs-mgmt::-webkit-scrollbar-thumb {
   background: var(--p-copper);
   border-radius: 10px;
 }
 
 #whatsapp-mgmt,
 #whatsapp-monitor-mgmt,
-#quick-replies-mgmt {
+#quick-replies-mgmt,
+#logs-mgmt {
   max-height: 70vh;
   overflow-y: auto !important;
   padding-right: 15px;
 }
+
 
 
 #admin-wa-monitor-table {
