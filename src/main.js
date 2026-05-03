@@ -551,9 +551,44 @@ async function initFirebase() {
   const privatePaths = ["bookings", "notifications", "logs", "quickReplies"];
   const listeners = {};
 
-  function attachListener(p) {
-    if (listeners[p]) return; // Avoid duplicate listeners
-    listeners[p] = onValue(ref(db, p), (s) => {
+  function attachListener(p, customCallback = null) {
+    if (listeners[p]) return;
+    const r = ref(db, p);
+
+    // Special handling for Cars: Progressive Loading via onChildAdded
+    if (p === "cars") {
+      listeners[p] = { type: "child" };
+      // 1. New or Initial child
+      onChildAdded(r, (s) => {
+        const item = { ...s.val(), id: s.key };
+        if (!window.state.cars) window.state.cars = [];
+        // Only add if not exists (prevents duplicates)
+        if (!window.state.cars.find(c => c.id === item.id)) {
+          window.state.cars.push(item);
+          window.applyInventoryFilters(); // Re-render gallery with new item
+        }
+        if (customCallback) customCallback(item);
+      });
+      // 2. Updated child
+      onChildChanged(r, (s) => {
+        const item = { ...s.val(), id: s.key };
+        const idx = window.state.cars.findIndex(c => c.id === item.id);
+        if (idx !== -1) {
+          window.state.cars[idx] = item;
+          window.applyInventoryFilters();
+        }
+      });
+      // 3. Removed child
+      onChildRemoved(r, (s) => {
+        const id = s.key;
+        window.state.cars = window.state.cars.filter(c => c.id !== id);
+        window.applyInventoryFilters();
+      });
+      return;
+    }
+
+    // Default: Bulk Loading via onValue
+    listeners[p] = onValue(r, (s) => {
       const data = s.val();
       if (p === "settings") {
         window.state.settings = data || {};
@@ -563,35 +598,30 @@ async function initFirebase() {
         const newData = data ? Object.entries(data).map(([id, v]) => ({ ...v, id })) : [];
         window.state[p] = newData;
 
-        if (p === "cars") window.applyInventoryFilters();
         if (p === "ads") window.renderAdsSlider();
         if (p === "sales") window.renderSalesVideos();
         if (p === "partners") window.renderPartners();
         if (p === "reviews") window.renderPublicReviews();
         if (p === "custom_presets") window.renderCustomPresets();
 
-        // Check for new notifications to play sound
         if (p === "notifications" && window.state.user && window.state.firstLoadDone) {
           const isAdmin = window.state.userProfile?.role === "admin" || window.state.userProfile?.role === "supervisor";
           const getMyUnread = (arr) => arr.filter(n => !n.read && (isAdmin || n.userId === window.state.user.uid || n.assignedTo === window.state.user.uid));
           const oldUnread = getMyUnread(oldData).length;
           const newUnread = getMyUnread(newData).length;
-
-          if (newUnread > oldUnread && window.playNotificationSound) {
-            window.playNotificationSound();
-          }
+          if (newUnread > oldUnread && window.playNotificationSound) window.playNotificationSound();
         }
 
-        // Refresh admin tables if in dashboard
         if (window.state.user) {
           window.syncAdminTables(p);
           window.updateStatistics();
         }
       }
+      if (customCallback) customCallback(data);
       handleFirstLoad();
     }, (err) => {
       console.warn(`Listener for ${p} failed:`, err.message);
-      delete listeners[p]; // Allow retry if it fails
+      delete listeners[p];
     });
   }
 
@@ -620,7 +650,18 @@ async function initFirebase() {
   });
 
   // Attach public listeners immediately
-  publicPaths.forEach(attachListener);
+  // Sequential Bootup Sequence for better UX: Settings -> Ads -> Sales -> Cars -> Others
+  attachListener("settings", () => {
+    attachListener("ads", () => {
+      attachListener("sales", () => {
+        attachListener("cars", () => {
+          // Others load in parallel after core is visible
+          const secondaryPaths = publicPaths.filter(p => !["settings", "ads", "sales", "cars"].includes(p));
+          secondaryPaths.forEach(p => attachListener(p));
+        });
+      });
+    });
+  });
 }
 function handleFirstLoad() {
   if (window.state.firstLoadDone) return;
