@@ -2803,7 +2803,8 @@ select option {
   }
 
   .car-img-wrap {
-    height: 140px;
+    aspect-ratio: 1 / 1;
+    height: auto;
   }
 
   .car-price-v3 {
@@ -3494,7 +3495,8 @@ select option {
 
 @media (max-width: 768px) {
   .p-main-img {
-    height: 250px;
+    aspect-ratio: 1 / 1;
+    height: auto;
   }
 
   .p-thumb-item {
