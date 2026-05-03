@@ -2461,9 +2461,22 @@ window.applySettings = function (s) {
 
   // Meta Tags & Social
   const metaTitle = document.getElementById("meta-title");
-  if (metaTitle) metaTitle.innerText = `${nameAr} | ${s.metaTitle || "الفخامة والجودة تليق بك"}`;
+  const finalTitle = `${nameAr} | ${s.metaTitle || "تمويل وبيع أفضل السيارات المعتمدة في السعودية - الرياض"}`;
+  if (metaTitle) metaTitle.innerText = finalTitle;
+
   const metaDesc = document.getElementById("meta-description");
-  if (metaDesc) metaDesc.setAttribute("content", s.metaDesc || "وجهتكم الرائدة للسيارات الفاخرة والمعتمدة.");
+  const finalDesc = s.metaDesc || "وجهتكم الأولى لتمويل وشراء وبيع السيارات الفاخرة في المملكة العربية السعودية. نوفر أفضل السيارات بأسعار تنافسية وجدولة تمويل مرنة وجودة مضمونة.";
+  if (metaDesc) metaDesc.setAttribute("content", finalDesc);
+
+  // Dynamic Social Meta Sync
+  const updateMeta = (selector, attr, val) => {
+    const el = document.querySelector(selector);
+    if (el) el.setAttribute(attr, val);
+  };
+  updateMeta('meta[property="og:title"]', 'content', finalTitle);
+  updateMeta('meta[property="og:description"]', 'content', finalDesc);
+  updateMeta('meta[property="twitter:title"]', 'content', finalTitle);
+  updateMeta('meta[property="twitter:description"]', 'content', finalDesc);
 
   const socMapping = { "f-insta": s.socialInsta, "f-snap": s.socialSnap, "f-twitter": s.socialTwitter };
   Object.entries(socMapping).forEach(([id, val]) => {
