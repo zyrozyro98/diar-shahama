@@ -551,44 +551,9 @@ async function initFirebase() {
   const privatePaths = ["bookings", "notifications", "logs", "quickReplies"];
   const listeners = {};
 
-  function attachListener(p, customCallback = null) {
-    if (listeners[p]) return;
-    const r = ref(db, p);
-
-    // Special handling for Cars: Progressive Loading via onChildAdded
-    if (p === "cars") {
-      listeners[p] = { type: "child" };
-      // 1. New or Initial child
-      onChildAdded(r, (s) => {
-        const item = { ...s.val(), id: s.key };
-        if (!window.state.cars) window.state.cars = [];
-        // Only add if not exists (prevents duplicates)
-        if (!window.state.cars.find(c => c.id === item.id)) {
-          window.state.cars.push(item);
-          window.applyInventoryFilters(); // Re-render gallery with new item
-        }
-        if (customCallback) customCallback(item);
-      });
-      // 2. Updated child
-      onChildChanged(r, (s) => {
-        const item = { ...s.val(), id: s.key };
-        const idx = window.state.cars.findIndex(c => c.id === item.id);
-        if (idx !== -1) {
-          window.state.cars[idx] = item;
-          window.applyInventoryFilters();
-        }
-      });
-      // 3. Removed child
-      onChildRemoved(r, (s) => {
-        const id = s.key;
-        window.state.cars = window.state.cars.filter(c => c.id !== id);
-        window.applyInventoryFilters();
-      });
-      return;
-    }
-
-    // Default: Bulk Loading via onValue
-    listeners[p] = onValue(r, (s) => {
+  function attachListener(p) {
+    if (listeners[p]) return; // Avoid duplicate listeners
+    listeners[p] = onValue(ref(db, p), (s) => {
       const data = s.val();
       if (p === "settings") {
         window.state.settings = data || {};
@@ -598,30 +563,35 @@ async function initFirebase() {
         const newData = data ? Object.entries(data).map(([id, v]) => ({ ...v, id })) : [];
         window.state[p] = newData;
 
+        if (p === "cars") window.applyInventoryFilters();
         if (p === "ads") window.renderAdsSlider();
         if (p === "sales") window.renderSalesVideos();
         if (p === "partners") window.renderPartners();
         if (p === "reviews") window.renderPublicReviews();
         if (p === "custom_presets") window.renderCustomPresets();
 
+        // Check for new notifications to play sound
         if (p === "notifications" && window.state.user && window.state.firstLoadDone) {
           const isAdmin = window.state.userProfile?.role === "admin" || window.state.userProfile?.role === "supervisor";
           const getMyUnread = (arr) => arr.filter(n => !n.read && (isAdmin || n.userId === window.state.user.uid || n.assignedTo === window.state.user.uid));
           const oldUnread = getMyUnread(oldData).length;
           const newUnread = getMyUnread(newData).length;
-          if (newUnread > oldUnread && window.playNotificationSound) window.playNotificationSound();
+
+          if (newUnread > oldUnread && window.playNotificationSound) {
+            window.playNotificationSound();
+          }
         }
 
+        // Refresh admin tables if in dashboard
         if (window.state.user) {
           window.syncAdminTables(p);
           window.updateStatistics();
         }
       }
-      if (customCallback) customCallback(data);
       handleFirstLoad();
     }, (err) => {
       console.warn(`Listener for ${p} failed:`, err.message);
-      delete listeners[p];
+      delete listeners[p]; // Allow retry if it fails
     });
   }
 
@@ -650,18 +620,27 @@ async function initFirebase() {
   });
 
   // Attach public listeners immediately
-  // Sequential Bootup Sequence for better UX: Settings -> Ads -> Sales -> Cars -> Others
-  attachListener("settings", () => {
-    attachListener("ads", () => {
-      attachListener("sales", () => {
-        attachListener("cars", () => {
-          // Others load in parallel after core is visible
-          const secondaryPaths = publicPaths.filter(p => !["settings", "ads", "sales", "cars"].includes(p));
-          secondaryPaths.forEach(p => attachListener(p));
-        });
-      });
-    });
-  });
+  // Sequence the loading based on priority
+  async function startSequence() {
+    // 1. Settings First (Crucial for UI)
+    attachListener("settings");
+
+    // 2. Staff & Logs (Admin data)
+    attachListener("users");
+    attachListener("logs");
+
+    // 3. Ads (Top of page)
+    attachListener("ads");
+
+    // 4. Cars (Heavy data)
+    attachListener("cars");
+
+    // 5. Remaining Public Paths
+    const remaining = publicPaths.filter(p => !["settings", "users", "logs", "ads", "cars"].includes(p));
+    remaining.forEach(attachListener);
+  }
+
+  startSequence();
 }
 function handleFirstLoad() {
   if (window.state.firstLoadDone) return;
@@ -1379,12 +1358,11 @@ function renderFeaturedOffers(cars) {
   const container = document.getElementById("featured-offers-container");
   if (!container || !cars.length) return;
 
-  // Unhide section if it's set to display:none in style.css or parent
   const section = document.getElementById("featured-offers-section");
   if (section) section.style.display = "block";
 
-  container.innerHTML = cars.map(car => `
-        <div class="offer-card-v2" onclick="window.viewLuxuryCar('${car.id}')">
+  const renderSingleOffer = (car) => `
+        <div class="offer-card-v2" onclick="window.viewLuxuryCar('${car.id}')" style="animation: fadeIn 0.5s ease-out forwards;">
             <div class="offer-badge">عرض حصري</div>
             <div class="offer-img-box">
                 <img src="${car.image || 'logo.jpg'}" alt="${car.make}" loading="lazy" onerror="this.src='logo.jpg'">
@@ -1398,7 +1376,13 @@ function renderFeaturedOffers(cars) {
                 <button class="btn-premium btn-sm" style="margin-top: 10px; width: 100%;">تفاصيل العرض</button>
             </div>
         </div>
-    `).join("");
+    `;
+
+  if (window.state.firstLoadDone) {
+    container.innerHTML = cars.map(renderSingleOffer).join("");
+  } else {
+    window.progressiveRender(container, cars, renderSingleOffer, 100);
+  }
 }
 
 function renderPagination(total, page, size) {
@@ -1482,8 +1466,8 @@ window.renderCarGrid = function (cars) {
     return;
   }
 
-  grid.innerHTML = cars.map(car => `
-    <div class="car-card-premium" onclick="window.viewLuxuryCar('${car.id}')" data-aos="fade-up">
+  const renderSingleCar = (car) => `
+    <div class="car-card-premium" onclick="window.viewLuxuryCar('${car.id}')" style="animation: fadeIn 0.5s ease-out forwards;">
       <div class="car-img-wrap">
         <img src="${car.image || "logo.jpg"}" alt="${car.make}" loading="lazy" onerror="this.src='logo.jpg'">
         <div class="car-price-v3">${car.price ? `${Number(car.price).toLocaleString()} <small>ريال</small>` : (car.monthlyInstallment ? `قسط من: ${Number(car.monthlyInstallment).toLocaleString()} <small>ريال</small>` : "عند التواصل")}</div>
@@ -1512,8 +1496,28 @@ window.renderCarGrid = function (cars) {
         </div>
       </div>
     </div>
-  `).join("");
-}
+  `;
+
+  if (window.state.firstLoadDone) {
+    grid.innerHTML = cars.map(renderSingleCar).join("");
+  } else {
+    window.progressiveRender(grid, cars, renderSingleCar, 60);
+  }
+};
+
+window.progressiveRender = function (container, items, renderFn, delay = 50) {
+  if (!container) return;
+  container.innerHTML = "";
+  let index = 0;
+  function next() {
+    if (index < items.length) {
+      container.insertAdjacentHTML('beforeend', renderFn(items[index]));
+      index++;
+      if (index < items.length) setTimeout(next, delay);
+    }
+  }
+  next();
+};
 
 window.viewLuxuryCar = function (id) {
   const car = window.state.cars.find(c => c.id === id);
