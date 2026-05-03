@@ -546,10 +546,8 @@ function updateLanguageUI() {
 async function initFirebase() {
   await setPersistence(auth, browserLocalPersistence);
 
-  // Define data paths - Prioritize Settings, Ads, and Cars for faster initial render
-  // Prioritize essential data for the first view
-  const essentialPaths = ["settings", "ads", "cars"];
-  const secondaryPaths = ["sales", "partners", "reviews", "users", "plates", "locations", "brands", "agents", "specs", "packages", "blogs", "custom_presets", "gearboxes", "bodyTypes", "engines", "exteriorColors", "interiorColors", "stockStatuses"];
+  // Define data paths
+  const publicPaths = ["users", "plates", "locations", "brands", "agents", "specs", "packages", "blogs", "reviews", "cars", "ads", "sales", "settings", "partners", "custom_presets", "gearboxes", "bodyTypes", "engines", "exteriorColors", "interiorColors", "stockStatuses"];
   const privatePaths = ["bookings", "notifications", "logs", "quickReplies"];
   const listeners = {};
 
@@ -622,13 +620,7 @@ async function initFirebase() {
   });
 
   // Attach public listeners immediately
-  // First: load essentials to show the site quickly
-  essentialPaths.forEach(attachListener);
-
-  // Then: load secondary data after a short delay to free up the network for images
-  setTimeout(() => {
-    secondaryPaths.forEach(attachListener);
-  }, 1000);
+  publicPaths.forEach(attachListener);
 }
 function handleFirstLoad() {
   if (window.state.firstLoadDone) return;
@@ -656,21 +648,18 @@ function handleFirstLoad() {
   }
 
   // Hide splash screen when settings are loaded, regardless of cars count
-  const hasSettings = s && Object.keys(s).length > 0;
-  const hasAds = (window.state.ads && window.state.ads.length > 0);
-  const hasCars = (window.state.cars && window.state.cars.length > 0);
-
-  // Hide splash as soon as we have settings AND (ads OR cars)
-  if (hasSettings && (hasAds || hasCars)) {
-    const splash = document.getElementById("luxury-splash");
-    if (splash && !window.state.firstLoadDone) {
-      splash.style.transition = "opacity 0.4s ease-out";
-      splash.style.opacity = "0";
-      setTimeout(() => {
-        if (splash && splash.parentNode) splash.remove();
-      }, 400);
+  if (s && Object.keys(s).length > 0) {
+    setTimeout(() => {
+      const splash = document.getElementById("luxury-splash");
+      if (splash) {
+        splash.style.opacity = "0";
+        setTimeout(() => {
+          splash.classList.add("hidden");
+          splash.remove();
+        }, 800);
+      }
       window.state.firstLoadDone = true;
-    }
+    }, 1200);
   }
 }
 
@@ -1351,7 +1340,7 @@ function renderFeaturedOffers(cars) {
         <div class="offer-card-v2" onclick="window.viewLuxuryCar('${car.id}')">
             <div class="offer-badge">عرض حصري</div>
             <div class="offer-img-box">
-                <img src="${car.image || 'logo.jpg'}" alt="${car.make}" loading="lazy" decoding="async" onerror="this.src='logo.jpg'">
+                <img src="${car.image || 'logo.jpg'}" alt="${car.make}" loading="lazy" onerror="this.src='logo.jpg'">
             </div>
             <div class="offer-info">
                 <h4>${car.make} ${car.model}</h4>
@@ -1449,7 +1438,7 @@ window.renderCarGrid = function (cars) {
   grid.innerHTML = cars.map(car => `
     <div class="car-card-premium" onclick="window.viewLuxuryCar('${car.id}')" data-aos="fade-up">
       <div class="car-img-wrap">
-        <img src="${car.image || "logo.jpg"}" alt="${car.make}" loading="lazy" decoding="async" onerror="this.src='logo.jpg'">
+        <img src="${car.image || "logo.jpg"}" alt="${car.make}" loading="lazy" onerror="this.src='logo.jpg'">
         <div class="car-price-v3">${car.price ? `${Number(car.price).toLocaleString()} <small>ريال</small>` : (car.monthlyInstallment ? `قسط من: ${Number(car.monthlyInstallment).toLocaleString()} <small>ريال</small>` : "عند التواصل")}</div>
         <div class="car-badge-v3 ${car.status === 'available' ? 'available' : car.status === 'reserved' ? 'reserved' : car.status === 'sold' ? 'sold' : 'custom'}">
           ${car.status === 'available' ? 'متاح' : car.status === 'reserved' ? 'محجوز' : car.status === 'sold' ? 'مباع' : (car.status || 'متاح')}
