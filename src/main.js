@@ -1488,7 +1488,7 @@ window.viewLuxuryCar = function (id) {
 
   const detailsContent = `
     <div class="details-luxury-container animate-fade-in-v2">
-      <!-- Top Header Section -->
+      <!-- 1. Brand & Price Header -->
       <div class="details-top-v4">
         <div class="details-header-v3">
           <div class="d-badge-row">
@@ -1499,18 +1499,22 @@ window.viewLuxuryCar = function (id) {
         '<span class="badge-v3 status sold">مباع</span>'}
           </div>
           <h1 class="luxury-font">${car.make} ${car.model}</h1>
-          <p class="car-subtitle-v5">${car.engine || ""} | ${car.gearbox || ""} | ${car.fuelType || ""}</p>
+          <p class="car-subtitle-v5"><i class="fas fa-info-circle"></i> ${car.engine || "محرك قياسي"} | ${car.gearbox || "أوتوماتيك"} | ${car.fuelType || "بنزين"}</p>
         </div>
         <div class="price-premium-v6">
-          <div class="p-header">سعر الكاش</div>
-          <div class="p-main">
-            <span class="p-amount">${car.price ? Number(car.price).toLocaleString() : "عند التواصل"}</span>
-            <span class="p-curr">${car.price ? "ريال" : ""}</span>
+          <div class="price-cash-wrap">
+             <div class="p-header">سعر الكاش</div>
+             <div class="p-main">
+               <span class="p-amount">${car.price ? Number(car.price).toLocaleString() : "عند التواصل"}</span>
+               <span class="p-curr">${car.price ? "ريال" : ""}</span>
+             </div>
           </div>
           ${car.monthlyInstallment ? `
-            <div class="p-header" style="margin-top:12px; border-top:1px solid rgba(255,255,255,0.1); padding-top:8px;">قسط شهري يبدأ من</div>
-            <div class="p-main-sm" style="font-size:22px; color:var(--p-copper); font-weight:800;">
-              ${Number(car.monthlyInstallment).toLocaleString()} <span style="font-size:12px; font-weight:400; opacity:0.8;">ريال / شهرياً</span>
+            <div class="price-finance-wrap">
+              <div class="p-header">قسط شهري يبدأ من</div>
+              <div class="p-main-sm">
+                ${Number(car.monthlyInstallment).toLocaleString()} <span>ريال / شهرياً</span>
+              </div>
             </div>
           ` : ""}
           <div class="VAT-hint">${car.price ? "السعر شامل ضريبة القيمة المضافة" : ""}</div>
@@ -1539,43 +1543,36 @@ window.viewLuxuryCar = function (id) {
         </div>
 
         <div class="details-info-v4">
+          <div class="section-label-v2">المواصفات الأساسية</div>
           <div class="specs-grid-v4-compact">
             <div class="spec-card-v5">
-               <i class="fas fa-tachometer-alt"></i>
-               <div class="s-info"><span>الممشى</span><strong>${(Number(car.mileage) || 0).toLocaleString()} كم</strong></div>
+                <i class="fas fa-tachometer-alt"></i>
+                <div class="s-info"><span>الممشى</span><strong>${(Number(car.mileage) || 0).toLocaleString()} كم</strong></div>
             </div>
             <div class="spec-card-v5">
-               <i class="fas fa-calendar-alt"></i>
-               <div class="s-info"><span>الموديل</span><strong>${car.year}</strong></div>
+                <i class="fas fa-calendar-alt"></i>
+                <div class="s-info"><span>الموديل</span><strong>${car.year}</strong></div>
             </div>
             <div class="spec-card-v5">
-               <i class="fas fa-fill-drip"></i>
-               <div class="s-info"><span>اللون الخارجي</span><strong>${car.color || "غير محدد"}</strong></div>
+                <i class="fas fa-fill-drip"></i>
+                <div class="s-info"><span>اللون الخارجي</span><strong>${car.color || "غير محدد"}</strong></div>
             </div>
             <div class="spec-card-v5">
-               <i class="fas fa-palette"></i>
-               <div class="s-info"><span>اللون الداخلي</span><strong>${car.interiorColor || "غير محدد"}</strong></div>
+                <i class="fas fa-palette"></i>
+                <div class="s-info"><span>اللون الداخلي</span><strong>${car.interiorColor || "غير محدد"}</strong></div>
             </div>
             <div class="spec-card-v5">
-               <i class="fas fa-gas-pump"></i>
-               <div class="s-info"><span>الوقود</span><strong>${car.fuelType || "بنزين"}</strong></div>
+                <i class="fas fa-gas-pump"></i>
+                <div class="s-info"><span>الوقود</span><strong>${car.fuelType || "بنزين"}</strong></div>
             </div>
             <div class="spec-card-v5">
-               <i class="fas fa-cog"></i>
-               <div class="s-info"><span>الجير</span><strong>${car.gearbox || "أوتوماتيكي"}</strong></div>
-            </div>
-             <div class="spec-card-v5">
-               <i class="fas fa-car-side"></i>
-               <div class="s-info"><span>الفئة</span><strong>${car.bodyType || "فاخرة"}</strong></div>
-            </div>
-             <div class="spec-card-v5">
-               <i class="fas fa-shield-alt"></i>
-               <div class="s-info"><span>الحالة</span><strong>${car.status === 'available' ? 'متاح' : car.status === 'sold' ? 'مباع' : car.status === 'reserved' ? 'محجوز' : (car.status || 'متاح')}</strong></div>
+                <i class="fas fa-cog"></i>
+                <div class="s-info"><span>الجير</span><strong>${car.gearbox || "أوتوماتيكي"}</strong></div>
             </div>
           </div>
 
           <div class="desc-card-v5" id="luxury-car-desc-container">
-            <h3><i class="fas fa-list-ul"></i> وصف ومميزات السيارة</h3>
+            <div class="section-label-v2" style="margin-bottom:15px;"><i class="fas fa-list-ul"></i> وصف ومميزات السيارة</div>
             <div class="desc-text-v5 custom-scrollbar" id="luxury-desc-body">
               ${(car.desc || car.description || car.details || "سيارة بحالة الوكالة...").replace(/\n/g, '<br>')}
             </div>
@@ -1589,13 +1586,20 @@ window.viewLuxuryCar = function (id) {
                   <span>تعبئة طلب حجز الخدمة</span>
                 </div>
               </button>
-             <a href="tel:${window.state.settings.contactSales || ""}" class="btn-luxury-v2 call-btn">
-               <i class="fas fa-phone-alt"></i>
-               <div class="btn-txt">
-                 <strong>طلب إتصال هاتفي</strong>
-                 <span>تواصل مباشر بالمبيعات</span>
-               </div>
-             </a>
+              <a href="${waLink}" target="_blank" class="btn-luxury-v2 whatsapp-direct-btn">
+                <i class="fab fa-whatsapp"></i>
+                <div class="btn-txt">
+                  <strong>استفسار عبر الواتساب</strong>
+                  <span>رد سريع ومباشر</span>
+                </div>
+              </a>
+              <a href="tel:${window.state.settings.contactSales || ""}" class="btn-luxury-v2 call-btn">
+                <i class="fas fa-phone-alt"></i>
+                <div class="btn-txt">
+                  <strong>طلب إتصال هاتفي</strong>
+                  <span>تواصل مباشر بالمبيعات</span>
+                </div>
+              </a>
           </div>
         </div>
       </div>

@@ -281,13 +281,13 @@ import{i as me,g as ye,a as be,b as pe,c as ve,d as he,s as xe,o as ke,r as B,e 
           </div>
 
           <div class="details-footer-actions-v3">
-             <button onclick="window.bookCar('${t.id}')" class="btn-luxury-v2 wa-btn" style="border:none; text-align:right;">
-               <i class="fas fa-calendar-check"></i>
-               <div class="btn-txt">
-                 <strong>إحجز هذه السيارة الآن</strong>
-                 <span>تعبئة طلب حجز الخدمة</span>
-               </div>
-             </button>
+              <button onclick="window.bookCar('${t.id}')" class="btn-luxury-v2 wa-btn">
+                <i class="fas fa-calendar-check"></i>
+                <div class="btn-txt">
+                  <strong>إحجز هذه السيارة الآن</strong>
+                  <span>تعبئة طلب حجز الخدمة</span>
+                </div>
+              </button>
              <a href="tel:${window.state.settings.contactSales||""}" class="btn-luxury-v2 call-btn">
                <i class="fas fa-phone-alt"></i>
                <div class="btn-txt">
@@ -299,7 +299,7 @@ import{i as me,g as ye,a as be,b as pe,c as ve,d as he,s as xe,o as ke,r as B,e 
         </div>
       </div>
     </div>
-  `,d=document.getElementById("details-modal-body");if(d){d.innerHTML=r,d.scrollTop=0;const s=document.getElementById("details-modal");if(s){s.scrollTop=0;const l=s.querySelector(".modal-inner");l&&(l.scrollTop=0)}window.openModal("details-modal")}window.trackCarView(e)};window.bookCar=function(e){const t=window.state.cars.find(i=>i.id===e);if(!t)return;const n=document.getElementById("b-car");n&&(n.value=`${t.make} ${t.model} ${t.year}`),window.closeModal("details-modal");const o=document.getElementById("booking");o&&(o.scrollIntoView({behavior:"smooth"}),n&&(n.focus(),n.style.borderColor="var(--p-copper)",setTimeout(()=>n.style.borderColor="",2e3)))};window.viewBookingDetails=function(e){var a;const t=(window.state.bookings||[]).find(r=>r.id===e);if(!t)return;(a=window.state.users.find(r=>r.id===t.assignedTo))!=null&&a.name,t.status==="sold"||t.status==="available"||t.status==="rejected"||t.status,t.status==="sold"||t.status;const n={new:"جديد",waiting:"بالانتظار",inquiry:"استفسار",sold:"مكتمل",rejected:"مرفوض",available:"متاح"},o=`
+  `,d=document.getElementById("details-modal-body");if(d){d.innerHTML=r,d.scrollTop=0;const s=document.getElementById("details-modal");if(s){s.scrollTop=0;const l=s.querySelector(".modal-inner");l&&(l.scrollTop=0)}window.openModal("details-modal")}window.trackCarView(e)};window.bookCar=function(e){const t=(window.state.cars||[]).find(o=>o.id===e);if(!t)return;const n=document.getElementById("b-car");n&&(n.value=`${t.make} ${t.model} ${t.year}`),window.closeModal("details-modal"),setTimeout(()=>{const o=document.getElementById("booking");o&&(o.scrollIntoView({behavior:"smooth",block:"start"}),n&&(n.focus(),n.classList.add("input-highlight"),setTimeout(()=>n.classList.remove("input-highlight"),3e3)))},300)};window.viewBookingDetails=function(e){var a;const t=(window.state.bookings||[]).find(r=>r.id===e);if(!t)return;(a=window.state.users.find(r=>r.id===t.assignedTo))!=null&&a.name,t.status==="sold"||t.status==="available"||t.status==="rejected"||t.status,t.status==="sold"||t.status;const n={new:"جديد",waiting:"بالانتظار",inquiry:"استفسار",sold:"مكتمل",rejected:"مرفوض",available:"متاح"},o=`
     <div class="booking-modal-layout details-luxury-container" style="direction: rtl;">
       
       <!-- القسم الأيمن: تفاصيل الحجز -->
