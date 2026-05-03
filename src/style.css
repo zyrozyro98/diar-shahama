@@ -8611,3 +8611,14 @@ body:not(.is-admin):not(.is-supervisor) .admin-only {
   margin-top: 20px;
 }
 
+.input-highlight {
+  border-color: var(--p-copper) !important;
+  box-shadow: 0 0 15px rgba(197, 160, 89, 0.4) !important;
+  animation: pulse-highlight 2s infinite;
+}
+
+@keyframes pulse-highlight {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}

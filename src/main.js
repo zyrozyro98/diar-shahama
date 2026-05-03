@@ -1582,13 +1582,13 @@ window.viewLuxuryCar = function (id) {
           </div>
 
           <div class="details-footer-actions-v3">
-             <button onclick="window.bookCar('${car.id}')" class="btn-luxury-v2 wa-btn" style="border:none; text-align:right;">
-               <i class="fas fa-calendar-check"></i>
-               <div class="btn-txt">
-                 <strong>إحجز هذه السيارة الآن</strong>
-                 <span>تعبئة طلب حجز الخدمة</span>
-               </div>
-             </button>
+              <button onclick="window.bookCar('${car.id}')" class="btn-luxury-v2 wa-btn">
+                <i class="fas fa-calendar-check"></i>
+                <div class="btn-txt">
+                  <strong>إحجز هذه السيارة الآن</strong>
+                  <span>تعبئة طلب حجز الخدمة</span>
+                </div>
+              </button>
              <a href="tel:${window.state.settings.contactSales || ""}" class="btn-luxury-v2 call-btn">
                <i class="fas fa-phone-alt"></i>
                <div class="btn-txt">
@@ -1621,27 +1621,30 @@ window.viewLuxuryCar = function (id) {
 };
 
 window.bookCar = function (id) {
-  const car = window.state.cars.find(c => c.id === id);
+  const car = (window.state.cars || []).find(c => c.id === id);
   if (!car) return;
 
   const bCar = document.getElementById("b-car");
   if (bCar) {
     bCar.value = `${car.make} ${car.model} ${car.year}`;
-    // Force trigger any listeners if needed, though most inputs will just work
   }
 
+  // Close modal first
   window.closeModal("details-modal");
 
-  const bookingSec = document.getElementById("booking");
-  if (bookingSec) {
-    bookingSec.scrollIntoView({ behavior: "smooth" });
-    // Add a slight highlight effect to the input
-    if (bCar) {
-      bCar.focus();
-      bCar.style.borderColor = "var(--p-copper)";
-      setTimeout(() => bCar.style.borderColor = "", 2000);
+  // Wait for modal transition then scroll
+  setTimeout(() => {
+    const bookingSec = document.getElementById("booking");
+    if (bookingSec) {
+      bookingSec.scrollIntoView({ behavior: "smooth", block: "start" });
+      
+      if (bCar) {
+        bCar.focus();
+        bCar.classList.add('input-highlight');
+        setTimeout(() => bCar.classList.remove('input-highlight'), 3000);
+      }
     }
-  }
+  }, 300);
 };
 
 window.viewBookingDetails = function (id) {
