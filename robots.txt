@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://onecar1.web.app/sitemap.xml
+Sitemap: https://diyar-car.com/sitemap.xml

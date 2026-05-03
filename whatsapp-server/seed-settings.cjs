@@ -16,7 +16,9 @@ const defaultSettings = {
   primaryColor: "#E31E24",
   secondaryColor: "#1A1A1A",
   currencyAr: "ريال",
-  currencyEn: "SAR"
+  currencyEn: "SAR",
+  metaTitle: "تمويل وبيع أفضل السيارات المعتمدة في السعودية - الرياض",
+  metaDesc: "ديار كار للسيارات - وجهتك الأولى لتمويل وشراء وبيع السيارات الفاخرة في المملكة العربية السعودية. نوفر أفضل السيارات بأسعار تنافسية وجدولة تمويل مرنة وجودة مضمونة."
 };
 
 async function seed() {
