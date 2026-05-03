@@ -547,7 +547,9 @@ async function initFirebase() {
   await setPersistence(auth, browserLocalPersistence);
 
   // Define data paths - Prioritize Settings, Ads, and Cars for faster initial render
-  const publicPaths = ["settings", "ads", "cars", "sales", "partners", "reviews", "users", "plates", "locations", "brands", "agents", "specs", "packages", "blogs", "custom_presets", "gearboxes", "bodyTypes", "engines", "exteriorColors", "interiorColors", "stockStatuses"];
+  // Prioritize essential data for the first view
+  const essentialPaths = ["settings", "ads", "cars"];
+  const secondaryPaths = ["sales", "partners", "reviews", "users", "plates", "locations", "brands", "agents", "specs", "packages", "blogs", "custom_presets", "gearboxes", "bodyTypes", "engines", "exteriorColors", "interiorColors", "stockStatuses"];
   const privatePaths = ["bookings", "notifications", "logs", "quickReplies"];
   const listeners = {};
 
@@ -620,27 +622,13 @@ async function initFirebase() {
   });
 
   // Attach public listeners immediately
-  // Sequence the loading based on priority
-  async function startSequence() {
-    // 1. Settings First (Crucial for UI)
-    attachListener("settings");
+  // First: load essentials to show the site quickly
+  essentialPaths.forEach(attachListener);
 
-    // 2. Staff & Logs (Admin data)
-    attachListener("users");
-    attachListener("logs");
-
-    // 3. Ads (Top of page)
-    attachListener("ads");
-
-    // 4. Cars (Heavy data)
-    attachListener("cars");
-
-    // 5. Remaining Public Paths
-    const remaining = publicPaths.filter(p => !["settings", "users", "logs", "ads", "cars"].includes(p));
-    remaining.forEach(attachListener);
-  }
-
-  startSequence();
+  // Then: load secondary data after a short delay to free up the network for images
+  setTimeout(() => {
+    secondaryPaths.forEach(attachListener);
+  }, 1000);
 }
 function handleFirstLoad() {
   if (window.state.firstLoadDone) return;
@@ -669,23 +657,20 @@ function handleFirstLoad() {
 
   // Hide splash screen when settings are loaded, regardless of cars count
   const hasSettings = s && Object.keys(s).length > 0;
-  const hasContent = (window.state.cars && window.state.cars.length > 0) || (window.state.ads && window.state.ads.length > 0);
+  const hasAds = (window.state.ads && window.state.ads.length > 0);
+  const hasCars = (window.state.cars && window.state.cars.length > 0);
 
-  // Hide splash as soon as we have settings AND some content, or just settings if it's taking a bit
-  if (hasSettings && (hasContent || !window.state.cars)) {
-    setTimeout(() => {
-      const splash = document.getElementById("luxury-splash");
-      if (splash) {
-        splash.style.opacity = "0";
-        setTimeout(() => {
-          if (splash && splash.parentNode) {
-            splash.classList.add("hidden");
-            splash.remove();
-          }
-        }, 500);
-      }
+  // Hide splash as soon as we have settings AND (ads OR cars)
+  if (hasSettings && (hasAds || hasCars)) {
+    const splash = document.getElementById("luxury-splash");
+    if (splash && !window.state.firstLoadDone) {
+      splash.style.transition = "opacity 0.4s ease-out";
+      splash.style.opacity = "0";
+      setTimeout(() => {
+        if (splash && splash.parentNode) splash.remove();
+      }, 400);
       window.state.firstLoadDone = true;
-    }, 300); // Reduced delay from 1200ms to 300ms for faster feel
+    }
   }
 }
 
@@ -793,13 +778,12 @@ window.handleSupervisorExport = async function (format) {
       year: "السنة",
       price: "السعر",
       monthlyInstallment: "القسط الشهري",
-      color: "اللون الخارجي",
-      interiorColor: "اللون الداخلي",
+      color: "اللون الخارجى",
+      interiorColor: "اللون الداخلى",
       mileage: "الممشى",
       engine: "المحرك",
       gearbox: "ناقل الحركة",
       fuelType: "نوع الوقود",
-      bodyType: "فئة السيارة",
       status: "الحالة",
       createdAt: "تاريخ الإضافة"
     },
@@ -807,28 +791,21 @@ window.handleSupervisorExport = async function (format) {
       name: "اسم العميل",
       phone: "رقم الجوال",
       carRequested: "السيارة المطلوبة",
-      customerType: "نوع العميل",
-      age: "العمر",
-      nationality: "الجنسية",
       city: "المدينة",
+      nationality: "الجنسية",
       paymentMethod: "طريقة الشراء",
-      bankName: "اسم البنك",
-      installmentPeriod: "مدة التقسيط",
       salary: "الراتب",
-      workEntity: "جهة العمل",
-      workStatus: "حالة الجهة",
       status: "الحالة",
       subStatus: "الحالة الفرعية",
-      assignedTo: "الموظف المسؤول",
       createdAt: "تاريخ الطلب",
-      notes: "ملاحظات"
+      assignedTo: "الموظف المسؤول"
     },
     users: {
-      name: "اسم الموظف",
+      name: "الاسم",
       email: "البريد الإلكتروني",
-      role: "الصلاحية",
-      isAvailable: "استقبال طلبات",
-      createdAt: "تاريخ التوظيف"
+      role: "الدور",
+      isAvailable: "متاح للاستلام",
+      createdAt: "تاريخ الإنشاء"
     }
   };
 
@@ -849,29 +826,18 @@ window.handleSupervisorExport = async function (format) {
         const staff = (window.state.users || []).find(u => u.id === val);
         val = staff ? (staff.name || staff.email) : val;
       }
-      else if (key === 'status' || key === 'subStatus') {
+      else if (key === 'status') {
         const statusMap = {
-          available: "متاح", reserved: "محجوز", sold: "مباع", incoming: "قادم قريباً",
-          new: "جديد", waiting: "بالانتظار", inquiry: "استفسار", done: "تم",
-          cancelled: "ملغى/مرفوض", rejected: "مرفوض",
-          not_contacted: "لم يتم التواصل", contacted: "تم التواصل",
-          docs_received: "تم استلام الأوراق", waiting_calc: "انتظار رد العميل",
-          waiting_docs: "إنتظار إكمال الأوراق", waiting_signature: "إنتظار توقيع العميل",
-          docs_not_received: "لم يتم استلام الأوراق", signed: "تم التوقيع",
-          delivered: "تم التسليم", no_response: "لم يتم رد العميل",
-          obligations: "التزامات", calc_rejected: "رفض الحسبة",
-          ineligible: "غير مسموح له", duplicate: "مكرر"
+          available: "متاح",
+          reserved: "محجوز",
+          sold: "مباع",
+          incoming: "قادم قريباً",
+          new: "جديد",
+          done: "تم",
+          cancelled: "ملغى",
+          rejected: "مرفوض"
         };
         val = statusMap[val] || val;
-      }
-      else if (key === 'paymentMethod') {
-        val = val === 'cash' || val === 'كاش' ? 'كاش' : 'أقساط / تمويل';
-      }
-      else if (key === 'customerType') {
-        val = val === 'individual' ? 'فرد' : 'مؤسسة / شركة';
-      }
-      else if (key === 'role') {
-        val = val === 'admin' ? 'مدير' : (val === 'supervisor' ? 'مشرف' : 'موظف');
       }
       else if (key === 'isAvailable') {
         val = val ? "نعم" : "لا";
@@ -921,13 +887,10 @@ window.handleSupervisorExport = async function (format) {
     const logoUrl = window.state.settings?.logo || 'logo.jpg';
     const headers = Object.keys(exportData[0]);
 
-    // Adaptive font size based on column count
-    const fontSize = headers.length > 10 ? '7px' : (headers.length > 7 ? '9px' : '11px');
-
     let tableHtml = `
       <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #a11d21; padding-bottom:20px; margin-bottom:30px;">
         <div style="text-align:right;">
-          <h1 style="color:#a11d21; margin:0; font-size:28px; font-family:'Cairo', sans-serif;">${window.state.settings?.nameAr || 'ديار الشهامة'}</h1>
+          <h1 style="color:#a11d21; margin:0; font-size:28px;">${window.state.settings?.nameAr || 'ديار الشهامة'}</h1>
           <p style="margin:5px 0; opacity:0.7;">تقرير إداري مفصل - ${type === 'cars' ? 'مخزون السيارات' : type === 'bookings' ? 'سجل الحجوزات' : 'قائمة الموظفين'}</p>
           <p style="font-size:12px; font-weight:bold;">${dateRangeStr}</p>
         </div>
@@ -936,29 +899,29 @@ window.handleSupervisorExport = async function (format) {
 
       <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:20px; margin-bottom:30px;">
         <div style="background:#f9fafb; padding:15px; border-radius:10px; border:1px solid #eee;">
-          <small style="color:#666; display:block; margin-bottom:5px;">إجمالي السجلات</small>
+          <small style="color:#666;">إجمالي السجلات</small>
           <div style="font-size:20px; font-weight:bold; color:#a11d21;">${totalItems}</div>
         </div>
         <div style="background:#f9fafb; padding:15px; border-radius:10px; border:1px solid #eee;">
-          <small style="color:#666; display:block; margin-bottom:5px;">تاريخ الاستخراج</small>
+          <small style="color:#666;">تاريخ الاستخراج</small>
           <div style="font-size:14px; font-weight:bold;">${new Date().toLocaleString('ar-SA')}</div>
         </div>
         <div style="background:#f9fafb; padding:15px; border-radius:10px; border:1px solid #eee;">
-          <small style="color:#666; display:block; margin-bottom:5px;">المصدر</small>
+          <small style="color:#666;">المصدر</small>
           <div style="font-size:14px; font-weight:bold;">نظام ديار كار السحابي</div>
         </div>
       </div>
 
-      <table style="width:100%; border-collapse:collapse; text-align:right; font-size:${fontSize}; table-layout: fixed;">
+      <table style="width:100%; border-collapse:collapse; text-align:right; font-size:10px;">
         <thead>
           <tr style="background:#a11d21; color:white;">
-            ${headers.map(h => `<th style="padding:10px 5px; border:1px solid #a11d21; word-wrap: break-word;">${h}</th>`).join('')}
+            ${headers.map(h => `<th style="padding:10px 5px; border:1px solid #a11d21; white-space:nowrap;">${h}</th>`).join('')}
           </tr>
         </thead>
         <tbody>
           ${exportData.map((row, idx) => `
             <tr style="background:${idx % 2 === 0 ? '#fff' : '#fcfcfc'};">
-              ${headers.map(h => `<td style="padding:8px 5px; border:1px solid #eee; word-wrap: break-word;">${row[h]}</td>`).join('')}
+              ${headers.map(h => `<td style="padding:8px 5px; border:1px solid #eee;">${row[h]}</td>`).join('')}
             </tr>
           `).join('')}
         </tbody>
@@ -1380,14 +1343,15 @@ function renderFeaturedOffers(cars) {
   const container = document.getElementById("featured-offers-container");
   if (!container || !cars.length) return;
 
+  // Unhide section if it's set to display:none in style.css or parent
   const section = document.getElementById("featured-offers-section");
   if (section) section.style.display = "block";
 
-  const renderSingleOffer = (car) => `
-        <div class="offer-card-v2" onclick="window.viewLuxuryCar('${car.id}')" style="animation: fadeIn 0.5s ease-out forwards;">
+  container.innerHTML = cars.map(car => `
+        <div class="offer-card-v2" onclick="window.viewLuxuryCar('${car.id}')">
             <div class="offer-badge">عرض حصري</div>
             <div class="offer-img-box">
-                <img src="${car.image || 'logo.jpg'}" alt="${car.make}" loading="lazy" onerror="this.src='logo.jpg'">
+                <img src="${car.image || 'logo.jpg'}" alt="${car.make}" loading="lazy" decoding="async" onerror="this.src='logo.jpg'">
             </div>
             <div class="offer-info">
                 <h4>${car.make} ${car.model}</h4>
@@ -1398,13 +1362,7 @@ function renderFeaturedOffers(cars) {
                 <button class="btn-premium btn-sm" style="margin-top: 10px; width: 100%;">تفاصيل العرض</button>
             </div>
         </div>
-    `;
-
-  if (window.state.firstLoadDone) {
-    container.innerHTML = cars.map(renderSingleOffer).join("");
-  } else {
-    window.progressiveRender(container, cars, renderSingleOffer, 100);
-  }
+    `).join("");
 }
 
 function renderPagination(total, page, size) {
@@ -1488,10 +1446,10 @@ window.renderCarGrid = function (cars) {
     return;
   }
 
-  const renderSingleCar = (car) => `
-    <div class="car-card-premium" onclick="window.viewLuxuryCar('${car.id}')" style="animation: fadeIn 0.5s ease-out forwards;">
+  grid.innerHTML = cars.map(car => `
+    <div class="car-card-premium" onclick="window.viewLuxuryCar('${car.id}')" data-aos="fade-up">
       <div class="car-img-wrap">
-        <img src="${car.image || "logo.jpg"}" alt="${car.make}" loading="lazy" onerror="this.src='logo.jpg'">
+        <img src="${car.image || "logo.jpg"}" alt="${car.make}" loading="lazy" decoding="async" onerror="this.src='logo.jpg'">
         <div class="car-price-v3">${car.price ? `${Number(car.price).toLocaleString()} <small>ريال</small>` : (car.monthlyInstallment ? `قسط من: ${Number(car.monthlyInstallment).toLocaleString()} <small>ريال</small>` : "عند التواصل")}</div>
         <div class="car-badge-v3 ${car.status === 'available' ? 'available' : car.status === 'reserved' ? 'reserved' : car.status === 'sold' ? 'sold' : 'custom'}">
           ${car.status === 'available' ? 'متاح' : car.status === 'reserved' ? 'محجوز' : car.status === 'sold' ? 'مباع' : (car.status || 'متاح')}
@@ -1518,28 +1476,8 @@ window.renderCarGrid = function (cars) {
         </div>
       </div>
     </div>
-  `;
-
-  if (window.state.firstLoadDone) {
-    grid.innerHTML = cars.map(renderSingleCar).join("");
-  } else {
-    window.progressiveRender(grid, cars, renderSingleCar, 60);
-  }
-};
-
-window.progressiveRender = function (container, items, renderFn, delay = 50) {
-  if (!container) return;
-  container.innerHTML = "";
-  let index = 0;
-  function next() {
-    if (index < items.length) {
-      container.insertAdjacentHTML('beforeend', renderFn(items[index]));
-      index++;
-      if (index < items.length) setTimeout(next, delay);
-    }
-  }
-  next();
-};
+  `).join("");
+}
 
 window.viewLuxuryCar = function (id) {
   const car = window.state.cars.find(c => c.id === id);
