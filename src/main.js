@@ -121,6 +121,15 @@ const i18n = {
 // UTILITIES & UI HELPERS
 // =========================================================================================
 
+window.debouncedRenders = {};
+window.debounceRender = function(key, fn, delay = 150) {
+  if (window.debouncedRenders[key]) clearTimeout(window.debouncedRenders[key]);
+  window.debouncedRenders[key] = setTimeout(() => {
+    fn();
+    delete window.debouncedRenders[key];
+  }, delay);
+};
+
 window.showLuxuryToast = function (message, type = "success") {
   const container = document.getElementById("toast-container");
   if (!container) return;
@@ -564,12 +573,12 @@ async function initFirebase() {
         const newData = data ? Object.entries(data).map(([id, v]) => ({ ...v, id })) : [];
         window.state[p] = newData;
 
-        if (p === "cars") window.applyInventoryFilters();
-        if (p === "ads") window.renderAdsSlider();
-        if (p === "sales") window.renderSalesVideos();
-        if (p === "partners") window.renderPartners();
-        if (p === "reviews") window.renderPublicReviews();
-        if (p === "custom_presets") window.renderCustomPresets();
+        if (p === "cars") window.debounceRender("cars", window.applyInventoryFilters);
+        if (p === "ads") window.debounceRender("ads", window.renderAdsSlider);
+        if (p === "sales") window.debounceRender("sales", window.renderSalesVideos);
+        if (p === "partners") window.debounceRender("partners", window.renderPartners);
+        if (p === "reviews") window.debounceRender("reviews", window.renderPublicReviews);
+        if (p === "custom_presets") window.debounceRender("custom_presets", window.renderCustomPresets);
 
         // Check for new notifications to play sound
         if (p === "notifications" && window.state.user && window.state.firstLoadDone) {
@@ -585,8 +594,8 @@ async function initFirebase() {
 
         // Refresh admin tables if in dashboard
         if (window.state.user) {
-          window.syncAdminTables(p);
-          window.updateStatistics();
+          window.debounceRender("admin_" + p, () => window.syncAdminTables(p));
+          window.debounceRender("stats", window.updateStatistics);
         }
       }
       handleFirstLoad();
