@@ -2584,7 +2584,9 @@ select option {
 }
 
 .car-img-wrap {
-  height: 260px;
+  aspect-ratio: 1 / 1;
+  max-height: 320px;
+  width: 100%;
   position: relative;
   overflow: hidden;
   background: #000;
@@ -3431,7 +3433,8 @@ select option {
 
 .p-main-img {
   width: 100%;
-  height: 500px;
+  aspect-ratio: 1 / 1;
+  max-height: 600px;
   border-radius: 20px;
   overflow: hidden;
   margin-bottom: 20px;
