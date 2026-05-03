@@ -8551,31 +8551,44 @@ body:not(.is-admin):not(.is-supervisor) .admin-only {
 .h-20 { height: 20px !important; }
 .p-20 { padding: 20px !important; }
 .z-10000 { z-index: 10000 !important; }
-/* Custom Scrollbar for WhatsApp Monitor */
-#admin-wa-monitor-table {
-  max-height: 600px;
-  overflow-y: auto;
-  padding-right: 10px;
+/* Custom Scrollbar for WhatsApp Monitor and Management */
+#admin-wa-monitor-table, 
+#whatsapp-mgmt,
+#whatsapp-monitor-mgmt {
   scrollbar-width: thin;
   scrollbar-color: var(--p-copper) transparent;
 }
 
-#admin-wa-monitor-table::-webkit-scrollbar {
-  width: 5px;
+#admin-wa-monitor-table::-webkit-scrollbar,
+#whatsapp-mgmt::-webkit-scrollbar,
+#whatsapp-monitor-mgmt::-webkit-scrollbar {
+  width: 6px;
 }
 
-#admin-wa-monitor-table::-webkit-scrollbar-track {
+#admin-wa-monitor-table::-webkit-scrollbar-track,
+#whatsapp-mgmt::-webkit-scrollbar-track,
+#whatsapp-monitor-mgmt::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 10px;
 }
 
-#admin-wa-monitor-table::-webkit-scrollbar-thumb {
+#admin-wa-monitor-table::-webkit-scrollbar-thumb,
+#whatsapp-mgmt::-webkit-scrollbar-thumb,
+#whatsapp-monitor-mgmt::-webkit-scrollbar-thumb {
   background: var(--p-copper);
   border-radius: 10px;
 }
 
-/* Ensure the WhatsApp Management pane is robust on small screens */
-#whatsapp-mgmt .desc-card-v5 {
-  max-height: 80vh;
-  overflow-y: auto;
+#whatsapp-mgmt,
+#whatsapp-monitor-mgmt {
+  max-height: 70vh;
+  overflow-y: auto !important;
+  padding-right: 15px;
 }
+
+#admin-wa-monitor-table {
+  max-height: 500px;
+  overflow-y: auto;
+  margin-top: 20px;
+}
+
