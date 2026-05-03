@@ -2447,20 +2447,23 @@ window.applySettings = function (s) {
   const locationText = document.getElementById("location-text-display");
   if (locationText) locationText.innerText = s.location || "الرياض - معارض القادسية";
 
-  const phoneAdmin = document.getElementById("f-phone-admin");
-  if (phoneAdmin) phoneAdmin.innerText = s.contactAdmin || "...";
-
-  const phoneSales = document.getElementById("f-phone-sales");
-  if (phoneSales) phoneSales.innerText = s.contactSales || "...";
-
-  const phoneInfo = document.getElementById("f-phone-info");
-  if (phoneInfo) phoneInfo.innerText = s.contactComplaints || "...";
-
-  const emailDisp = document.getElementById("f-email-display");
-  if (emailDisp) emailDisp.innerText = s.contactEmail || "...";
-
   const locLink = document.getElementById("contact-location-link");
   if (locLink) locLink.href = s.locationUrl || "#";
+
+  // Phone & Email with auto-hide logic
+  const contactMap = {
+    "f-phone-admin": s.contactAdmin,
+    "f-phone-sales": s.contactSales,
+    "f-phone-info": s.contactComplaints,
+    "f-email-display": s.contactEmail
+  };
+
+  Object.entries(contactMap).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    const row = document.getElementById(`contact-${id.split('-')[1]}-display`) || (el ? el.closest('li') : null);
+    if (el) el.innerText = val || "...";
+    if (row) row.classList.toggle("hidden", !val);
+  });
 
   // Meta Tags & Social
   const metaTitle = document.getElementById("meta-title");
@@ -2538,13 +2541,13 @@ window.applySettings = function (s) {
     }
   });
 
-  const maintenanceEl = document.getElementById("set-maintenance-mode");
-  if (maintenanceEl) maintenanceEl.checked = s.maintenanceMode || false;
-
   const checkMapping = {
+    "set-maintenance-mode": s.maintenanceMode || false,
     "set-enable-text-grad": s.enableTextGradient !== undefined ? s.enableTextGradient : true,
     "set-enable-topbar-grad": s.enableTopbarGradient !== undefined ? s.enableTopbarGradient : true,
-    "set-enable-primary-grad": s.enablePrimaryGradient !== undefined ? s.enablePrimaryGradient : true
+    "set-enable-primary-grad": s.enablePrimaryGradient !== undefined ? s.enablePrimaryGradient : true,
+    "set-enable-secondary-grad": s.enableSecondaryGradient !== undefined ? s.enableSecondaryGradient : true,
+    "set-enable-accent-grad": s.enableAccentGradient !== undefined ? s.enableAccentGradient : true
   };
   Object.entries(checkMapping).forEach(([id, val]) => {
     const el = document.getElementById(id);
