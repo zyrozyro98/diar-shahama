@@ -556,8 +556,9 @@ async function initFirebase() {
     listeners[p] = onValue(ref(db, p), (s) => {
       const data = s.val();
       if (p === "settings") {
-        window.state.settings = data || {};
-        window.applySettings(data);
+        window.state.settingsLoaded = true;
+        window.state.settings = data ? { ...window.state.settings, ...data } : window.state.settings;
+        window.applySettings(window.state.settings);
       } else {
         const oldData = window.state[p] || [];
         const newData = data ? Object.entries(data).map(([id, v]) => ({ ...v, id })) : [];
@@ -623,7 +624,8 @@ async function initFirebase() {
   publicPaths.forEach(attachListener);
 }
 function handleFirstLoad() {
-  if (window.state.firstLoadDone) return;
+  if (window.state.firstLoadDone || !window.state.settingsLoaded) return;
+  
   const s = window.state.settings;
   const isMaint = s?.maintenanceMode;
   const isAdmin = window.state.userProfile?.role === "admin" || window.state.userProfile?.role === "supervisor";
@@ -647,20 +649,18 @@ function handleFirstLoad() {
     return;
   }
 
-  // Hide splash screen when settings are loaded, regardless of cars count
-  if (s && Object.keys(s).length > 0) {
-    setTimeout(() => {
-      const splash = document.getElementById("luxury-splash");
-      if (splash) {
-        splash.style.opacity = "0";
-        setTimeout(() => {
-          splash.classList.add("hidden");
-          splash.remove();
-        }, 800);
-      }
-      window.state.firstLoadDone = true;
-    }, 1200);
-  }
+  // Hide splash screen
+  window.state.firstLoadDone = true;
+  setTimeout(() => {
+    const splash = document.getElementById("luxury-splash");
+    if (splash) {
+      splash.style.opacity = "0";
+      setTimeout(() => {
+        splash.classList.add("hidden");
+        splash.remove();
+      }, 800);
+    }
+  }, 1200);
 }
 
 
