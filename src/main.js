@@ -793,12 +793,13 @@ window.handleSupervisorExport = async function (format) {
       year: "السنة",
       price: "السعر",
       monthlyInstallment: "القسط الشهري",
-      color: "اللون الخارجى",
-      interiorColor: "اللون الداخلى",
+      color: "اللون الخارجي",
+      interiorColor: "اللون الداخلي",
       mileage: "الممشى",
       engine: "المحرك",
       gearbox: "ناقل الحركة",
       fuelType: "نوع الوقود",
+      bodyType: "فئة السيارة",
       status: "الحالة",
       createdAt: "تاريخ الإضافة"
     },
@@ -806,21 +807,28 @@ window.handleSupervisorExport = async function (format) {
       name: "اسم العميل",
       phone: "رقم الجوال",
       carRequested: "السيارة المطلوبة",
-      city: "المدينة",
+      customerType: "نوع العميل",
+      age: "العمر",
       nationality: "الجنسية",
+      city: "المدينة",
       paymentMethod: "طريقة الشراء",
+      bankName: "اسم البنك",
+      installmentPeriod: "مدة التقسيط",
       salary: "الراتب",
+      workEntity: "جهة العمل",
+      workStatus: "حالة الجهة",
       status: "الحالة",
       subStatus: "الحالة الفرعية",
+      assignedTo: "الموظف المسؤول",
       createdAt: "تاريخ الطلب",
-      assignedTo: "الموظف المسؤول"
+      notes: "ملاحظات"
     },
     users: {
-      name: "الاسم",
+      name: "اسم الموظف",
       email: "البريد الإلكتروني",
-      role: "الدور",
-      isAvailable: "متاح للاستلام",
-      createdAt: "تاريخ الإنشاء"
+      role: "الصلاحية",
+      isAvailable: "استقبال طلبات",
+      createdAt: "تاريخ التوظيف"
     }
   };
 
@@ -841,18 +849,29 @@ window.handleSupervisorExport = async function (format) {
         const staff = (window.state.users || []).find(u => u.id === val);
         val = staff ? (staff.name || staff.email) : val;
       }
-      else if (key === 'status') {
+      else if (key === 'status' || key === 'subStatus') {
         const statusMap = {
-          available: "متاح",
-          reserved: "محجوز",
-          sold: "مباع",
-          incoming: "قادم قريباً",
-          new: "جديد",
-          done: "تم",
-          cancelled: "ملغى",
-          rejected: "مرفوض"
+          available: "متاح", reserved: "محجوز", sold: "مباع", incoming: "قادم قريباً",
+          new: "جديد", waiting: "بالانتظار", inquiry: "استفسار", done: "تم",
+          cancelled: "ملغى/مرفوض", rejected: "مرفوض",
+          not_contacted: "لم يتم التواصل", contacted: "تم التواصل",
+          docs_received: "تم استلام الأوراق", waiting_calc: "انتظار رد العميل",
+          waiting_docs: "إنتظار إكمال الأوراق", waiting_signature: "إنتظار توقيع العميل",
+          docs_not_received: "لم يتم استلام الأوراق", signed: "تم التوقيع",
+          delivered: "تم التسليم", no_response: "لم يتم رد العميل",
+          obligations: "التزامات", calc_rejected: "رفض الحسبة",
+          ineligible: "غير مسموح له", duplicate: "مكرر"
         };
         val = statusMap[val] || val;
+      }
+      else if (key === 'paymentMethod') {
+        val = val === 'cash' || val === 'كاش' ? 'كاش' : 'أقساط / تمويل';
+      }
+      else if (key === 'customerType') {
+        val = val === 'individual' ? 'فرد' : 'مؤسسة / شركة';
+      }
+      else if (key === 'role') {
+        val = val === 'admin' ? 'مدير' : (val === 'supervisor' ? 'مشرف' : 'موظف');
       }
       else if (key === 'isAvailable') {
         val = val ? "نعم" : "لا";
@@ -902,10 +921,13 @@ window.handleSupervisorExport = async function (format) {
     const logoUrl = window.state.settings?.logo || 'logo.jpg';
     const headers = Object.keys(exportData[0]);
 
+    // Adaptive font size based on column count
+    const fontSize = headers.length > 10 ? '7px' : (headers.length > 7 ? '9px' : '11px');
+
     let tableHtml = `
       <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #a11d21; padding-bottom:20px; margin-bottom:30px;">
         <div style="text-align:right;">
-          <h1 style="color:#a11d21; margin:0; font-size:28px;">${window.state.settings?.nameAr || 'ديار الشهامة'}</h1>
+          <h1 style="color:#a11d21; margin:0; font-size:28px; font-family:'Cairo', sans-serif;">${window.state.settings?.nameAr || 'ديار الشهامة'}</h1>
           <p style="margin:5px 0; opacity:0.7;">تقرير إداري مفصل - ${type === 'cars' ? 'مخزون السيارات' : type === 'bookings' ? 'سجل الحجوزات' : 'قائمة الموظفين'}</p>
           <p style="font-size:12px; font-weight:bold;">${dateRangeStr}</p>
         </div>
@@ -914,29 +936,29 @@ window.handleSupervisorExport = async function (format) {
 
       <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:20px; margin-bottom:30px;">
         <div style="background:#f9fafb; padding:15px; border-radius:10px; border:1px solid #eee;">
-          <small style="color:#666;">إجمالي السجلات</small>
+          <small style="color:#666; display:block; margin-bottom:5px;">إجمالي السجلات</small>
           <div style="font-size:20px; font-weight:bold; color:#a11d21;">${totalItems}</div>
         </div>
         <div style="background:#f9fafb; padding:15px; border-radius:10px; border:1px solid #eee;">
-          <small style="color:#666;">تاريخ الاستخراج</small>
+          <small style="color:#666; display:block; margin-bottom:5px;">تاريخ الاستخراج</small>
           <div style="font-size:14px; font-weight:bold;">${new Date().toLocaleString('ar-SA')}</div>
         </div>
         <div style="background:#f9fafb; padding:15px; border-radius:10px; border:1px solid #eee;">
-          <small style="color:#666;">المصدر</small>
+          <small style="color:#666; display:block; margin-bottom:5px;">المصدر</small>
           <div style="font-size:14px; font-weight:bold;">نظام ديار كار السحابي</div>
         </div>
       </div>
 
-      <table style="width:100%; border-collapse:collapse; text-align:right; font-size:10px;">
+      <table style="width:100%; border-collapse:collapse; text-align:right; font-size:${fontSize}; table-layout: fixed;">
         <thead>
           <tr style="background:#a11d21; color:white;">
-            ${headers.map(h => `<th style="padding:10px 5px; border:1px solid #a11d21; white-space:nowrap;">${h}</th>`).join('')}
+            ${headers.map(h => `<th style="padding:10px 5px; border:1px solid #a11d21; word-wrap: break-word;">${h}</th>`).join('')}
           </tr>
         </thead>
         <tbody>
           ${exportData.map((row, idx) => `
             <tr style="background:${idx % 2 === 0 ? '#fff' : '#fcfcfc'};">
-              ${headers.map(h => `<td style="padding:8px 5px; border:1px solid #eee;">${row[h]}</td>`).join('')}
+              ${headers.map(h => `<td style="padding:8px 5px; border:1px solid #eee; word-wrap: break-word;">${row[h]}</td>`).join('')}
             </tr>
           `).join('')}
         </tbody>
