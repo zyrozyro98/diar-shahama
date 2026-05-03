@@ -4977,7 +4977,7 @@ body.is-logged-in #admin-modal>.modal-inner>.modal-close {
 /* Ensure panes take full width and are stable */
 .pane {
   width: 100%;
-  display: flex;
+  display: none;
   flex-direction: column;
   box-sizing: border-box;
 }
