@@ -2334,7 +2334,8 @@ select option {
 }
 
 .offer-img-box {
-  height: 280px;
+  aspect-ratio: 1 / 1;
+  max-height: 450px;
   overflow: hidden;
   position: relative;
 }
@@ -2392,7 +2393,8 @@ select option {
     border-radius: 25px;
   }
   .offer-img-box {
-    height: 260px;
+    aspect-ratio: 1 / 1;
+    height: auto;
   }
   .offer-info {
     padding: 25px;
