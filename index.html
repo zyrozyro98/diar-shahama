@@ -1245,10 +1245,10 @@
                                     <label>طريقة الشراء</label>
                                     <div class="tab-radio">
                                         <input type="radio" id="pay-cash" name="payment-method" value="كاش" checked
-                                            onchange="document.getElementById('bank-name-wrap').style.display='none'; document.getElementById('b-bank-name').required=false; document.getElementById('installment-period-wrap').style.display='none'; document.getElementById('b-installment-period').required=false; document.getElementById('salary-commitments-wrap').style.display='none'; document.getElementById('work-details-wrap').style.display='none';">
+                                            onchange="['bank-name-wrap','installment-period-wrap','salary-commitments-wrap','work-details-wrap'].forEach(id=>document.getElementById(id).classList.add('d-none')); document.getElementById('b-bank-name').required=false; document.getElementById('b-installment-period').required=false;">
                                         <label for="pay-cash">كاش</label>
                                         <input type="radio" id="pay-bank" name="payment-method" value="بنك"
-                                            onchange="document.getElementById('bank-name-wrap').style.display='block'; document.getElementById('b-bank-name').required=true; document.getElementById('installment-period-wrap').style.display='block'; document.getElementById('b-installment-period').required=true; document.getElementById('salary-commitments-wrap').style.display='flex'; document.getElementById('work-details-wrap').style.display='flex';">
+                                            onchange="['bank-name-wrap','installment-period-wrap','salary-commitments-wrap','work-details-wrap'].forEach(id=>document.getElementById(id).classList.remove('d-none')); document.getElementById('b-bank-name').required=true; document.getElementById('b-installment-period').required=true;">
                                         <label for="pay-bank">بنك (تمويل)</label>
                                     </div>
                                 </div>
