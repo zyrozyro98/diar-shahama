@@ -546,8 +546,8 @@ function updateLanguageUI() {
 async function initFirebase() {
   await setPersistence(auth, browserLocalPersistence);
 
-  // Define data paths
-  const publicPaths = ["users", "plates", "locations", "brands", "agents", "specs", "packages", "blogs", "reviews", "cars", "ads", "sales", "settings", "partners", "custom_presets", "gearboxes", "bodyTypes", "engines", "exteriorColors", "interiorColors", "stockStatuses"];
+  // Define data paths - Prioritize Settings, Ads, and Cars for faster initial render
+  const publicPaths = ["settings", "ads", "cars", "sales", "partners", "reviews", "users", "plates", "locations", "brands", "agents", "specs", "packages", "blogs", "custom_presets", "gearboxes", "bodyTypes", "engines", "exteriorColors", "interiorColors", "stockStatuses"];
   const privatePaths = ["bookings", "notifications", "logs", "quickReplies"];
   const listeners = {};
 
@@ -648,18 +648,24 @@ function handleFirstLoad() {
   }
 
   // Hide splash screen when settings are loaded, regardless of cars count
-  if (s && Object.keys(s).length > 0) {
+  const hasSettings = s && Object.keys(s).length > 0;
+  const hasContent = (window.state.cars && window.state.cars.length > 0) || (window.state.ads && window.state.ads.length > 0);
+
+  // Hide splash as soon as we have settings AND some content, or just settings if it's taking a bit
+  if (hasSettings && (hasContent || !window.state.cars)) {
     setTimeout(() => {
       const splash = document.getElementById("luxury-splash");
       if (splash) {
         splash.style.opacity = "0";
         setTimeout(() => {
-          splash.classList.add("hidden");
-          splash.remove();
-        }, 800);
+          if (splash && splash.parentNode) {
+            splash.classList.add("hidden");
+            splash.remove();
+          }
+        }, 500);
       }
       window.state.firstLoadDone = true;
-    }, 1200);
+    }, 300); // Reduced delay from 1200ms to 300ms for faster feel
   }
 }
 
