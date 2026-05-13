@@ -929,8 +929,7 @@
                                 if (window.__DYNAMIC_NAME_EN__) document.querySelector('#brand-intro .dynamic-name-en').innerText = window.__DYNAMIC_NAME_EN__;
                             </script>
                         </div>
-                        <h2 class="hero-title hero-secondary-title">سيارات
-                            جديدة <span class="highlight">بأفضل سعر</span></h2>
+                        <h2 class="hero-title hero-secondary-title">سيارات جديدة <span class="highlight">بأفضل سعر</span></h2>
                         <p class="hero-description hero-desc-text">نقدم لكم
                             تجربة فريدة في عالم السيارات الفاخرة، حيث تجتمع الجودة العالية مع الأسعار التنافسية في قلب
                             العاصمة الرياض. التميز هو خيارنا الوحيد لكم.</p>
@@ -1268,7 +1267,7 @@
                                     <input type="text" id="b-bank-name" placeholder="مثال: الراجحي، الأهلي...">
                                 </div>
                                 <div class="f-group d-none toast-in-anim" id="installment-period-wrap">
-                                    <label>مدة الأقساط المفضل</label>
+                                    <label for="b-installment-period">مدة الأقساط المفضل</label>
                                     <select id="b-installment-period" class="filter-select">
                                         <option value="" disabled selected>اختر مدة الأقساط</option>
                                         <option value="سنة">سنة</option>
@@ -1421,8 +1420,7 @@
                         <div class="sidebar-brand">
                             <img src="logo.jpg"
                                 alt="Logo" class="h-40">
-                            <div
-                                style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1; gap: 2px;">
+                            <div class="flex flex-column align-start lh-1 gap-5">
                                 <span class="luxury-logo-gold dynamic-name-ar fs-16"></span>
                                 <span class="dynamic-name-en font-outfit fs-8 c-red ls-1 fw-800 uppercase"></span>
                                 <script>
@@ -1678,9 +1676,9 @@
                         <button id="logout-btn-v2" class="btn-logout-minimal" onclick="window.logout()">
                             <i class="fas fa-power-off"></i> تسجيل الخروج
                         </button>
-                        <button class="btn-logout-minimal" onclick="window.closeModal('admin-modal')"
-                            style="margin-top: 10px; color: var(--text-dim);" title="العودة للصفحة الرئيسية">
-                            <i class="fas fa-arrow-right" style="margin-left: 5px;"></i> العودة للرئيسية
+                        <button class="btn-logout-minimal mt-10 text-dim" onclick="window.closeModal('admin-modal')"
+                            title="العودة للصفحة الرئيسية">
+                            <i class="fas fa-arrow-right ml-5"></i> العودة للرئيسية
                         </button>
                     </aside>
                     <div class="dash-overlay"
@@ -2255,7 +2253,7 @@
                                             <i class="fas fa-calendar-alt"></i>
                                             <span>تقارير الأداء الدورية</span>
                                         </div>
-                                        <div class="period-tabs" style="margin-bottom: 15px;">
+                                        <div class="period-tabs mb-15">
                                             <button class="p-tab active"
                                                 onclick="window.switchPeriodReport('day', this)">اليوم</button>
                                             <button class="p-tab"
@@ -3057,22 +3055,21 @@
                                     <p>متابعة التنبيهات والنشاطات الأخيرة في النظام</p>
                                 </div>
                                 <div class="header-actions">
-                                    <button class="btn-premium btn-sm" style="background:var(--p-copper);"
+                                    <button class="btn-premium btn-sm bg-copper"
                                         onclick="window.markAllNotificationsRead()">
                                         <i class="fas fa-check-double"></i> قراءة الكل
                                     </button>
-                                    <button class="btn-premium btn-sm" style="background:var(--p-red);"
+                                    <button class="btn-premium btn-sm bg-red"
                                         onclick="window.clearAllNotifications()">
                                         <i class="fas fa-trash-alt"></i> مسح الكل
                                     </button>
                                 </div>
                             </div>
 
-                            <div id="admin-notifications-table" class="admin-list-v2" style="padding:10px;">
+                            <div id="admin-notifications-table" class="admin-list-v2 p-10">
                                 <!-- Notifications will be rendered here -->
-                                <div class="placeholder-centered" style="padding:100px 20px;">
-                                    <i class="fas fa-bell-slash"
-                                        style="font-size:50px; opacity:0.2; margin-bottom:15px; display:block;"></i>
+                                <div class="placeholder-centered p-100-20">
+                                    <i class="fas fa-bell-slash fs-50 op-0-2 mb-15 d-block"></i>
                                     لا توجد إشعارات حالياً
                                 </div>
                             </div>
@@ -3083,19 +3080,19 @@
                                     <h3>سجل العمليات (Logs)</h3>
                                     <p>مراقبة كافة التحركات والعمليات التي تمت في النظام</p>
                                 </div>
-                                <div style="display:flex; gap:10px;">
+                                <div class="flex-gap-10">
                                     <button class="btn-premium btn-secondary btn-sm"
                                         onclick="window.exportToCSV('logs')">
                                         <i class="fas fa-file-csv"></i> تصدير السجل
                                     </button>
-                                    <button class="btn-premium btn-sm" style="background:var(--p-red);"
+                                    <button class="btn-premium btn-sm bg-red"
                                         onclick="window.clearAllLogs()">
                                         <i class="fas fa-trash-alt"></i> مسح السجل
                                     </button>
                                 </div>
                             </div>
 
-                            <div class="advanced-filter-bar" style="margin-bottom: 20px;">
+                            <div class="advanced-filter-bar mb-20">
                                 <div class="search-box-wrap">
                                     <i class="fas fa-search"></i>
                                     <input type="text" id="log-search" placeholder="بحث في السجلات..."
@@ -3136,25 +3133,21 @@
                             </div>
 
                             <div class="admin-grid-v2">
-                                <div class="desc-card-v5"
-                                    style="display:flex; flex-direction:column; align-items:center; text-align:center; padding:40px;">
+                                <div class="desc-card-v5 flex-column-center p-40">
                                     <div id="wa-connection-status-container">
-                                        <div class="wa-status-icon"
-                                            style="font-size:60px; color:var(--text-dim); margin-bottom:20px;">
+                                        <div class="wa-status-icon fs-60 text-dim mb-20">
                                             <i class="fab fa-whatsapp"></i>
                                         </div>
                                         <h3 id="wa-my-status-title">واتساب غير متصل</h3>
-                                        <p id="wa-my-status-desc"
-                                            style="max-width:400px; margin:10px auto 25px; opacity:0.7;">
+                                        <p id="wa-my-status-desc" class="wa-status-desc">
                                             قم بمسح رمز QR لربط حساب الواتساب الخاص بك. سيتم استخدام هذا الحساب للرد على
                                             العملاء
                                             المسندين إليك.
                                         </p>
 
-                                        <div id="wa-my-qr-container"
-                                            style="display:none; background:white; padding:15px; border-radius:15px; margin-bottom:20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                                        <div id="wa-my-qr-container" class="wa-qr-container">
                                             <canvas id="wa-my-qr-canvas"></canvas>
-                                            <p style="color:#333; font-size:12px; margin-top:10px; font-weight:bold;">
+                                            <p class="wa-qr-hint">
                                                 افتح واتساب في
                                                 هاتفك > الأجهزة المرتبطة > ربط جهاز</p>
                                         </div>
@@ -3165,8 +3158,7 @@
                                                 <i class="fas fa-qrcode"></i> إظهار رمز الربط أو تنشيط الاتصال
                                             </button>
                                             <button id="btn-logout-my-wa" onclick="window.logoutCurrentWASession()"
-                                                class="btn-premium btn-secondary"
-                                                style="display:none; background:#ff4d4d; border:none; color:white; box-shadow: 0 4px 15px rgba(255, 77, 77, 0.3);">
+                                                class="btn-premium btn-secondary bg-red-important">
                                                 <i class="fas fa-sign-out-alt"></i> فصل حساب واتساب
                                             </button>
                                         </div>

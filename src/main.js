@@ -1466,8 +1466,8 @@ window.renderCarGrid = function (cars) {
         <h3 class="car-title-v3">${car.make} ${car.model}</h3>
         <div class="car-specs-v3">
           <div class="spec-item-v3">
-            <i class="fas fa-road"></i>
-            <span>${(Number(car.mileage) || 0).toLocaleString()} كم</span>
+            <i class="fas fa-microchip"></i>
+            <span>${car.engineSize ? car.engineSize + " cc" : (Number(car.mileage) || 0).toLocaleString() + " كم"}</span>
           </div>
           <div class="spec-item-v3">
             <i class="fas fa-gas-pump"></i>
@@ -1558,8 +1558,8 @@ window.viewLuxuryCar = function (id) {
         <div class="details-info-v4">
           <div class="specs-grid-v4-compact">
             <div class="spec-card-v5">
-               <i class="fas fa-tachometer-alt"></i>
-               <div class="s-info"><span>الممشى</span><strong>${(Number(car.mileage) || 0).toLocaleString()} كم</strong></div>
+               <i class="fas fa-microchip"></i>
+               <div class="s-info"><span>حجم المحرك</span><strong>${car.engineSize ? car.engineSize + " cc" : (Number(car.mileage) || 0).toLocaleString() + " كم"}</strong></div>
             </div>
             <div class="spec-card-v5">
                <i class="fas fa-calendar-alt"></i>
@@ -2393,6 +2393,7 @@ window.applySettings = function (s) {
         -webkit-background-clip: text !important;
         -webkit-text-fill-color: transparent !important;
         background-clip: text !important;
+        line-height: 1.5 !important;
         display: inline-block !important;
       }
     `;
@@ -3139,7 +3140,7 @@ function renderAdminItemRow(type, item) {
                         <span style="font-size:12px; color:var(--p-copper); font-weight:700;">${item.year}</span>
                     </div>
                     <div class="meta-row" style="font-size:12px; color:var(--text-dim); display:flex; gap:15px; flex-wrap:wrap;">
-                        <span><i class="fas fa-tachometer-alt"></i> ${Number(item.mileage || 0).toLocaleString()} كم</span>
+                        <span><i class="fas fa-microchip"></i> ${item.engineSize ? item.engineSize + " cc" : Number(item.mileage || 0).toLocaleString() + " كم"}</span>
                         <span><i class="fas fa-paint-brush"></i> ${item.color || "-"}</span>
                         <span style="color:var(--p-red); font-weight:800;">${item.price ? Number(item.price).toLocaleString() + " ريال" : (item.monthlyInstallment ? "قسط: " + Number(item.monthlyInstallment).toLocaleString() + " ريال" : "عند التواصل")}</span>
                     </div>
@@ -3739,6 +3740,7 @@ function renderDynamicForm(type, data = {}) {
       { name: "year", label: "السنة", type: "number" },
       { name: "price", label: "سعر الكاش", type: "number" },
       { name: "monthlyInstallment", label: "قسط شهري يبدأ بـ", type: "number" },
+      { name: "engineSize", label: "حجم المحرك (cc)", type: "number", placeholder: "مثال: 2000" },
       { name: "mileage", label: "الممشى (كم)", type: "number" },
       {
         name: "engine", label: "المحرك", type: "datalist", placeholder: "مثال: 8 سليندر، 4.0L", options: [
@@ -4161,7 +4163,7 @@ window.saveLuxuryItem = async function (e) {
 
 
     // Convert numeric fields
-    const numFields = ["price", "year", "mileage", "rating", "installmentPeriod", "monthlyInstallment"];
+    const numFields = ["price", "year", "mileage", "rating", "installmentPeriod", "monthlyInstallment", "engineSize"];
     numFields.forEach(f => {
       if (data[f] !== undefined && data[f] !== "" && data[f] !== null) {
         data[f] = Number(data[f]);
@@ -5713,6 +5715,7 @@ window.applyQuickReply = function (content) {
     let carBody = "غير محدد";
     let carColorExt = "غير محدد";
     let carColorInt = "غير محدد";
+    let carEngineSize = "";
 
     let paymentMethod = "";
     let bankName = "غير محدد";
@@ -5758,6 +5761,7 @@ window.applyQuickReply = function (content) {
           carFuel = carObj.fuelType || carFuel;
           carColorExt = carObj.color || carColorExt;
           carColorInt = carObj.interiorColor || carColorInt;
+          carEngineSize = carObj.engineSize ? carObj.engineSize + " cc" : "";
 
           const bodyMap = { sedan: 'سيدان', suv: 'SUV', coupe: 'كوبيه', luxury: 'فاخرة', pickup: 'بيك آب' };
           carBody = bodyMap[carObj.bodyType] || carObj.bodyType || carBody;
@@ -5793,6 +5797,7 @@ window.applyQuickReply = function (content) {
     finalContent = finalContent.replace(/\(سنة الصنع\)/g, carYear);
     finalContent = finalContent.replace(/\(السعر\)/g, carPrice);
     finalContent = finalContent.replace(/\(المحرك\)/g, carEngine);
+    finalContent = finalContent.replace(/\(حجم المحرك\)/g, carEngineSize || carEngine);
     finalContent = finalContent.replace(/\(الممشى\)/g, carMileage);
     finalContent = finalContent.replace(/\(نوع الوقود\)/g, carFuel);
     finalContent = finalContent.replace(/\(فئة السيارة\)/g, carBody);
