@@ -341,7 +341,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const cached = localStorage.getItem("luxury-cache-" + p);
       if (cached) {
         window.state[p] = JSON.parse(cached);
-        if (p === "cars") window.applyInventoryFilters();
+        if (p === "cars") {
+            window.state.carsLoaded = true;
+            window.applyInventoryFilters();
+        }
         if (p === "ads") window.renderAdsSlider();
         if (p === "sales") window.renderSalesVideos();
         if (p === "partners") window.renderPartners();
@@ -358,6 +361,14 @@ document.addEventListener("DOMContentLoaded", () => {
   if (window.applySettings) {
     window.applySettings(window.state.settings);
   }
+
+  // Fallback to remove splash after 3 seconds even if firebase fails or is empty
+  setTimeout(() => {
+    if (!window.state.carsLoaded) {
+        window.state.carsLoaded = true;
+        handleFirstLoad();
+    }
+  }, 3000);
 
   initFirebase();
   handleFirstLoad(); // Check if we can remove splash immediately
@@ -600,7 +611,10 @@ async function initFirebase() {
         
         try { localStorage.setItem("luxury-cache-" + p, JSON.stringify(newData)); } catch(e) {}
 
-        if (p === "cars") window.debounceRender("cars", window.applyInventoryFilters);
+        if (p === "cars") {
+            window.state.carsLoaded = true;
+            window.debounceRender("cars", window.applyInventoryFilters);
+        }
         if (p === "ads") window.debounceRender("ads", window.renderAdsSlider);
         if (p === "sales") window.debounceRender("sales", window.renderSalesVideos);
         if (p === "partners") window.debounceRender("partners", window.renderPartners);
@@ -662,6 +676,9 @@ async function initFirebase() {
 function handleFirstLoad() {
   if (window.state.firstLoadDone || !window.state.settingsLoaded) return;
   
+  // Also wait for cars data to arrive (either from cache or firebase) to prevent empty UI
+  if (!window.state.carsLoaded) return;
+
   const s = window.state.settings;
   const isMaint = s?.maintenanceMode;
   const isAdmin = window.state.userProfile?.role === "admin" || window.state.userProfile?.role === "supervisor";
