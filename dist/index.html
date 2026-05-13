@@ -109,10 +109,18 @@
                 root.style.setProperty("--p-teal", window.CONFIG.secondaryColor);
                 root.style.setProperty("--p-copper", window.CONFIG.accentColor);
                 root.style.setProperty("--bg-main", window.CONFIG.bgColor);
+                
+                const cachedCss = localStorage.getItem("luxury-dynamic-css");
+                if (cachedCss) {
+                    const style = document.createElement("style");
+                    style.id = "dynamic-design-styles";
+                    style.innerHTML = cachedCss;
+                    document.head.appendChild(style);
+                }
             } catch (e) { console.error("Early config error:", e); }
         })();
     </script>
-  <script type="module" crossorigin src="/assets/index-DPW0nrmd.js"></script>
+  <script type="module" crossorigin src="/assets/index-Dz1Y3KXg.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/vendor-Bg_btqvK.js">
   <link rel="modulepreload" crossorigin href="/assets/firebase-BfvlcbVS.js">
   <link rel="modulepreload" crossorigin href="/assets/emoji-picker-CeBMFWb3.js">
