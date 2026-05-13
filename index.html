@@ -110,6 +110,14 @@
                 root.style.setProperty("--p-teal", window.CONFIG.secondaryColor);
                 root.style.setProperty("--p-copper", window.CONFIG.accentColor);
                 root.style.setProperty("--bg-main", window.CONFIG.bgColor);
+                
+                const cachedCss = localStorage.getItem("luxury-dynamic-css");
+                if (cachedCss) {
+                    const style = document.createElement("style");
+                    style.id = "dynamic-design-styles";
+                    style.innerHTML = cachedCss;
+                    document.head.appendChild(style);
+                }
             } catch (e) { console.error("Early config error:", e); }
         })();
     </script>

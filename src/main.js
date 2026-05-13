@@ -334,6 +334,23 @@ window.normalizePhone = function (phone) {
 // =========================================================================================
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Load cached content instantly to eliminate delayed loading
+  const publicPaths = ["cars", "ads", "sales", "partners", "reviews", "custom_presets"];
+  publicPaths.forEach(p => {
+    try {
+      const cached = localStorage.getItem("luxury-cache-" + p);
+      if (cached) {
+        window.state[p] = JSON.parse(cached);
+        if (p === "cars") window.applyInventoryFilters();
+        if (p === "ads") window.renderAdsSlider();
+        if (p === "sales") window.renderSalesVideos();
+        if (p === "partners") window.renderPartners();
+        if (p === "reviews") window.renderPublicReviews();
+        if (p === "custom_presets") window.renderCustomPresets();
+      }
+    } catch(e) {}
+  });
+
   initTheme();
   updateLanguageUI();
   
@@ -580,6 +597,8 @@ async function initFirebase() {
         const oldData = window.state[p] || [];
         const newData = data ? Object.entries(data).map(([id, v]) => ({ ...v, id })) : [];
         window.state[p] = newData;
+        
+        try { localStorage.setItem("luxury-cache-" + p, JSON.stringify(newData)); } catch(e) {}
 
         if (p === "cars") window.debounceRender("cars", window.applyInventoryFilters);
         if (p === "ads") window.debounceRender("ads", window.renderAdsSlider);
@@ -2457,6 +2476,7 @@ window.applySettings = function (s) {
   }
 
   style.innerHTML = css;
+  try { localStorage.setItem("luxury-dynamic-css", css); } catch(e) {}
 
   // 1. Guest-facing Dynamic UI
   const aboutText = document.getElementById("about-text-display");
