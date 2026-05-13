@@ -41,7 +41,7 @@ window.state = {
   stockStatuses: [],
   user: null,
   userProfile: null,
-  settings: {
+  settings: window.CONFIG || {
     enableTextGradient: true,
     textGradColor1: "#c8a95e",
     textGradColor2: "#ffffff",
@@ -58,6 +58,7 @@ window.state = {
     accentGradColor1: "#c8a95e",
     accentGradColor2: "#ffd700"
   },
+  settingsLoaded: !!window.CONFIG,
   lang: localStorage.getItem("luxury_lang") || "ar",
   soundEnabled: localStorage.getItem("luxury_sound_enabled") !== "false",
   tempImages: [],
@@ -335,7 +336,14 @@ window.normalizePhone = function (phone) {
 document.addEventListener("DOMContentLoaded", () => {
   initTheme();
   updateLanguageUI();
+  
+  // Apply settings immediately from window.CONFIG or cache
+  if (window.applySettings) {
+    window.applySettings(window.state.settings);
+  }
+
   initFirebase();
+  handleFirstLoad(); // Check if we can remove splash immediately
   window.trackVisit();
   initUIListeners();
 });
@@ -666,10 +674,10 @@ function handleFirstLoad() {
       splash.style.opacity = "0";
       setTimeout(() => {
         splash.classList.add("hidden");
-        splash.remove();
-      }, 800);
+        try { splash.remove(); } catch (e) { }
+      }, 600);
     }
-  }, 1200);
+  }, 400); // Reduced delay for instant feel
 }
 
 
