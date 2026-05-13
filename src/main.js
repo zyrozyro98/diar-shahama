@@ -1049,7 +1049,7 @@ window.renderSupervisorStaffList = function () {
 
     // Clean phone for links
     const rawPhone = s.phone || "";
-    const cleanPhone = rawPhone.replace(/\D/g, '');
+
 
     return `
       <tr onclick="window.showStaffStats('${s.id}')" id="staff-row-${s.id}">
@@ -1069,10 +1069,10 @@ window.renderSupervisorStaffList = function () {
         <td>
             <div class="action-btns-cell">
                 ${s.phone ? `
-                    <a href="tel:${cleanPhone}" class="btn-action-lite call" title="اتصال هاتفي" onclick="event.stopPropagation()">
+                    <a href="tel:${window.normalizePhone(s.phone)}" class="btn-action-lite call" title="اتصال هاتفي" onclick="event.stopPropagation()">
                         <i class="fas fa-phone-alt"></i>
                     </a>
-                    <a href="https://wa.me/${cleanPhone}" target="_blank" class="btn-action-lite whatsapp" title="مراسلة واتساب" onclick="event.stopPropagation()">
+                    <a href="https://wa.me/${window.normalizePhone(s.phone)}" target="_blank" class="btn-action-lite whatsapp" title="مراسلة واتساب" onclick="event.stopPropagation()">
                         <i class="fab fa-whatsapp"></i>
                     </a>
                 ` : ''}
@@ -1598,7 +1598,7 @@ window.viewLuxuryCar = function (id) {
                   <span>تعبئة طلب حجز الخدمة</span>
                 </div>
               </button>
-             <a href="tel:${window.state.settings.contactSales || ""}" class="btn-luxury-v2 call-btn">
+              <a href="tel:${window.normalizePhone(window.state.settings.contactSales || "")}" class="btn-luxury-v2 call-btn">
                <i class="fas fa-phone-alt"></i>
                <div class="btn-txt">
                  <strong>طلب إتصال هاتفي</strong>
@@ -1730,7 +1730,7 @@ window.viewBookingDetails = function (id) {
         </div>
 
         <div style="margin-top:20px; display:flex; gap:10px;">
-            <a href="tel:${item.phone}" class="icon-btn-lite" style="flex:1; height:45px; border-radius:12px; background:#1c7c8c; color:white; border:none; gap:10px; display:flex; align-items:center; justify-content:center; text-decoration:none;">
+            <a href="tel:${window.normalizePhone(item.phone)}" class="icon-btn-lite" style="flex:1; height:45px; border-radius:12px; background:#1c7c8c; color:white; border:none; gap:10px; display:flex; align-items:center; justify-content:center; text-decoration:none;">
                 <i class="fas fa-phone-alt" style="color:white;"></i> مكالمة
             </a>
             <button onclick="window.fetchServerWAChat('${item.waJid || item.phone}', '${item.assignedTo || ''}')" class="icon-btn-lite" style="flex:1; height:45px; border-radius:12px; gap:10px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
@@ -2473,6 +2473,14 @@ window.applySettings = function (s) {
     if (el) el.innerText = val || "...";
     if (row) row.classList.toggle("hidden", !val);
   });
+
+  // Update Floating Call Button
+  const floatCall = document.getElementById("float-call");
+  if (floatCall) {
+    const salesPhone = s.contactSales || "";
+    const cleanPhone = window.normalizePhone(salesPhone);
+    floatCall.href = salesPhone ? `tel:${cleanPhone}` : "tel:";
+  }
 
   // Meta Tags & Social
   const metaTitle = document.getElementById("meta-title");
