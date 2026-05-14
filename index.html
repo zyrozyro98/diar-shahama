@@ -85,20 +85,35 @@
     <script>
         window.CONFIG = {
             nameAr: "معرض ديار كار",
-            nameEn: "Diar Car",
+            nameEn: "Diar Car Showroom",
             logo: "logo.jpg",
             primaryColor: "#907537",
             secondaryColor: "#b39651",
             accentColor: "#c8a95e",
             bgColor: "#05080c",
-            contactSales: "0501234567",
-            contactAdmin: "0501234567",
-            contactComplaints: "0501234567",
-            contactEmail: "info@diyar-car.com",
-            aboutUs: "وجهتك الأولى لتمويل وشراء وبيع السيارات الفاخرة في المملكة العربية السعودية. نوفر أفضل السيارات بأسعار تنافسية وجدولة تمويل مرنة وجودة مضمونة.",
-            location: "الرياض - القادسية",
-            locationUrl: "https://maps.google.com/?q=24.7136,46.6753",
-            defaultTheme: "light"
+            textColor: "#ffffff",
+            borderRadius: 15,
+            glassOpacity: 0.75,
+            glassBlur: 20,
+            cardStyle: "glass",
+            hoverEffect: "scale",
+            enableAnimations: true,
+            enableTextGradient: true,
+            textGradColor1: "#c8a95e",
+            textGradColor2: "#ffffff",
+            enableTopbarGradient: true,
+            topbarGradColor1: "#907537",
+            topbarGradColor2: "#05080c",
+            enablePrimaryGradient: true,
+            primaryGradColor1: "#907537",
+            primaryGradColor2: "#b39651",
+            enableSecondaryGradient: true,
+            secondaryGradColor1: "#b39651",
+            secondaryGradColor2: "#0f172a",
+            enableAccentGradient: true,
+            accentGradColor1: "#c8a95e",
+            accentGradColor2: "#ffd700",
+            logoBlend: "auto"
         };
 
         (function() {
@@ -111,11 +126,7 @@
                 window.__DYNAMIC_NAME_AR__ = window.CONFIG.nameAr;
                 window.__DYNAMIC_NAME_EN__ = window.CONFIG.nameEn;
                 document.title = window.CONFIG.nameAr;
-                
-                const isOverridden = localStorage.getItem("theme_manually_overridden") === "true";
-                const savedTheme = localStorage.getItem("luxury_theme");
-                const theme = (isOverridden && savedTheme) ? savedTheme : (window.CONFIG.defaultTheme || "light");
-                
+                const theme = localStorage.getItem("luxury_theme") || "dark";
                 document.documentElement.setAttribute("data-theme", theme);
                 const root = document.documentElement;
                 root.style.setProperty("--p-red", window.CONFIG.primaryColor);
@@ -128,6 +139,47 @@
                     const style = document.createElement("style");
                     style.id = "dynamic-design-styles";
                     style.innerHTML = cachedCss;
+                    document.head.appendChild(style);
+                } else {
+                    const s = window.CONFIG;
+                    let css = "";
+                    const darkBG = s.dark?.bgColor || s.bgColor;
+                    const darkText = s.dark?.textColor || s.textColor;
+                    if (darkBG) css += `body[data-theme="dark"] { --bg-main: ${darkBG}; }\n`;
+                    if (darkText) css += `body[data-theme="dark"] { --text-main: ${darkText}; }\n`;
+                    
+                    if (s.borderRadius) {
+                        css += `.car-card-premium, .ad-slide, .nav-premium, .modal-inner, .video-card-v2, .feature-card, .btn-premium { border-radius: ${s.borderRadius}px !important; }`;
+                    }
+                    if (s.cardStyle === "solid") {
+                        css += `body[data-theme="dark"] .car-card-premium, body[data-theme="dark"] .modal-inner, body[data-theme="dark"] .stat-premium-card, body[data-theme="dark"] .admin-item-row { background: var(--bg-alt) !important; border: 1px solid rgba(255,255,255,0.05) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }`;
+                    } else {
+                        let op = s.glassOpacity !== undefined ? s.glassOpacity : 0.75;
+                        let blurVal = s.glassBlur !== undefined ? s.glassBlur : 20;
+                        css += `body[data-theme="dark"] .car-card-premium, body[data-theme="dark"] .modal-inner, body[data-theme="dark"] .stat-premium-card, body[data-theme="dark"] .nav-premium, body[data-theme="dark"] .admin-item-row { background: rgba(17, 24, 39, ${op}) !important; backdrop-filter: blur(${blurVal}px) !important; -webkit-backdrop-filter: blur(${blurVal}px) !important; }`;
+                    }
+                    if (s.hoverEffect === "scale") css += `.car-card-premium:hover, .btn-premium:hover, .stat-premium-card:hover { transform: scale(1.02) translateY(-3px); transition: all 0.3s; z-index: 20; position:relative; }`;
+                    else if (s.hoverEffect === "glow") css += `.car-card-premium:hover, .btn-premium:hover, .stat-premium-card:hover { box-shadow: 0 0 20px var(--p-red-glow) !important; transition: box-shadow 0.3s; z-index: 20; position:relative; }`;
+                    
+                    if (s.enableTextGradient) {
+                        css += `.logo-brand-name h1, .luxury-font, .hero-main-title, .section-title-v2, .car-title-v3, .p-amount, .hero-secondary-title, .dynamic-name-ar, .dynamic-name-en, .luxury-logo-gold, #wa-widget-name, .luxury-name-en-splash, .luxury-name-en-nav, .luxury-name-en-hero, #luxury-splash .dynamic-name-ar, #luxury-splash .dynamic-name-en, .top-bar-luxury .dynamic-name-ar, .top-bar-luxury .dynamic-name-en, .nav-premium .dynamic-name-ar, .nav-premium .dynamic-name-en { background: linear-gradient(135deg, ${s.textGradColor1 || "#c8a95e"}, ${s.textGradColor2 || "#ffffff"}) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; line-height: 1.5 !important; display: inline-block !important; }`;
+                    }
+                    if (s.enableTopbarGradient) {
+                        css += `.top-bar-luxury { background: linear-gradient(90deg, ${s.topbarGradColor1 || "#907537"}, ${s.topbarGradColor2 || "#05080c"}) !important; }`;
+                    }
+                    if (s.enablePrimaryGradient) {
+                        css += `.btn-premium, .car-price-v3, .car-badge-v3.available, .badge-v3.year, .p-header, .stat-icon, .car-badge-v3.custom, .hero-btn-v3 { background: linear-gradient(135deg, ${s.primaryGradColor1 || "#907537"}, ${s.primaryGradColor2 || "#b39651"}) !important; border: none !important; color: white !important; }`;
+                    }
+                    if (s.enableSecondaryGradient) {
+                        css += `.btn-secondary, .secondary-badge, .p-tab.active, .bullet-point, .nav-item.active, .dash-tab.active { background: linear-gradient(135deg, ${s.secondaryGradColor1 || "#b39651"}, ${s.secondaryGradColor2 || "#0f172a"}) !important; color: white !important; border: none !important; }`;
+                    }
+                    if (s.enableAccentGradient) {
+                        css += `.accent-glow, .car-badge-v3.reserved, .main-badge, .floating-preview-hud, .btn-action-lite:hover { border-color: ${s.accentGradColor1 || "#c8a95e"} !important; } .accent-gradient-bg, .badge-v3.year, .main-badge, .stat-icon-v3 { background: linear-gradient(135deg, ${s.accentGradColor1 || "#c8a95e"}, ${s.accentGradColor2 || "#ffd700"}) !important; color: white !important; } .accent-text { background: linear-gradient(135deg, ${s.accentGradColor1 || "#c8a95e"}, ${s.accentGradColor2 || "#ffd700"}); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }`;
+                    }
+                    
+                    const style = document.createElement("style");
+                    style.id = "dynamic-design-styles";
+                    style.innerHTML = css;
                     document.head.appendChild(style);
                 }
             } catch (e) { console.error("Early config error:", e); }
@@ -1393,14 +1445,14 @@
                     <div class="f-contact-info">
                         <h4 class="luxury-font highlight mb-20">معلومات الاتصال</h4>
                         <ul class="list-none flex flex-column gap-10">
-                            <li id="contact-mgmt-display"><strong>الإدارة:</strong> <span id="f-phone-admin">0501234567</span>
+                            <li id="contact-mgmt-display"><strong>الإدارة:</strong> <span id="f-phone-admin">...</span>
                             </li>
                             <li id="contact-sales-display"><strong>المبيعات:</strong> <span
-                                    id="f-phone-sales">0501234567</span></li>
+                                    id="f-phone-sales">...</span></li>
                             <li id="contact-complaints-display"><strong>الشكاوي والاقتراحات:</strong> <span
-                                    id="f-phone-info">0501234567</span></li>
+                                    id="f-phone-info">...</span></li>
                             <li id="contact-email-display"><strong>البريد الإلكتروني:</strong> <span
-                                    id="f-email-display">info@diyar-car.com</span></li>
+                                    id="f-email-display">...</span></li>
                             <li class="mt-10"><a id="contact-location-link" href="#" target="_blank"
                                     class="btn-premium btn-sm inline-block">📍 موقعنا
                                     على الخريطة</a></li>

@@ -8848,36 +8848,3 @@ body:not(.is-admin):not(.is-supervisor) .admin-only {
 .wa-status-desc { max-width: 400px !important; margin: 10px auto 25px !important; opacity: 0.7 !important; }
 .wa-qr-container { display: none; background: white !important; padding: 15px !important; border-radius: 15px !important; margin-bottom: 20px !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important; }
 .wa-qr-hint { color: #333 !important; font-size: 12px !important; margin-top: 10px !important; font-weight: bold !important; }
-
-/* --- DEFAULT DYNAMIC DESIGN STYLES (FALLBACK) --- */
-.top-bar-luxury { background: linear-gradient(90deg, #907537, #05080c) !important; }
-.btn-premium, .car-price-v3, .car-badge-v3.available, .badge-v3.year, .p-header, .stat-icon, .car-badge-v3.custom, .hero-btn-v3 {
-    background: linear-gradient(135deg, #907537, #b39651) !important;
-    border: none !important; color: white !important;
-}
-.btn-premium:hover, .hero-btn-v3:hover { filter: brightness(1.2); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
-.btn-secondary, .secondary-badge, .p-tab.active, .bullet-point, .nav-item.active, .dash-tab.active {
-    background: linear-gradient(135deg, #b39651, #0f172a) !important;
-    color: white !important; border: none !important;
-}
-.accent-glow, .car-badge-v3.reserved, .main-badge, .floating-preview-hud, .btn-action-lite:hover { border-color: #c8a95e !important; }
-.accent-gradient-bg, .badge-v3.year, .main-badge, .stat-icon-v3 { background: linear-gradient(135deg, #c8a95e, #ffd700) !important; color: white !important; }
-.logo-brand-name h1, .luxury-font, .hero-main-title, .section-title-v2, .car-title-v3, .p-amount, .hero-secondary-title,
-.dynamic-name-ar, .dynamic-name-en, .luxury-logo-gold, #wa-widget-name, .luxury-name-en-splash, .luxury-name-en-nav, .luxury-name-en-hero,
-#luxury-splash .dynamic-name-ar, #luxury-splash .dynamic-name-en, .top-bar-luxury .dynamic-name-ar, .top-bar-luxury .dynamic-name-en,
-.nav-premium .dynamic-name-ar, .nav-premium .dynamic-name-en {
-    background: linear-gradient(135deg, #c8a95e, #ffffff) !important;
-    -webkit-background-clip: text !important;
-    -webkit-text-fill-color: transparent !important;
-    background-clip: text !important;
-    line-height: 1.5 !important; display: inline-block !important;
-}
-.car-card-premium, .ad-slide, .nav-premium, .modal-inner, .video-card-v2, .feature-card, .btn-premium { border-radius: 15px !important; }
-body[data-theme="dark"] .car-card-premium, body[data-theme="dark"] .modal-inner, body[data-theme="dark"] .stat-premium-card, body[data-theme="dark"] .nav-premium, body[data-theme="dark"] .admin-item-row {
-    background: rgba(17, 24, 39, 0.75) !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important;
-}
-body[data-theme="light"] .car-card-premium, body[data-theme="light"] .modal-inner, body[data-theme="light"] .stat-premium-card, body[data-theme="light"] .nav-premium, body[data-theme="light"] .admin-item-row {
-    background: rgba(255, 255, 255, 0.75) !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important; border: 1px solid rgba(0,0,0,0.05) !important;
-}
-.car-card-premium:hover, .btn-premium:hover, .stat-premium-card:hover { box-shadow: 0 0 20px #90753766 !important; transition: box-shadow 0.3s; z-index: 20; position:relative; }
-
