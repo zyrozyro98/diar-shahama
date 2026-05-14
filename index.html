@@ -115,7 +115,8 @@
             accentGradColor2: "#ffd700",
             logoBlend: "auto",
             animSpeed: 1,
-            fontFamily: "Cairo"
+            fontFamily: "Cairo",
+            defaultTheme: "light"
         };
 
         (function() {
@@ -128,7 +129,7 @@
                 window.__DYNAMIC_NAME_AR__ = window.CONFIG.nameAr;
                 window.__DYNAMIC_NAME_EN__ = window.CONFIG.nameEn;
                 document.title = window.CONFIG.nameAr;
-                const theme = localStorage.getItem("luxury_theme") || "dark";
+                const theme = localStorage.getItem("luxury_theme") || window.CONFIG.defaultTheme || "light";
                 document.documentElement.setAttribute("data-theme", theme);
                 const root = document.documentElement;
                 root.style.setProperty("--p-red", window.CONFIG.primaryColor);
@@ -155,10 +156,12 @@
                     }
                     if (s.cardStyle === "solid") {
                         css += `body[data-theme="dark"] .car-card-premium, body[data-theme="dark"] .modal-inner, body[data-theme="dark"] .stat-premium-card, body[data-theme="dark"] .admin-item-row { background: var(--bg-alt) !important; border: 1px solid rgba(255,255,255,0.05) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }`;
+                        css += `body[data-theme="light"] .car-card-premium, body[data-theme="light"] .modal-inner, body[data-theme="light"] .stat-premium-card, body[data-theme="light"] .admin-item-row { background: var(--bg-alt) !important; border: 1px solid rgba(0,0,0,0.05) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }`;
                     } else {
                         let op = s.glassOpacity !== undefined ? s.glassOpacity : 0.75;
                         let blurVal = s.glassBlur !== undefined ? s.glassBlur : 20;
                         css += `body[data-theme="dark"] .car-card-premium, body[data-theme="dark"] .modal-inner, body[data-theme="dark"] .stat-premium-card, body[data-theme="dark"] .nav-premium, body[data-theme="dark"] .admin-item-row { background: rgba(17, 24, 39, ${op}) !important; backdrop-filter: blur(${blurVal}px) !important; -webkit-backdrop-filter: blur(${blurVal}px) !important; }`;
+                        css += `body[data-theme="light"] .car-card-premium, body[data-theme="light"] .modal-inner, body[data-theme="light"] .stat-premium-card, body[data-theme="light"] .nav-premium, body[data-theme="light"] .admin-item-row { background: rgba(255, 255, 255, ${op}) !important; backdrop-filter: blur(${blurVal}px) !important; -webkit-backdrop-filter: blur(${blurVal}px) !important; border: 1px solid rgba(0,0,0,0.05) !important; }`;
                     }
                     if (s.hoverEffect === "scale") css += `.car-card-premium:hover, .btn-premium:hover, .stat-premium-card:hover { transform: scale(1.02) translateY(-3px); transition: all 0.3s; z-index: 20; position:relative; }`;
                     else if (s.hoverEffect === "glow") css += `.car-card-premium:hover, .btn-premium:hover, .stat-premium-card:hover { box-shadow: 0 0 20px var(--p-red-glow) !important; transition: box-shadow 0.3s; z-index: 20; position:relative; }`;

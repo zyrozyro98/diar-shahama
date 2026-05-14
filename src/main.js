@@ -73,7 +73,8 @@ window.state = {
     accentGradColor2: "#ffd700",
     logoBlend: "auto",
     animSpeed: 1,
-    fontFamily: "Cairo"
+    fontFamily: "Cairo",
+    defaultTheme: "light"
   },
   settingsLoaded: !!window.CONFIG,
   lang: localStorage.getItem("luxury_lang") || "ar",
@@ -580,7 +581,7 @@ function initUIListeners() {
 function initTheme() {
   const settings = JSON.parse(localStorage.getItem("luxury-settings-cache") || "{}");
   const isOverridden = localStorage.getItem("theme_manually_overridden") === "true";
-  const theme = (isOverridden ? localStorage.getItem("luxury_theme") : settings.defaultTheme) || "dark";
+  const theme = (isOverridden ? localStorage.getItem("luxury_theme") : settings.defaultTheme) || "light";
 
   if (!isOverridden) {
     localStorage.setItem("luxury_theme", theme);
