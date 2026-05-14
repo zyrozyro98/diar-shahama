@@ -85,17 +85,20 @@
     <script>
         window.CONFIG = {
             nameAr: "معرض ديار كار",
-            nameEn: "Diar Car Showroom",
+            nameEn: "Diar Car",
             logo: "logo.jpg",
             primaryColor: "#907537",
             secondaryColor: "#b39651",
             accentColor: "#c8a95e",
             bgColor: "#05080c",
-            defaultTheme: "dark",
-            contactAdmin: "0500000000",
-            contactSales: "0500000000",
-            contactComplaints: "0500000000",
-            contactEmail: "info@diyar-car.com"
+            contactSales: "0501234567",
+            contactAdmin: "0501234567",
+            contactComplaints: "0501234567",
+            contactEmail: "info@diyar-car.com",
+            aboutUs: "وجهتك الأولى لتمويل وشراء وبيع السيارات الفاخرة في المملكة العربية السعودية. نوفر أفضل السيارات بأسعار تنافسية وجدولة تمويل مرنة وجودة مضمونة.",
+            location: "الرياض - القادسية",
+            locationUrl: "https://maps.google.com/?q=24.7136,46.6753",
+            defaultTheme: "light"
         };
 
         (function() {
@@ -108,7 +111,11 @@
                 window.__DYNAMIC_NAME_AR__ = window.CONFIG.nameAr;
                 window.__DYNAMIC_NAME_EN__ = window.CONFIG.nameEn;
                 document.title = window.CONFIG.nameAr;
-                const theme = localStorage.getItem("luxury_theme") || window.CONFIG.defaultTheme || "dark";
+                
+                const isOverridden = localStorage.getItem("theme_manually_overridden") === "true";
+                const savedTheme = localStorage.getItem("luxury_theme");
+                const theme = (isOverridden && savedTheme) ? savedTheme : (window.CONFIG.defaultTheme || "light");
+                
                 document.documentElement.setAttribute("data-theme", theme);
                 const root = document.documentElement;
                 root.style.setProperty("--p-red", window.CONFIG.primaryColor);
@@ -1386,14 +1393,14 @@
                     <div class="f-contact-info">
                         <h4 class="luxury-font highlight mb-20">معلومات الاتصال</h4>
                         <ul class="list-none flex flex-column gap-10">
-                            <li id="contact-mgmt-display"><strong>الإدارة:</strong> <span id="f-phone-admin">...</span>
+                            <li id="contact-mgmt-display"><strong>الإدارة:</strong> <span id="f-phone-admin">0501234567</span>
                             </li>
                             <li id="contact-sales-display"><strong>المبيعات:</strong> <span
-                                    id="f-phone-sales">...</span></li>
+                                    id="f-phone-sales">0501234567</span></li>
                             <li id="contact-complaints-display"><strong>الشكاوي والاقتراحات:</strong> <span
-                                    id="f-phone-info">...</span></li>
+                                    id="f-phone-info">0501234567</span></li>
                             <li id="contact-email-display"><strong>البريد الإلكتروني:</strong> <span
-                                    id="f-email-display">...</span></li>
+                                    id="f-email-display">info@diyar-car.com</span></li>
                             <li class="mt-10"><a id="contact-location-link" href="#" target="_blank"
                                     class="btn-premium btn-sm inline-block">📍 موقعنا
                                     على الخريطة</a></li>
@@ -3419,33 +3426,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
-    <script>
-        // Instant population of default or cached contact info & footer
-        if (window.CONFIG) {
-            const elAdmin = document.getElementById('f-phone-admin');
-            const elSales = document.getElementById('f-phone-sales');
-            const elInfo = document.getElementById('f-phone-info');
-            const elEmail = document.getElementById('f-email-display');
-            const elCall = document.getElementById('float-call');
-            const aboutText = document.getElementById('about-text-display');
-            const locationText = document.getElementById('location-text-display');
-            
-            if (elAdmin) elAdmin.innerText = window.CONFIG.contactAdmin || "0500000000";
-            if (elSales) elSales.innerText = window.CONFIG.contactSales || "0500000000";
-            if (elInfo) elInfo.innerText = window.CONFIG.contactComplaints || "0500000000";
-            if (elEmail) elEmail.innerText = window.CONFIG.contactEmail || "info@diyar-car.com";
-            
-            if (aboutText) aboutText.innerText = window.CONFIG.aboutUs || "نقدم لكم تجربة استثنائية في عالم السيارات. خيارات متنوعة، أسعار تنافسية، وضمان يمنحك راحة البال.";
-            if (locationText) locationText.innerText = window.CONFIG.location || "الرياض - معارض القادسية";
-            
-            if (elCall) {
-                const salesPhone = window.CONFIG.contactSales || "0500000000";
-                const cleanPhone = salesPhone.replace(/\D/g, "");
-                elCall.href = "tel:" + cleanPhone;
-            }
-        }
-    </script>
 
     <script type="module" src="/src/main.js"></script>
 </body>

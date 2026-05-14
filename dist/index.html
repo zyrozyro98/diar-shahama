@@ -89,7 +89,12 @@
             primaryColor: "#907537",
             secondaryColor: "#b39651",
             accentColor: "#c8a95e",
-            bgColor: "#05080c"
+            bgColor: "#05080c",
+            defaultTheme: "dark",
+            contactAdmin: "0500000000",
+            contactSales: "0500000000",
+            contactComplaints: "0500000000",
+            contactEmail: "info@diyar-car.com"
         };
 
         (function() {
@@ -102,7 +107,7 @@
                 window.__DYNAMIC_NAME_AR__ = window.CONFIG.nameAr;
                 window.__DYNAMIC_NAME_EN__ = window.CONFIG.nameEn;
                 document.title = window.CONFIG.nameAr;
-                const theme = localStorage.getItem("luxury_theme") || "dark";
+                const theme = localStorage.getItem("luxury_theme") || window.CONFIG.defaultTheme || "dark";
                 document.documentElement.setAttribute("data-theme", theme);
                 const root = document.documentElement;
                 root.style.setProperty("--p-red", window.CONFIG.primaryColor);
@@ -3418,6 +3423,33 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <script>
+        // Instant population of default or cached contact info & footer
+        if (window.CONFIG) {
+            const elAdmin = document.getElementById('f-phone-admin');
+            const elSales = document.getElementById('f-phone-sales');
+            const elInfo = document.getElementById('f-phone-info');
+            const elEmail = document.getElementById('f-email-display');
+            const elCall = document.getElementById('float-call');
+            const aboutText = document.getElementById('about-text-display');
+            const locationText = document.getElementById('location-text-display');
+            
+            if (elAdmin) elAdmin.innerText = window.CONFIG.contactAdmin || "0500000000";
+            if (elSales) elSales.innerText = window.CONFIG.contactSales || "0500000000";
+            if (elInfo) elInfo.innerText = window.CONFIG.contactComplaints || "0500000000";
+            if (elEmail) elEmail.innerText = window.CONFIG.contactEmail || "info@diyar-car.com";
+            
+            if (aboutText) aboutText.innerText = window.CONFIG.aboutUs || "نقدم لكم تجربة استثنائية في عالم السيارات. خيارات متنوعة، أسعار تنافسية، وضمان يمنحك راحة البال.";
+            if (locationText) locationText.innerText = window.CONFIG.location || "الرياض - معارض القادسية";
+            
+            if (elCall) {
+                const salesPhone = window.CONFIG.contactSales || "0500000000";
+                const cleanPhone = salesPhone.replace(/\D/g, "");
+                elCall.href = "tel:" + cleanPhone;
+            }
+        }
+    </script>
 
 </body>
 
