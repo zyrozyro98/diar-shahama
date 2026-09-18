@@ -6,14 +6,14 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDQodWTn2wa0WzQuHqzZt2Ex6CdnQdrlUU",
-  authDomain: "onecar1.firebaseapp.com",
-  projectId: "onecar1",
-  storageBucket: "onecar1.firebasestorage.app",
-  messagingSenderId: "735648367644",
-  appId: "1:735648367644:web:44ae368553280b14bdcbd9",
-  measurementId: "G-RSTPV8SRXT",
-  databaseURL: "https://onecar1-default-rtdb.firebaseio.com"
+  apiKey: "null",
+  authDomain: "null",
+  projectId: "null",
+  storageBucket: "null",
+  messagingSenderId: "null",
+  appId: "null",
+  measurementId: "null",
+  databaseURL: "null"
 };
 
 const app = initializeApp(firebaseConfig);
