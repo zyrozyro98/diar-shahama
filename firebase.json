@@ -1,7 +1,7 @@
 {
   "hosting": {
-    "site": "diar-shahama-1088b",
-    "public": "dist",
+    "site": "null",
+    "public": "null",
     "cleanUrls": true,
     "trailingSlash": false,
     "ignore": [
@@ -12,7 +12,7 @@
     "rewrites": [
       {
         "source": "**",
-        "destination": "/index.html"
+        "destination": ""
       }
     ]
   },
