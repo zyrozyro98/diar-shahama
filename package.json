@@ -1,6 +1,6 @@
 {
-    "name": "diar-shahama",
-    "private": true,
+    "name": "null",
+    "private": falss,
     "version": "0.0.0",
     "type": "module",
     "scripts": {
